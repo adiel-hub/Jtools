@@ -37,12 +37,14 @@ from .questions import Answer, Question, State
 from .wire import Usage
 
 RETRYABLE = frozenset({408, 409, 425, 429, 500, 502, 503, 504, 529})
+THROTTLED = frozenset({429, 529})
+MAX_THROTTLE_PAUSE = 8.0
 FATAL_AUTH = frozenset({401, 402, 403})
 # TypeSafe reports tokens, not dollars. Its list price is $0.042 per million input tokens.
 PRICE_PER_MTOK = float(os.environ.get("JEV_PRICE_PER_MTOK", "0.042"))
 DEFAULT_CONCURRENCY = 20
 DEFAULT_TIMEOUT = 15.0
-DEFAULT_ATTEMPTS = 4
+DEFAULT_ATTEMPTS = 5
 ERROR_REPORT_INTERVAL = 60.0
 
 
@@ -54,6 +56,7 @@ class Meter:
     cached: int = 0
     shared: int = 0
     retries: int = 0
+    throttled: int = 0
     errors: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
@@ -87,6 +90,8 @@ class Meter:
             parts.append(f"{self.shared:,} shared")
         if self.retries:
             parts.append(f"{self.retries:,} retries")
+        if self.throttled:
+            parts.append(f"{self.throttled:,} rate-limited")
         if self.errors:
             parts.append(f"{self.errors:,} errors")
         if self.calls:
@@ -105,6 +110,7 @@ class Meter:
             "cached": self.cached,
             "shared": self.shared,
             "retries": self.retries,
+            "throttled": self.throttled,
             "errors": self.errors,
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
@@ -176,6 +182,7 @@ class Jev:
         self.meter = Meter()
         self.report: Callable[[str], None] = on_error or ErrorReporter(prefix=prefix)
         self._sem = asyncio.Semaphore(self.concurrency)
+        self._brake_until = 0.0  # monotonic time before which nothing is sent (after a 429/529)
         self._flights: dict[str, asyncio.Future[dict[str, Answer]]] = {}
         self._cache = LayeredCache(DiskCache(cache_path) if disk_cache else None)
         self._closed = False
@@ -275,6 +282,10 @@ class Jev:
         last = "no attempt made"
         async with self._sem:
             for attempt in range(self.attempts):
+                # After a rate limit every request waits; one 429 must not turn into twenty.
+                brake = self._brake_until - time.monotonic()
+                if brake > 0:
+                    await asyncio.sleep(min(brake, max(0.0, deadline - time.monotonic())))
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     break
@@ -307,11 +318,26 @@ class Jev:
                     if response.status_code not in RETRYABLE:
                         raise JevError(f"HTTP {response.status_code}: {detail or 'unexpected response'}")
                     last = f"HTTP {response.status_code}" + (f" ({detail})" if detail else "")
+                    if response.status_code in THROTTLED:
+                        self.meter.throttled += 1
+                        pause = _retry_after(response) or min(MAX_THROTTLE_PAUSE, 1.0 * 2**attempt)
+                        self._brake_until = max(self._brake_until, time.monotonic() + pause)
                 if attempt + 1 < self.attempts:
                     self.meter.retries += 1
                     pause = 0.2 * 2**attempt + random.random() * 0.1  # jitter, not security
                     await asyncio.sleep(max(0.0, min(pause, deadline - time.monotonic())))
         raise JevError(f"gave up after {self.timeout:g}s ({last})")
+
+
+def _retry_after(response: httpx.Response) -> float | None:
+    """Seconds from a Retry-After header, when the API sends one."""
+    raw = response.headers.get("retry-after")
+    if not raw:
+        return None
+    try:
+        return max(0.0, min(60.0, float(raw)))
+    except ValueError:
+        return None
 
 
 def _json(response: httpx.Response) -> dict[str, Any]:

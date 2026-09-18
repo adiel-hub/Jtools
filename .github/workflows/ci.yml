@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --python ${{ matrix.python }} --all-groups
+      - name: Lint
+        run: uv run ruff check src tests bench scripts
+      - name: Format
+        run: uv run ruff format --check src tests bench scripts
+      - name: Types
+        run: uv run mypy src
+      - name: Offline tests (no key; MockJev speaks both wire formats)
+        run: uv run pytest -q -m "not live" --timeout 180
+
+  live:
+    name: live smoke (needs a key)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: test
+    env:
+      TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-groups
+      - name: One real call per tool (skips cleanly when no secret is set)
+        run: uv run pytest -q -m live --timeout 300 -s
