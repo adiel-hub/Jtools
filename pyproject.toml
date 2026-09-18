@@ -1,0 +1,104 @@
+[project]
+name = "jev-tools"
+version = "0.1.0"
+description = "Semantic judgment for the shell: sort, pick, gate, dedupe, tag, route and join text by meaning, judged by TypeSafe's Jev decision model."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "j-tools contributors" }]
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+]
+keywords = [
+    "cli", "coreutils", "jev", "typesafe", "openrouter", "vercel", "ai-gateway",
+    "semantic", "sort", "grep", "dedupe", "classification", "ranking", "pipes", "unix",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Text Processing :: Filters",
+    "Topic :: System :: Logging",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/adiel-hub/Jtools"
+Repository = "https://github.com/adiel-hub/Jtools"
+Issues = "https://github.com/adiel-hub/Jtools/issues"
+Changelog = "https://github.com/adiel-hub/Jtools/blob/main/CHANGELOG.md"
+
+[project.scripts]
+jgrep  = "jevtools.jgrep:cli"
+jsort  = "jevtools.jsort:cli"
+jpick  = "jevtools.jpick:cli"
+jgate  = "jevtools.jgate:cli"
+jwatch = "jevtools.jwatch:cli"
+juniq  = "jevtools.juniq:cli"
+jhead  = "jevtools.jhead:cli"
+jtag   = "jevtools.jtag:cli"
+jroute = "jevtools.jroute:cli"
+jmatch = "jevtools.jmatch:cli"
+jtools = "jevtools.jtools:cli"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "pytest-timeout>=2.3",
+    "mypy>=1.11",
+    "ruff>=0.6",
+    "pillow>=10",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jevcore", "src/jevtools"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "LICENSE", "CHANGELOG.md", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+timeout = 120
+markers = [
+    "live: talks to a real Jev endpoint; skipped without an API key",
+]
+filterwarnings = ["error::DeprecationWarning:jevcore", "error::DeprecationWarning:jevtools"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests", "bench", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF", "PL", "N", "ANN", "T20"]
+ignore = [
+    "PLR0913", "PLR0912", "PLR0915", "PLR2004", "PLR0911", "PLR0917", "PLR1714", "PLW2901", "PLC0415",
+    "ANN401", "RUF012", "SIM108", "SIM102", "B008", "T201", "N818",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN", "PLR", "S101", "E501", "PLW1510", "RUF005"]
+"bench/*" = ["ANN", "PLR"]
+"scripts/*" = ["ANN", "PLR"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+files = ["src"]

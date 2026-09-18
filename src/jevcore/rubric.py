@@ -1,0 +1,142 @@
+"""How the tools phrase their questions. One place, so every tool asks Jev the same way.
+
+Jev answers the description you wrote, not the one you meant; these builders keep the wrapping
+around the user's words minimal and consistent.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterable, Sequence
+from typing import Any
+
+from .errors import UsageError
+from .questions import Choice, Noul, Score
+
+FIT_LEVELS: tuple[str, ...] = (
+    "does not fit the description at all",
+    "fits the description slightly",
+    "fits the description moderately",
+    "fits the description strongly",
+    "fits the description perfectly",
+)
+
+NONE_OPTION = "none"
+
+
+def fits(description: str) -> Noul:
+    """jgrep / jgate / jwatch: is this text an instance of the description?"""
+    return Noul(f'The text fits this description: "{description}"')
+
+
+def fits_in_context(description: str) -> Noul:
+    """jgrep -C: the marked lines are judged; the rest is context."""
+    return Noul(
+        f'The lines marked ">" fit this description: "{description}". The other lines are the surrounding '
+        "text, shown only so the marked lines can be read in context; they are not themselves being judged."
+    )
+
+
+def fit_score(description: str, levels: Sequence[str] | None = None) -> Score:
+    """jsort / jhead / jtag --score: how well does the text fit, on an ordered scale?"""
+    return Score(f'Rate how well the text fits this description: "{description}".', tuple(levels or FIT_LEVELS))
+
+
+def same_meaning(description: str, index: int) -> Noul:
+    """juniq: does the candidate mean the same as kept line *index*?"""
+    return Noul(
+        f'The "candidate" text and "kept"[{index}] are duplicates in this sense: "{description}". '
+        "Different wording of the same thing counts as a duplicate; a different thing does not."
+    )
+
+
+def candidates_state(texts: Iterable[str], ids: Iterable[str]) -> list[dict[str, str]]:
+    return [{"id": cid, "text": text} for cid, text in zip(ids, texts, strict=True)]
+
+
+def pick(description: str, ids: Sequence[str], *, allow_none: bool = False) -> Choice:
+    """jpick / jmatch: which candidate best fits the description?"""
+    options = {cid: f"the candidate whose id is {cid}" for cid in ids}
+    if allow_none:
+        options[NONE_OPTION] = "no candidate fits the description"
+    return Choice(f'Choose the candidate that best fits this description: "{description}".', options)
+
+
+def match(description: str, ids: Sequence[str]) -> Choice:
+    """jmatch: which record in "candidates" matches "target" (or none)?"""
+    options = {cid: f'the candidate whose id is {cid} matches "target"' for cid in ids}
+    options[NONE_OPTION] = 'no candidate matches "target"'
+    return Choice(
+        f'Which of the "candidates" goes with the "target" in this sense: "{description}"? '
+        f'Pick "{NONE_OPTION}" if none of them does.',
+        options,
+    )
+
+
+def classify(labels: dict[str, str], instructions: str | None = None) -> Choice:
+    """jtag --labels / jroute: which label applies?"""
+    return Choice(instructions or "Which label describes the text best?", labels)
+
+
+_RANGE = re.compile(r"\(?\b(-?\d+(?:\.\d+)?)\s*(?:-|\u2013|to)\s*(-?\d+(?:\.\d+)?)\b\)?")
+
+
+def parse_scale(text: str) -> tuple[float, float] | None:
+    """``"how positive (0-100)"`` -> ``(0.0, 100.0)``; ``None`` when no range is written."""
+    m = _RANGE.search(text)
+    if not m:
+        return None
+    lo, hi = float(m.group(1)), float(m.group(2))
+    return (lo, hi) if lo != hi else None
+
+
+def parse_levels(text: str) -> tuple[str, ...]:
+    levels = tuple(part.strip() for part in text.split(",") if part.strip())
+    if len(levels) < 2:
+        raise UsageError("--levels needs at least two comma-separated levels, lowest first")
+    return levels
+
+
+def parse_labels(text: str) -> dict[str, str]:
+    """``"bug,feature:new capability,question"`` -> ``{"bug": "bug", "feature": "new capability", ...}``."""
+    labels: dict[str, str] = {}
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        name, _, desc = part.partition(":")
+        name = name.strip()
+        if not name:
+            raise UsageError(f"label {part!r} has no name")
+        if name in labels:
+            raise UsageError(f"duplicate label {name!r}")
+        labels[name] = desc.strip() or name
+    if len(labels) < 2:
+        raise UsageError("need at least two labels")
+    return labels
+
+
+def parse_buckets(specs: Sequence[str]) -> dict[str, str]:
+    """jroute positional ``name:description`` pairs."""
+    buckets: dict[str, str] = {}
+    for spec in specs:
+        name, sep, desc = spec.partition(":")
+        name = name.strip()
+        if not sep or not name or not desc.strip():
+            raise UsageError(f'bucket {spec!r} must look like "name:description"')
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
+            raise UsageError(f"bucket name {name!r} may only use letters, digits, dot, dash and underscore")
+        if name in buckets:
+            raise UsageError(f"duplicate bucket {name!r}")
+        buckets[name] = desc.strip()
+    if len(buckets) < 2:
+        raise UsageError("need at least two buckets")
+    return buckets
+
+
+def ids_for(n: int, prefix: str = "c") -> list[str]:
+    return [f"{prefix}{i + 1}" for i in range(n)]
+
+
+def as_json_state(obj: Any) -> Any:
+    return obj
