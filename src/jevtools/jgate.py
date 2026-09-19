@@ -137,9 +137,8 @@ def check_files(r: Run) -> bool:
         if stat.S_ISDIR(mode):
             bad.append(f"{path}: is a directory")
         elif not stat.S_ISFIFO(mode):
-            try:  # anything else can be opened and closed again for nothing
-                with open(path, "rb"):
-                    pass
+            try:  # O_NONBLOCK so probing a device cannot be what hangs the gate
+                os.close(os.open(path, os.O_RDONLY | os.O_NONBLOCK))
             except OSError as e:
                 bad.append(f"{path}: {e.strerror or e}")
         # A pipe is the one thing that cannot be checked this way: opening it blocks until a

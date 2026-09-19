@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import re
 import time
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
@@ -120,7 +121,7 @@ def prepare_exec(command: str) -> str:
     """
     if not command.strip():
         raise UsageError("--exec needs a command; an empty one would run the watched line itself")
-    if "{}" not in command and "$1" not in command:
+    if "{}" not in command and not POSITIONAL.search(command):
         command += " {}"
     states = list(quote_state(command))
     if states and states[-1][1] and not _closes(command):
@@ -135,9 +136,18 @@ def prepare_exec(command: str) -> str:
                 "--exec: {} is already quoted for you, so do not put quotes around it. "
                 "To put the line inside a longer string, use $1: --exec 'notify-send \"api: $1\"'"
             )
-    if command.strip().split()[0] in ("{}", '"$1"', "$1"):
+    if POSITIONAL.fullmatch(command.strip().split()[0].strip("\"'")) or command.strip().split()[0] == "{}":
         raise UsageError("--exec: the command cannot be only the line; put {} where an argument goes")
     return command.replace("{}", '"$1"')
+
+
+POSITIONAL = re.compile(r"\$(?:\{1\}|[1@*])")
+"""How a command can name the watched line itself, instead of using ``{}``.
+
+``--exec 'notify-send "alert" "${1}"'`` is how a shell user writes it, and looking for the two
+characters ``$1`` does not see it: jwatch would decide the command had no placeholder, append one,
+and pass the line twice. ``$@`` and ``$*`` are the same line by another name.
+"""
 
 
 def _closes(command: str) -> bool:

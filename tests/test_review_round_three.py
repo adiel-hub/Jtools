@@ -666,3 +666,26 @@ def test_a_command_the_substitution_would_break_is_named_for_what_is_wrong(comma
     with pytest.raises(UsageError) as caught:
         prepare_exec(command)
     assert reason in str(caught.value), str(caught.value)
+
+
+# ------------------------------------------------------------- the seventh review
+
+
+@pytest.mark.parametrize("command", ['notify-send "alert" "${1}"', 'echo "$@"', 'echo "$*"', "echo $1"])
+def test_a_command_that_names_the_line_itself_is_not_given_a_second_copy(command):
+    """`"${1}"` is how a shell user spells it; looking for the two characters `$1` does not see it."""
+    assert prepare_exec(command) == command, "the line would be passed twice"
+
+
+@pytest.mark.parametrize("command", ["${1}", '"${1}"', "$@", '"$@"', "$1", '"$1"', "{}"])
+def test_a_command_that_is_only_the_line_is_refused_however_it_is_spelled(command):
+    with pytest.raises(UsageError, match="cannot be only the line"):
+        prepare_exec(command)
+
+
+def test_a_character_device_is_a_readable_argument(invoke, tmp_path):
+    """The readability probe must accept /dev/null; only a FIFO is skipped, everything else opens."""
+    good = write(tmp_path, "a.log", "an error happened here\n")
+    res = invoke(jgate, ["an error", good, "/dev/null"])
+    assert res.code == 0, f"exited {res.code}: {res.err}"
+    assert "/dev/null" not in res.err

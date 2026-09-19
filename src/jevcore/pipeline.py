@@ -92,8 +92,14 @@ class Pipeline(Generic[R]):
                                 fut.cancel()
                                 return
             except Exception as e:  # reader failures are reported, not raised
-                if not self._stop.is_set():
-                    asyncio.run_coroutine_threadsafe(queue.put(InputError(f"input reader: {e}")), loop).result()
+                # And never out of this thread: the run may have ended between the check and the
+                # call, and a daemon thread that dies of a closed loop prints a traceback the
+                # user can do nothing about, after the tool has already finished.
+                with contextlib.suppress(Exception):
+                    if not self._stop.is_set():
+                        asyncio.run_coroutine_threadsafe(queue.put(InputError(f"input reader: {e}")), loop).result(
+                            timeout=5
+                        )
             finally:
                 if not self._stop.is_set():
                     # The loop may already be gone; then there is nothing left to wake.
