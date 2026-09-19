@@ -68,7 +68,10 @@ build-backend = "hatchling.build"
 packages = ["src/jevcore", "src/jevtools"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/README.md", "/LICENSE", "/CHANGELOG.md", "/pyproject.toml"]
+include = [
+    "/src", "/tests", "/completions", "/examples", "/docs",
+    "/README.md", "/LICENSE", "/CHANGELOG.md", "/CONTRIBUTING.md", "/SECURITY.md", "/pyproject.toml",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
