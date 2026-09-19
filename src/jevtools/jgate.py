@@ -149,7 +149,9 @@ async def gate_whole(r: Run) -> int:
     if any(rec.truncated for rec in records):
         r.warn(f"input truncated to {r.args.max_chars:,} characters per file; raise --max-chars")
     try:
-        answers = await r.jev.try_ask(text, {"fits": question(r.args)})
+        # r.judge, like everywhere else, so --strict is honoured here rather than reaching the
+        # same exit code by a different route.
+        answers = await r.judge(text, {"fits": question(r.args)})
     except JevError:
         if not r.args.fail_open:
             raise

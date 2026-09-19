@@ -73,6 +73,9 @@ development and the tests exist so it cannot go wrong again:
   produce constantly, stays inside its record.
 - A byte-order mark, which every spreadsheet export begins with, does not become part of the
   first CSV column's name.
+- Every tool asks through one code path, so `--strict` means the same thing in all of them.
+- In `jgrep`, `-c` counts each file argument separately, as grep does, and a path-shaped pattern
+  for `--glob` or `--exclude` is read relative to the directory being searched.
 - Records that could not be judged pass through rather than disappear; only `jgate` fails closed.
 
 ### Repository
