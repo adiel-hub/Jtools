@@ -222,3 +222,43 @@ def test_a_dry_run_does_not_print_a_token_carried_in_the_endpoint_url(tmp_path):
     assert proc.returncode == 0, proc.stderr[-400:]
     assert "SUPERSECRET123" not in proc.stdout and "SUPERSECRET123" not in proc.stderr
     assert "gw.example.com/v1/systemone" in proc.stdout
+
+
+@pytest.mark.timeout(60)
+def test_the_tools_compose_in_a_real_pipeline(tmp_path):
+    """The whole point is that they pipe into each other and into coreutils.
+
+    A recipe from the README, run as a real shell pipeline against the mock endpoint: route an
+    inbox into files, then rank one bucket, then count the labels of another stream.
+    """
+    server = serve(MockJev())
+    try:
+        env = env_for(server.url, tmp_path)
+        inbox = tmp_path / "inbox.txt"
+        inbox.write_text(
+            "Can we get a quote for 50 enterprise seats?\n"
+            "My password reset link is not working\n"
+            "FREE PRIZE winner click here\n"
+            "Pricing for the team plan please\n"
+        )
+        sorted_dir = tmp_path / "sorted"
+        route = (
+            f"{sys.executable} -m jevtools.jroute 'sales:a sales lead' 'support:a support request' "
+            f"'spam:junk or a scam' -i {inbox} -o {sorted_dir} -q"
+        )
+        done = subprocess.run(route, shell=True, capture_output=True, text=True, env=env, timeout=50)
+        assert done.returncode == 0, done.stderr[-400:]
+        assert (sorted_dir / "sales.txt").exists(), sorted(p.name for p in sorted_dir.iterdir())
+
+        rank = f"{sys.executable} -m jevtools.jsort 'highest buying intent' {sorted_dir}/sales.txt | head -1"
+        done = subprocess.run(rank, shell=True, capture_output=True, text=True, env=env, timeout=50)
+        assert done.returncode == 0 and done.stdout.strip(), done.stderr[-400:]
+
+        count = (
+            f"{sys.executable} -m jevtools.jtag --labels 'bug,feature,question' -q < {inbox} | cut -f1 | sort | uniq -c"
+        )
+        done = subprocess.run(count, shell=True, capture_output=True, text=True, env=env, timeout=50)
+        assert done.returncode == 0, done.stderr[-400:]
+        assert sum(int(line.split()[0]) for line in done.stdout.splitlines()) == 4, done.stdout
+    finally:
+        server.shutdown()
