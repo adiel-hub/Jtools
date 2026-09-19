@@ -110,6 +110,10 @@ def spam(n: int, jobs: int) -> None:
         "jgrep_at_0.9": prf([x >= 0.9 for x in ps], truth),
         "jgrep_run": stats,
         "keyword_grep": prf(keyword, truth) | {"regex": SPAM_REGEX, "seconds": round(time.perf_counter() - t0, 4)},
+        "predictions": [
+            {"text": line, "spam": t, "p": ps[i], "regex": keyword[i]}
+            for i, (line, t) in enumerate(zip(lines, truth, strict=True))
+        ],
     }
     save("accuracy-spam", result)
     print(json.dumps(result, indent=2))
@@ -146,6 +150,7 @@ def sentiment(n: int, jobs: int) -> None:
             [s >= 0.5 for s in scores], [truth.get(r["line"], 0) == 1 for r in rows if r.get("score") is not None]
         ),
         "jsort_run": stats,
+        "ranking": [{"text": r["line"], "score": r.get("score"), "positive": truth.get(r["line"], 0)} for r in rows],
     }
     save("accuracy-sentiment", result)
     print(json.dumps(result, indent=2))
@@ -175,6 +180,10 @@ def news(n: int, jobs: int) -> None:
         "macro_f1": round(sum(v["f1"] for v in per_class.values()) / len(per_class), 4),
         "per_class": per_class,
         "jtag_run": stats,
+        "predictions": [
+            {"text": r["line"][:200], "truth": t, "predicted": r.get("label"), "probabilities": r.get("probabilities")}
+            for r, t in zip(rows, truth_names, strict=True)
+        ],
     }
     save("accuracy-news", result)
     print(json.dumps(result, indent=2))
