@@ -5,6 +5,7 @@ import pytest
 from jevcore.auth import available, resolve
 from jevcore.backends import BACKENDS, OPENROUTER_URL, TYPESAFE_URL, VERCEL_URL, config_dir
 from jevcore.errors import AuthError
+from jevtools.jgrep import main as jgrep
 
 
 def test_typesafe_wins_when_several_keys_exist(monkeypatch):
@@ -91,3 +92,35 @@ def test_redacted_key():
     c = Credentials(BACKENDS["typesafe"], "sk-abcdefghijklmnop", TYPESAFE_URL)
     assert c.redacted_key == "sk-a…mnop"
     assert Credentials(BACKENDS["typesafe"], "short", TYPESAFE_URL).redacted_key == "…"
+
+
+@pytest.mark.parametrize(
+    "api,env,dialect",
+    [
+        ("typesafe", {"TYPESAFE_API_KEY": "k"}, "noul"),
+        ("openrouter", {"OPENROUTER_API_KEY": "k"}, "noul"),
+        ("vercel", {"AI_GATEWAY_API_KEY": "vck_k"}, "boolean"),
+        ("gateway", {"JEV_GATEWAY_API_KEY": "k", "JEV_GATEWAY_URL": "https://gw.example/v1/systemone"}, "noul"),
+    ],
+)
+def test_a_tool_speaks_the_dialect_its_backend_uses(invoke, monkeypatch, api, env, dialect):
+    """--api picks the backend, and with it the wire format. Nothing checked that end to end.
+
+    The two dialects differ in the question type they send and in where the model is named: System
+    One puts it in the body, the Vercel evaluation modality in a header.
+    """
+    for name in ("TYPESAFE_API_KEY", "OPENROUTER_API_KEY", "AI_GATEWAY_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+
+    res = invoke(jgrep, ["--api", api, "-p", "0", "a crash report"], "the app crashed on launch\n")
+    assert res.code == 0, res.err
+    body = res.mock.bodies[0]
+    sent = body["questions"]["d0"]["type"]
+    assert sent == dialect, f"{api} sent a {sent} question, not {dialect}"
+    if dialect == "boolean":
+        assert "ai-model-id" in {k.lower() for k in res.mock.headers[0]}, "the model was not named in a header"
+        assert "model" not in body
+    else:
+        assert body.get("model"), "the model was not named in the body"
