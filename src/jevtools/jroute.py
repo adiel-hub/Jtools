@@ -22,7 +22,7 @@ from typing import IO
 import httpx
 
 from jevcore import rubric
-from jevcore.cli import EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
+from jevcore.cli import DEFAULT_THRESHOLD, EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
 from jevcore.errors import UsageError
 from jevcore.inputs import Record, iter_records
 from jevcore.pipeline import Pipeline
@@ -80,6 +80,10 @@ def prepare(args: argparse.Namespace) -> None:
         raise UsageError("--ext must be a plain file extension, for example .txt")
     if args.stdout and args.stdout not in args.bucket_map and args.stdout != args.default_bucket:
         raise UsageError(f"--stdout {args.stdout!r} is not a bucket")
+    if args.threshold != DEFAULT_THRESHOLD and not args.default_bucket:
+        # Without a bucket to put them in, a low-confidence line has nowhere to go but its best
+        # bucket, so -p would silently do nothing at all.
+        raise UsageError("-p needs --default NAME: a line below the threshold has to go somewhere")
     if args.ext and not args.ext.startswith("."):
         args.ext = "." + args.ext
     args.files = args.input
@@ -105,15 +109,22 @@ class Buckets:
         self.enabled = enabled
         self.files: dict[str, IO[str]] = {}
         self.counts: dict[str, int] = {}
+        self._to_empty: list[str] = []
 
     def prepare(self, names: Iterable[str]) -> None:
-        """With ``--truncate``, empty every bucket this run could use, not only the ones it fills.
+        """Remember which files ``--truncate`` will empty, and empty them at the first write.
 
-        Otherwise a rerun whose verdicts moved would leave yesterday's lines in a file nobody
-        wrote to today, and the set of files would no longer describe this run.
+        Every bucket this run could use is emptied, not only the ones it fills, or a rerun whose
+        verdicts moved would leave yesterday's lines in a file nobody wrote to today. It happens
+        at the first write rather than up front, because a run that reads nothing (an empty pipe,
+        an upstream failure) must not destroy the previous run's output.
         """
-        if not (self.enabled and self.mode == "w"):
+        self._to_empty = list(names) if (self.enabled and self.mode == "w") else []
+
+    def _empty_the_rest(self) -> None:
+        if not self._to_empty:
             return
+        names, self._to_empty = self._to_empty, []
         self.dir.mkdir(parents=True, exist_ok=True)
         for name in names:
             path = self.dir / f"{name}{self.ext}"
@@ -124,6 +135,7 @@ class Buckets:
         self.counts[bucket] = self.counts.get(bucket, 0) + 1
         if not self.enabled:
             return
+        self._empty_the_rest()
         f = self.files.get(bucket)
         if f is None:
             self.dir.mkdir(parents=True, exist_ok=True)
@@ -172,6 +184,8 @@ async def run(r: Run) -> int:
                 bucket = args.default_bucket
         buckets.write(bucket, rec.shown)
         r.verbose(f"{bucket:<12} p={prob if prob is None else f'{prob:.2f}'} {rec.text[:70]}")
+        if args.stdout and bucket != args.stdout:
+            return  # --stdout selects what reaches stdout, in --json as much as in plain output
         if args.json:
             r.out.json(
                 {
@@ -183,7 +197,7 @@ async def run(r: Run) -> int:
                     "lineno": rec.lineno,
                 }
             )
-        elif args.stdout and bucket == args.stdout:
+        elif args.stdout:
             r.out.write(rec.shown)
 
     try:

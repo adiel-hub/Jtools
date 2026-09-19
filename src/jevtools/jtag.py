@@ -133,9 +133,11 @@ def render(r: Run, rec: Record, answer: Answer | None) -> None:
     text = rec.shown
     if rec.is_blank():
         # --json is the machine-readable mode: one object per line, or jq stops at the first blank.
+        # No "judged" key: a blank line was never a candidate, so `select(.judged == false)` must
+        # keep meaning "this line could not be judged".
         if args.json:
             key = "label" if args.label_mode else "score"
-            r.out.json({"line": text, key: None, "judged": False, "blank": True, "lineno": rec.lineno})
+            r.out.json({"line": text, key: None, "blank": True, "source": rec.source, "lineno": rec.lineno})
         else:
             r.out.write(text)
         return

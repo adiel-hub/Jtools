@@ -55,7 +55,9 @@ async def score_records(run: Run, records: Sequence[Record], question: Score) ->
     async def one(record: Record) -> tuple[int, ScoreAnswer | None]:
         answers = await run.judge(record.text, {"fit": question})
         answer = answers.get("fit") if answers else None
-        return record.seq, answer if isinstance(answer, ScoreAnswer) else None
+        scored = answer if isinstance(answer, ScoreAnswer) else None
+        trace(run, "-" if scored is None else f"{scored.normalized:.2f}", record)
+        return record.seq, scored
 
     results = await asyncio.gather(*(one(r) for r in records))
     return dict(results)

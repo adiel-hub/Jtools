@@ -86,10 +86,14 @@ def prepare(args: argparse.Namespace) -> None:
     if args.shortlist is not None and args.shortlist < 1:
         raise UsageError("--shortlist takes 1 or more")
     args.format = unescape(args.format)
-    # Validate with exactly the values the run will pass, matched row and unmatched row alike:
-    # b_line is an int for a hit and "" for a miss, so "{b_line:03d}" used to pass here and then
-    # die halfway through the output, after lines had already been written.
-    for sample in ({"b": "b", "b_line": 0}, {"b": "", "b_line": ""}):
+    # Validate with exactly the values the run will pass. b_line is an int for a hit and "" for a
+    # miss, so "{b_line:03d}" used to pass validation and then die halfway through the output; but
+    # the miss row is only ever printed with --unmatched, and never under --json, so a format that
+    # is fine for this run must not be rejected for a row this run cannot reach.
+    samples = [{"b": "b", "b_line": 0}]
+    if args.unmatched and not args.json:
+        samples.append({"b": "", "b_line": ""})
+    for sample in samples:
         try:
             args.format.format(a="a", score="0.80", a_line=1, **sample)
         except (KeyError, IndexError, ValueError) as e:
@@ -203,11 +207,11 @@ async def run(r: Run) -> int:
 
     async def one(a: Record) -> Match:
         cands = shortlist(a, b_records, b_words, args.shortlist) if args.shortlist else b_records
-        return await best_match(r, a, cands)
+        m = await best_match(r, a, cands)
+        trace(r, "-" if m.b is None else f"{fmt_p(m.probability)} {m.b.lineno}", a)
+        return m
 
     results = await asyncio.gather(*(one(a) for a in a_records))
-    for a, m in zip(a_records, results, strict=True):
-        trace(r, "-" if m.b is None else f"{fmt_p(m.probability)} {m.b.lineno}", a)
     matched = 0
     for a, m in zip(a_records, results, strict=True):
         hit = m.b is not None and m.probability is not None and m.probability >= args.threshold

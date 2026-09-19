@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import shlex
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -22,7 +21,18 @@ from typing import IO
 import httpx
 
 from jevcore import rubric
-from jevcore.cli import EXIT_NOMATCH, EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
+from jevcore.cli import (
+    EXIT_NOMATCH,
+    EXIT_OK,
+    EXIT_USAGE,
+    Parser,
+    Run,
+    build_parser,
+    cli_entry,
+    dry_run,
+    execute,
+    partial,
+)
 from jevcore.errors import UsageError
 from jevcore.inputs import Record, iter_records
 from jevcore.pipeline import Pipeline
@@ -57,7 +67,7 @@ def parser() -> Parser:
         "--exec",
         metavar="CMD",
         dest="command",
-        help="shell command to run per alert; {} is replaced by the quoted line",
+        help="shell command to run per alert; {} becomes the line, passed as an argument, never parsed",
     )
     ap.add_argument(
         "--cooldown",
@@ -83,8 +93,32 @@ def prepare(args: argparse.Namespace) -> None:
         raise UsageError("--cooldown must be 0 or more")
     if args.max_alerts is not None and args.max_alerts < 1:
         raise UsageError("--max takes 1 or more")
-    if args.command is not None and "{}" not in args.command:
-        args.command = args.command + " {}"
+    if args.command is not None:
+        args.command = prepare_exec(args.command)
+
+
+def prepare_exec(command: str) -> str:
+    """Turn ``{}`` into the shell parameter that carries the line, and refuse an unsafe spelling.
+
+    The line comes from the stream being watched, so it must never be part of the command text.
+    ``{}`` becomes ``"$1"`` and the line is passed to ``/bin/sh`` as that parameter. A ``{}`` the
+    user has quoted themselves would expand to ``""$1""``, where ``$1`` is no longer quoted and
+    the line is split on whitespace, so that spelling is rejected rather than quietly mangled.
+    Anyone who wants the line inside a larger string can write ``$1`` directly.
+    """
+    if "{}" not in command and "$1" not in command:
+        command += " {}"
+    for i in range(len(command) - 1):
+        if command[i : i + 2] != "{}":
+            continue
+        before = command[i - 1] if i else ""
+        after = command[i + 2] if i + 2 < len(command) else ""
+        if (before and before in "\"'") or (after and after in "\"'"):
+            raise UsageError(
+                "--exec: {} is already quoted for you, so do not put quotes around it. "
+                "To put the line inside a longer string, use $1: --exec 'notify-send \"api: $1\"'"
+            )
+    return command.replace("{}", '"$1"')
 
 
 def question(args: argparse.Namespace) -> Noul:
@@ -119,12 +153,19 @@ async def run(r: Run) -> int:
         return a.probability if isinstance(a, NoulAnswer) else None
 
     async def spawn(line: str) -> None:
+        """Run the command with the line as an argument, never as part of the command text.
+
+        The line comes from the stream being watched, which is exactly the thing an attacker can
+        write to. Substituting it into the command and handing that to a shell means a log line
+        like ``error $(rm -rf ~)`` runs as code the moment the user quotes ``{}`` themselves.
+        ``{}`` becomes the shell parameter ``"$1"`` and the line is passed as that parameter, so
+        the shell never parses it.
+        """
         assert args.command is not None
-        cmd = args.command.replace("{}", shlex.quote(line))
-        proc = await asyncio.create_subprocess_shell(cmd)
+        proc = await asyncio.create_subprocess_exec("/bin/sh", "-c", args.command, PROG, line)
         code = await proc.wait()
         if code:
-            r.verbose(f"--exec exited {code}: {cmd[:120]}")
+            r.verbose(f"--exec exited {code}: {args.command[:120]}")
 
     def alert(rec: Record, p: float) -> None:
         now = time.monotonic()
@@ -186,6 +227,9 @@ async def run(r: Run) -> int:
         r.note(f"{stats.suppressed} alert(s) were suppressed by the cooldown when the input ended")
     if stats.unjudged:
         r.note(f"{stats.unjudged:,} line(s) could not be judged")
+    if r.input_errors:
+        # `jwatch "outage" typo.log || echo "no alerts"` must not report "no alerts" for a typo.
+        return EXIT_USAGE
     return partial(EXIT_OK if stats.alerts else EXIT_NOMATCH, stats.unjudged)
 
 

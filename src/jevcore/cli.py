@@ -25,7 +25,7 @@ import httpx
 from . import __version__
 from .auth import Credentials, resolve
 from .backends import BACKEND_NAMES, config_dir
-from .client import DEFAULT_CONCURRENCY, DEFAULT_TIMEOUT, ErrorReporter, Jev
+from .client import DEFAULT_CONCURRENCY, DEFAULT_TIMEOUT, ENV_PROBLEMS, ErrorReporter, Jev
 from .errors import AuthError, BudgetExceeded, JevError, JevFatal, UsageError
 from .inputs import DEFAULT_MAX_CHARS
 from .io import BrokenOutput, Output, eprint, redact
@@ -38,6 +38,7 @@ EXIT_AUTH = 3
 EXIT_API = 4
 EXIT_PARTIAL = 5
 EXIT_INTERRUPTED = 130
+DEFAULT_THRESHOLD = 0.5
 
 DEFAULT_BUDGET = 1.0  # dollars; a per-line billed command needs a seat belt
 ENV_BUDGET = "JEV_BUDGET"
@@ -62,7 +63,7 @@ def build_parser(
     examples: Sequence[str],
     *,
     usage: str | None = None,
-    threshold: float | None = 0.5,
+    threshold: float | None = DEFAULT_THRESHOLD,
     files: bool = True,
     short_verbose: bool = True,
     quiet_help: str | None = None,
@@ -86,7 +87,7 @@ QUIET_HELP = "no end-of-run notes on stderr (errors still show)"
 def add_common(
     ap: argparse.ArgumentParser,
     *,
-    threshold: float | None = 0.5,
+    threshold: float | None = DEFAULT_THRESHOLD,
     files: bool = True,
     short_verbose: bool = True,
     quiet_help: str | None = None,
@@ -168,6 +169,10 @@ def add_common(
 
 
 def validate_common(args: argparse.Namespace) -> None:
+    if ENV_PROBLEMS:
+        # Read at import so --help still works; refused here so nothing runs on a setting that
+        # cannot be honoured, which would otherwise look like the backend misbehaving.
+        raise UsageError("; ".join(ENV_PROBLEMS))
     if getattr(args, "threshold", None) is not None and not (
         math.isfinite(args.threshold) and 0.0 <= args.threshold <= 1.0
     ):
@@ -297,12 +302,17 @@ def dry_run(
 
 
 def safe_url(url: str) -> str:
-    """An endpoint with its query string dropped.
+    """An endpoint with anything secret taken out of it.
 
-    Some gateways carry the token in the URL. Printing it in full next to a carefully redacted
-    key would hand the secret over anyway, and a dry run is the thing people paste into issues.
+    Some gateways carry the token in the query string, others in the userinfo before the host.
+    Printing either in full next to a carefully redacted key would hand the secret over anyway,
+    and a dry run is the thing people paste into issues.
     """
     base, sep, query = url.partition("?")
+    scheme, _, rest = base.partition("://")
+    if rest and "@" in rest.split("/", 1)[0]:
+        _, _, host = rest.partition("@")
+        base = f"{scheme}://…@{host}" if scheme else f"…@{host}"
     return f"{base}?…" if sep and query else base
 
 

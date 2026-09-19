@@ -68,10 +68,18 @@ def _clip(text: str, max_chars: int) -> tuple[str, bool]:
     return text, False
 
 
-def open_text(path: str) -> TextIO:
+def open_text(path: str, *, newline: str = "\n") -> TextIO:
+    """Open an input. ``utf-8-sig`` drops the byte-order mark every spreadsheet export starts with,
+    which otherwise becomes part of the first CSV column name and makes it unaddressable.
+
+    ``newline="\n"`` stops a lone carriage return from ending a line: progress-bar output and some
+    container logs are full of them, and universal newlines would split one line into several with
+    line numbers that match nothing. CRLF is still handled, by stripping it. The CSV reader needs
+    ``newline=""`` instead, because it has to see the terminators inside quoted fields itself.
+    """
     if path == "-":
         return sys.stdin
-    return open(path, encoding="utf-8", errors="replace", newline="")  # the caller closes it
+    return open(path, encoding="utf-8-sig", errors="replace", newline=newline)  # the caller closes it
 
 
 def _readlines(stream: TextIO) -> Iterator[str]:
@@ -127,7 +135,9 @@ def iter_records(
             return
         name = STDIN if path == "-" else path
         try:
-            stream = open_text(path)
+            # The csv module needs the raw terminators inside quoted fields; everything else wants
+            # a lone carriage return left alone. See open_text.
+            stream = open_text(path, newline="" if csv_field is not None else "\n")
         except OSError as e:
             yield InputError(f"{name}: {e.strerror or e}")
             continue

@@ -23,7 +23,7 @@ jwatch [options] DESCRIPTION [FILE ...]
 | option | meaning |
 |---|---|
 | `-p P` | probability needed to alert (default 0.5) |
-| `--exec CMD` | shell command per alert; `{}` is replaced by the **shell-quoted** line (appended if absent) |
+| `--exec CMD` | shell command per alert; `{}` is the line, passed as an argument (appended if absent) |
 | `--cooldown SEC` | after an alert, swallow further alerts for SEC seconds; the count is reported when it lifts |
 | `--max N` | stop after N alerts |
 | `-s`, `--with-score` | prefix each alert with its probability |
@@ -36,6 +36,12 @@ jwatch [options] DESCRIPTION [FILE ...]
 - Never buffers: a line is judged the moment it arrives and alerts print in input order.
   `-j` (default 20) bounds requests in flight; a quiet stream costs nothing.
 - `--exec` commands run in the background and are given ten seconds to finish at exit.
+- **The line is never part of the command.** `{}` becomes the shell parameter `"$1"` and the line
+  is passed to `/bin/sh` as that parameter, so a log line containing `$(…)`, backticks or `;` is
+  text, not code. Do not put your own quotes around `{}`: it is quoted already, and
+  `"{}"` would expand to `""$1""`, where the line is unquoted again and splits on whitespace.
+  jwatch refuses that spelling. To put the line inside a longer string, write `$1` yourself:
+  `--exec 'notify-send "api: $1"'`.
 - Fail-open: a line that could not be judged is skipped (never alerts) and the exit status
   becomes 5; a dead endpoint is reported once a minute, not once a line.
 - Exit status: 0 at least one alert, 1 none, 2 usage, 3 auth, 4 API (`--strict`), 5 partial.

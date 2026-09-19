@@ -95,10 +95,8 @@ async def run(r: Run) -> int:
     ranked = sorted(judged, key=lambda rec: ((value(rec.seq) if args.tail else -value(rec.seq)), rec.seq))
     survivors = ranked[: args.count]
     kept = {rec.seq for rec in survivors}
-    for record in records:
-        answer = scores[record.seq]
-        mark = "-" if answer is None else f"{answer.normalized:.2f}"
-        trace(r, f"{mark} {'keep' if record.seq in kept else 'drop'}", record)
+    for record in records:  # the scores were traced as they landed; this says which ones survived
+        trace(r, "keep" if record.seq in kept else "drop", record)
     # Rank is relevance, whatever order the lines come out in: `jq 'select(.rank==1)'` must name
     # the best line, not the first one that happened to appear in the file.
     rank_of = {rec.seq: i for i, rec in enumerate(ranked, 1)}

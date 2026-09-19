@@ -23,7 +23,7 @@ from jevcore.errors import UsageError
 from jevcore.inputs import iter_records
 from jevcore.questions import Score
 
-from ._shared import add_levels_option, read_all, render_scored, score_json, score_records, split_description, trace
+from ._shared import add_levels_option, read_all, render_scored, score_json, score_records, split_description
 
 PROG = "jsort"
 
@@ -72,9 +72,6 @@ async def run(r: Run) -> int:
         return r.empty_input()
     scores = await score_records(r, records, question(args))
     unjudged = sum(1 for v in scores.values() if v is None)
-    for record in records:
-        answer = scores[record.seq]
-        trace(r, "-" if answer is None else f"{answer.normalized:.2f}", record)
 
     def key(seq: int) -> tuple[int, float, int]:
         answer = scores[seq]

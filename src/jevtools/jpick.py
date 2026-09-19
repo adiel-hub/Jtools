@@ -109,6 +109,10 @@ def chunks(items: list[Record], size: int) -> list[list[Record]]:
 
 async def judge_group(run: Run, description: str, group: list[Record]) -> list[tuple[Record, float]] | None:
     """Rank one group by Jev's distribution. ``None`` when the call failed (fail-open)."""
+    if len(group) == 1:
+        # An odd count leaves a group of one, and a choice question needs two options. The single
+        # candidate has nothing to lose to, so it goes through without a call.
+        return [(group[0], 1.0)]
     ids = rubric.ids_for(len(group))
     state = rubric.candidates_state([rec.text for rec in group], ids)
     answers = await run.judge(state, {"best": rubric.pick(description, ids)})

@@ -63,7 +63,16 @@ development and the tests exist so it cannot go wrong again:
 - Nothing a backend sends can make an answer name an option that was never offered or a rung
   outside its rubric.
 - In `--json` mode every output line is a JSON object, blank input lines included.
-- An unreadable input file is exit 2 in every tool, never "nothing matched".
+- An unreadable input file is exit 2 in every tool, never "nothing matched", and a gate refuses
+  to answer at all for input it could not read.
+- `jwatch --exec` passes the alert line to the shell as an argument, never as command text, so a
+  log line is data and not code.
+- `jroute --truncate` empties nothing until a line is actually routed, so a run that reads
+  nothing cannot destroy the previous run's buckets.
+- Only a newline ends a line. A bare carriage return, which progress bars and some container logs
+  produce constantly, stays inside its record.
+- A byte-order mark, which every spreadsheet export begins with, does not become part of the
+  first CSV column's name.
 - Records that could not be judged pass through rather than disappear; only `jgate` fails closed.
 
 ### Repository

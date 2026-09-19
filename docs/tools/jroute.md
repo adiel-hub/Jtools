@@ -24,9 +24,9 @@ jroute [options] "NAME:DESCRIPTION" "NAME:DESCRIPTION" ... [-i FILE]
 | `-i`, `--input FILE` | read this file instead of stdin (repeatable) |
 | `-o`, `--out-dir DIR` | where bucket files go (default: current directory) |
 | `--ext EXT` | bucket file extension (default `.txt`) |
-| `--default NAME` | bucket for lines below `-p` and for unjudged lines |
-| `--stdout NAME` | also copy this bucket's lines to standard output, for the next pipe |
-| `--truncate` | start bucket files empty instead of appending |
+| `--default NAME` | bucket for lines below `-p` and for unjudged lines; `-p` requires it |
+| `--stdout NAME` | send only this bucket's records to standard output, in `--json` too |
+| `--truncate` | start bucket files empty instead of appending; nothing is emptied until the first line is routed, so a run that reads nothing leaves the previous run's files alone |
 | `--no-files` | write no files (use with `--json` or `--stdout`) |
 | `--json` | `{"bucket", "line", "probability", "probabilities", "source", "lineno"}` per line |
 | `-q` | no summary line on stderr |

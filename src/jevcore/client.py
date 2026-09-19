@@ -18,6 +18,7 @@ non-fatal :class:`~jevcore.errors.JevError`. Tools use it unless the user passes
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import random
 import sqlite3
@@ -48,26 +49,35 @@ ERROR_REPORT_INTERVAL = 60.0
 TYPICAL_TOKENS = 300  # what one line costs, before any call has measured it
 
 
-def _env_number(name: str, default: float, cast: Callable[[str], Any] = float) -> Any:
-    """An environment default, ignoring a value that is not a number.
+ENV_PROBLEMS: list[str] = []
+"""Environment defaults that could not be used, reported by ``validate_common`` as a usage error.
 
-    These are read at import, so raising here would stop ``--help`` from printing the very flag
-    the user got wrong. ``JEV_TIMEOUT=15s`` is an easy mistake; it should not brick the command.
-    """
+They are read at import, and raising there would stop ``--help`` from printing the very flag the
+user got wrong. Collecting them instead keeps ``--help`` working and still refuses to run with a
+setting nobody can act on: silently clamping ``JEV_TIMEOUT=-5`` to something workable would judge
+nothing and never mention the variable.
+"""
+
+
+def _env_number(name: str, default: float, cast: Callable[[str], Any] = float, *, low: float = 0.0) -> Any:
     raw = (os.environ.get(name) or "").strip()
     if not raw:
         return default
     try:
-        return cast(raw)
+        value = cast(raw)
     except ValueError:
-        print(f"jev: ignoring {name}={raw!r}: not a number; using {default:g}", file=sys.stderr)
+        ENV_PROBLEMS.append(f"{name}={raw!r} is not a number")
         return default
+    if not math.isfinite(value) or value < low:
+        ENV_PROBLEMS.append(f"{name}={raw!r} must be a finite number of at least {low:g}")
+        return default
+    return value
 
 
-DEFAULT_CONCURRENCY: int = max(1, _env_number("JEV_CONCURRENCY", 20, int))
+DEFAULT_CONCURRENCY: int = _env_number("JEV_CONCURRENCY", 20, int, low=1)
 # TypeSafe reports tokens, not dollars. Its list price is $0.042 per million input tokens.
-PRICE_PER_MTOK: float = max(0.0, _env_number("JEV_PRICE_PER_MTOK", 0.042))
-DEFAULT_TIMEOUT: float = max(0.1, _env_number("JEV_TIMEOUT", 15.0))
+PRICE_PER_MTOK: float = _env_number("JEV_PRICE_PER_MTOK", 0.042)
+DEFAULT_TIMEOUT: float = _env_number("JEV_TIMEOUT", 15.0, low=1e-3)
 
 
 @dataclass
@@ -198,11 +208,7 @@ class Jev:
         self.backend: Backend = credentials.backend
         self.url = credentials.url
         self.model = (model or os.environ.get("JEV_MODEL") or "").strip() or self.backend.model
-        # Answers are cached under the version that produced them, not under the alias that
-        # asked for it. "jev-latest" moves; a cache keyed on the alias would replay a retired
-        # model's judgments for ever. Until a response names a version, the alias has to do,
-        # so the first call of a run is a miss and re-checks what the alias means today.
-        self._key_model = self.model
+        self._alias_checked = False  # whether this run has compared the alias against its meaning
         self.timeout = timeout
         self.attempts = max(1, attempts)
         self.concurrency = max(1, concurrency)
@@ -265,7 +271,7 @@ class Jev:
         """Answer every question about one state. Only questions missing from the cache are sent."""
         if not questions:
             return {}
-        keys = {qid: cache_key(self._key_model, state, q) for qid, q in questions.items()}
+        keys = {qid: cache_key(self.model, state, q) for qid, q in questions.items()}
         answers: dict[str, Answer] = {}
         for qid, key in keys.items():
             hit = self._cache.get(key)
@@ -335,6 +341,22 @@ class Jev:
 
         return done
 
+    def _check_alias(self, answered: str | None) -> None:
+        """Once per run: has the model this run asked for come to mean something else?
+
+        ``jev-latest`` moves. Cached answers are keyed on the name the run asked for, so without
+        this they would go on being replayed by a version that no longer exists. The first real
+        response of the first run to notice drops them and says so.
+        """
+        if self._alias_checked or not answered or answered == self.model:
+            return
+        self._alias_checked = True
+        previous = self._cache.reconcile(self.model, answered)
+        if previous is not None:
+            self.report(
+                f"{self.model} now means {answered}, not {previous}; cached answers from the old version were discarded"
+            )
+
     def _cost_estimate(self) -> float:
         """What the next call will probably cost: what the last ones did, or a typical line."""
         if self.meter.calls:
@@ -400,7 +422,6 @@ class Jev:
             # After a rate limit every request waits; one 429 must not turn into twenty.
             if not await self._wait_for_brake(deadline):
                 wait = self._brake_until - time.monotonic()
-                self.meter.throttled += 1
                 raise JevError(
                     f"rate limited: the backend asked for another {wait:.0f}s, longer than "
                     f"--timeout {self.timeout:g}s; raise --timeout (or JEV_TIMEOUT) to wait it out"
@@ -416,7 +437,11 @@ class Jev:
                     # A rate-limited tier: releasing twenty waiters at once just earns twenty
                     # more 429s. Send one at a time until the limit has been quiet for a while.
                     async with self._trickle:
-                        await self._wait_for_brake(deadline)
+                        # The brake may have been set while this request queued on the lock. The
+                        # outer check happened before that wait, so it has to be made again here.
+                        if not await self._wait_for_brake(deadline):
+                            last = "rate limited for longer than --timeout allows"
+                            break
                         remaining = deadline - time.monotonic()
                         if remaining <= 0:
                             break
@@ -438,13 +463,10 @@ class Jev:
                 if response.status_code == 200 and "answers" in data:
                     answers, usage = wire.parse(data, questions)
                     self.meter.record(usage, time.perf_counter() - t0, self.model)
-                    if usage.model:
-                        self._key_model = usage.model
-                    # The caller gets the keys it asked with; the cache keeps the resolved ones.
-                    store = {qid: cache_key(self._key_model, state, q) for qid, q in questions.items()}
+                    self._check_alias(usage.model)
                     out: dict[str, Answer] = {}
                     for qid, answer in answers.items():
-                        self._cache.put(store[qid], answer)
+                        self._cache.put(keys[qid], answer, self.model, usage.model or "")
                         out[keys[qid]] = answer
                     return out
                 detail = wire.error_detail(data) or response.text[:200].strip()

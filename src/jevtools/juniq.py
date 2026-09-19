@@ -121,16 +121,19 @@ async def run(r: Run) -> int:
     async def compare(i: int) -> list[float] | None:
         window = unique[max(0, i - args.window) : i]
         if not window:
+            trace(r, "first", unique[i])  # nothing to compare it with; it is kept by definition
             return []
         state = {"candidate": unique[i].text, "kept": [rec.text for rec in window]}
         questions = {f"k{j}": rubric.same_meaning(args.description, j) for j in range(len(window))}
         answers = await r.judge(state, questions)
         if answers is None:
+            trace(r, "-", unique[i])
             return None
         out = []
         for j in range(len(window)):
             a = answers[f"k{j}"]
             out.append(a.probability if isinstance(a, NoulAnswer) else 0.0)
+        trace(r, f"max p={max(out, default=0.0):.2f}", unique[i])
         return out
 
     verdicts = await asyncio.gather(*(compare(i) for i in range(len(unique))))
@@ -163,9 +166,6 @@ async def run(r: Run) -> int:
         members.sort(key=lambda x: x.seq)
 
     kept = [rec for rec in records if rep.get(rec.seq) == rec.seq]
-    for rec in records:
-        target = rep.get(rec.seq)
-        trace(r, "keep" if target == rec.seq else f"dup of #{target}", rec)
     printed = 0
     for rec in kept:
         members = groups[rec.seq]

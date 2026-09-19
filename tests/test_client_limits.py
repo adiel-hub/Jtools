@@ -66,7 +66,8 @@ async def test_a_retry_after_longer_than_the_timeout_fails_fast_and_says_why(cre
     assert "rate limited" in str(caught.value) and "--timeout" in str(caught.value)
     assert "no attempt made" not in str(caught.value)
     assert waited < 0.4, f"waited {waited:.2f}s to report a limit it could never outlast"
-    assert jev.meter.throttled >= 2, "a request the brake refused was not counted as rate-limited"
+    # The 429 is the rate limit; the give-up it caused is not a second one.
+    assert jev.meter.throttled == 1, f"counted {jev.meter.throttled} rate limits for one 429"
 
 
 async def test_a_brake_shorter_than_the_timeout_is_still_waited_out(creds):
@@ -98,20 +99,30 @@ async def test_a_cache_path_may_be_a_string(creds, tmp_path):
     assert (tmp_path / "a.sqlite").exists()
 
 
-@pytest.mark.parametrize("value", ["15s", "abc", "12 seconds"])
-def test_a_typo_in_an_environment_default_does_not_stop_the_command(value, tmp_path):
-    """JEV_TIMEOUT=15s is an easy mistake; --help must still print the flag that explains it."""
+@pytest.mark.parametrize("value", ["15s", "abc", "12 seconds", "-5", "inf", "nan"])
+def test_an_unusable_environment_default_is_a_usage_error_and_help_still_works(value, tmp_path):
+    """JEV_TIMEOUT=15s is an easy mistake. --help must still explain the flag, and a run must
+    refuse rather than quietly substitute a value that judges nothing."""
     env = {
         "PATH": "/usr/bin:/bin",
         "HOME": str(tmp_path),
         "TYPESAFE_API_KEY": "k",
         "JEV_TIMEOUT": value,
-        "JEV_CONCURRENCY": value,
         "PYTHONPATH": "src",
     }
-    done = subprocess.run(
+    helped = subprocess.run(
         [sys.executable, "-m", "jevtools.jgrep", "--help"], capture_output=True, text=True, env=env, check=False
     )
-    assert done.returncode == 0, done.stderr[-500:]
-    assert "--timeout" in done.stdout
-    assert "ignoring JEV_TIMEOUT" in done.stderr
+    assert helped.returncode == 0, helped.stderr[-500:]
+    assert "--timeout" in helped.stdout
+
+    run = subprocess.run(
+        [sys.executable, "-m", "jevtools.jgrep", "anything"],
+        input="a line\n",
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert run.returncode == 2, run.stderr[-500:]
+    assert "JEV_TIMEOUT" in run.stderr and value in run.stderr

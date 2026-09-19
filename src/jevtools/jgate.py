@@ -17,6 +17,7 @@ run when the API is down is not a gate. ``--fail-open`` restores the pass-throug
 from __future__ import annotations
 
 import argparse
+import contextlib
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import IO
@@ -28,6 +29,7 @@ from jevcore.cli import (
     EXIT_API,
     EXIT_NOMATCH,
     EXIT_OK,
+    EXIT_USAGE,
     Parser,
     Run,
     build_parser,
@@ -37,6 +39,7 @@ from jevcore.cli import (
 )
 from jevcore.errors import JevError, UsageError
 from jevcore.inputs import DEFAULT_MAX_CHARS, Item, Record, iter_records
+from jevcore.io import BrokenOutput
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Noul, NoulAnswer
 
@@ -102,6 +105,17 @@ def dry(args: argparse.Namespace, out: IO[str]) -> int:
     return dry_run(PROG, args, {"fits": question(args)}, sample, out, note=note)
 
 
+def unreadable(r: Run) -> int:
+    """A gate that could not read part of its input has not judged that part.
+
+    Every other tool treats this as exit 2. For a gate it matters more: `jgate --all "safe" *.log
+    && deploy` must not deploy because one of the files was missing. The message has already been
+    printed by the reader; this only decides the status.
+    """
+    r.warn("some input could not be read, so the verdict would not cover it")
+    return EXIT_USAGE
+
+
 def verdict(r: Run, p: float | None, *, extra: dict[str, object] | None = None) -> int:
     args = r.args
     if p is None:
@@ -116,7 +130,10 @@ def verdict(r: Run, p: float | None, *, extra: dict[str, object] | None = None) 
     if args.json:
         obj: dict[str, object] = {"pass": code == EXIT_OK, "probability": p, "threshold": args.threshold}
         obj.update(extra or {})
-        r.out.json(obj)
+        # A gate keeps its verdict when it loses stdout. Elsewhere a closed pipe means "the reader
+        # has what it wanted", exit 0; here it would turn a refusal into a pass under `| head`.
+        with contextlib.suppress(BrokenOutput):
+            r.out.json(obj)
     elif p is not None:
         r.verbose(f"p={p:.3f} threshold={args.threshold:g} -> {'pass' if code == EXIT_OK else 'fail'}")
     return code
@@ -124,6 +141,8 @@ def verdict(r: Run, p: float | None, *, extra: dict[str, object] | None = None) 
 
 async def gate_whole(r: Run) -> int:
     records = await read_all(r, r.args.files, keep_blank=True, mode="whole")
+    if r.input_errors:
+        return unreadable(r)
     text = "\n".join(rec.text.rstrip("\n") for rec in records)
     if not text.strip():
         return r.empty_input()
@@ -141,8 +160,9 @@ async def gate_whole(r: Run) -> int:
         p = answers["fits"].probability if answers and isinstance(answers["fits"], NoulAnswer) else None
         code = verdict(r, p)
     if code == EXIT_OK and r.args.passthrough:
-        for rec in records:
-            r.out.write(rec.shown.rstrip("\n"))
+        with contextlib.suppress(BrokenOutput):
+            for rec in records:
+                r.out.write(rec.shown.rstrip("\n"))
     return code
 
 
@@ -151,6 +171,7 @@ class _EachStats:
     judged: int = 0
     passed: int = 0
     failed_calls: int = 0
+    truncated: int = 0
     decided: int | None = None
 
 
@@ -162,7 +183,7 @@ async def gate_each(r: Run) -> int:
     pipe: Pipeline[float | None] = Pipeline(concurrency=args.concurrency, ordered=False)
 
     async def judge(rec: Record) -> float | None:
-        answers = await r.jev.try_ask(rec.text, {"fits": q})
+        answers = await r.judge(rec.text, {"fits": q})  # r.judge, so --strict fails closed here too
         if not answers:
             return None
         a = answers["fits"]
@@ -172,6 +193,7 @@ async def gate_each(r: Run) -> int:
         if rec.is_blank():
             return
         stats.judged += 1
+        stats.truncated += int(rec.truncated)
         if p is None:
             stats.failed_calls += 1
             if not args.fail_open and args.all:
@@ -205,6 +227,10 @@ async def gate_each(r: Run) -> int:
             return EXIT_OK
         raise result.fatal
     report_pipeline_errors(r, result)
+    if stats.truncated:
+        r.warn(f"{stats.truncated:,} record(s) were judged on their first {args.max_chars:,} characters")
+    if r.input_errors:
+        return unreadable(r)
     if stats.judged == 0 and not kept:
         return r.empty_input()
     if stats.decided is not None:
@@ -221,20 +247,21 @@ async def gate_each(r: Run) -> int:
         code = verdict(r, None)
     else:
         code = EXIT_NOMATCH
-    if args.json:
-        r.out.json(
-            {
-                "pass": code == EXIT_OK,
-                "mode": "all" if args.all else "any",
-                "lines": stats.judged,
-                "fit": stats.passed,
-                "unjudged": stats.failed_calls,
-                "threshold": args.threshold,
-            }
-        )
-    if code == EXIT_OK and args.passthrough:
-        for rec in kept:
-            r.out.write(rec.shown)
+    with contextlib.suppress(BrokenOutput):  # the verdict survives losing stdout; see verdict()
+        if args.json:
+            r.out.json(
+                {
+                    "pass": code == EXIT_OK,
+                    "mode": "all" if args.all else "any",
+                    "lines": stats.judged,
+                    "fit": stats.passed,
+                    "unjudged": stats.failed_calls,
+                    "threshold": args.threshold,
+                }
+            )
+        if code == EXIT_OK and args.passthrough:
+            for rec in kept:
+                r.out.write(rec.shown)
     return code
 
 

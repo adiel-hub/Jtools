@@ -365,7 +365,7 @@ async def run(r: Run) -> int:
     if totals["truncated"]:
         r.note(f"truncated {totals['truncated']:,} records to {args.max_chars:,} characters; raise --max-chars")
     if totals["input_errors"] > MAX_ERRORS_SHOWN:
-        r.note(f"and {totals['input_errors'] - MAX_ERRORS_SHOWN:,} more input errors")
+        r.warn(f"and {totals['input_errors'] - MAX_ERRORS_SHOWN:,} more input errors")
     if totals["unjudged"]:
         r.note(f"{totals['unjudged']:,} record(s) could not be judged and passed through")
     if args.quiet and totals["matched"]:

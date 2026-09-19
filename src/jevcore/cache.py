@@ -91,7 +91,20 @@ class MemoryCache:
 
 
 class DiskCache:
-    """Answers on disk, keyed on the exact model, state and question. Safe across processes."""
+    """Answers on disk, keyed on the model asked for, the state and the question.
+
+    Keyed on the model **asked for**, not the version that answered, because a run cannot know the
+    version until a response arrives and the tools that read their input whole ask everything at
+    once: keying on the resolved version means nothing ever finds its own rows again and every
+    rerun re-pays for the corpus.
+
+    That leaves the alias problem: ``jev-latest`` moves, and rows written under it would otherwise
+    replay a retired version for ever. So each row records the version that produced it, and the
+    alias's current meaning is recorded too. The first live response of any later run that notices
+    a different meaning throws the alias's rows away and says so. A rerun with nothing new to ask
+    makes no call and cannot notice, which is the one gap; ``--no-cache`` and a pinned ``--model``
+    both close it.
+    """
 
     def __init__(self, path: Path | None = None) -> None:
         self.path = path or cache_dir() / "answers.sqlite"
@@ -102,9 +115,15 @@ class DiskCache:
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute("PRAGMA synchronous=NORMAL")
         self._db.execute(
-            "CREATE TABLE IF NOT EXISTS answers (key TEXT PRIMARY KEY, answer TEXT NOT NULL, at REAL NOT NULL) "
-            "WITHOUT ROWID"
+            "CREATE TABLE IF NOT EXISTS answers (key TEXT PRIMARY KEY, answer TEXT NOT NULL, at REAL NOT NULL, "
+            "asked TEXT, answered TEXT) WITHOUT ROWID"
         )
+        self._db.execute(
+            "CREATE TABLE IF NOT EXISTS resolutions (asked TEXT PRIMARY KEY, answered TEXT NOT NULL, at REAL NOT NULL)"
+        )
+        for column in ("asked", "answered"):  # a file written by an earlier version has neither
+            with contextlib.suppress(sqlite3.OperationalError):
+                self._db.execute(f"ALTER TABLE answers ADD COLUMN {column} TEXT")
 
     def get(self, key: str) -> Answer | None:
         with self._lock:
@@ -117,10 +136,29 @@ class DiskCache:
             return None
         return decode_answer(data) if isinstance(data, dict) else None
 
-    def put(self, key: str, answer: Answer) -> None:
+    def put(self, key: str, answer: Answer, asked: str = "", answered: str = "") -> None:
         payload = json.dumps(encode_answer(answer), ensure_ascii=False)
         with self._lock:
-            self._db.execute("INSERT OR REPLACE INTO answers VALUES (?, ?, ?)", (key, payload, time.time()))
+            self._db.execute(
+                "INSERT OR REPLACE INTO answers VALUES (?, ?, ?, ?, ?)",
+                (key, payload, time.time(), asked, answered),
+            )
+
+    def reconcile(self, asked: str, answered: str) -> str | None:
+        """Record what ``asked`` resolves to. Returns the previous answer when it changed, having
+        dropped every row that model produced, so a moved alias cannot go on being replayed."""
+        if not asked or not answered:
+            return None
+        with self._lock:
+            row = self._db.execute("SELECT answered FROM resolutions WHERE asked = ?", (asked,)).fetchone()
+            previous = row[0] if row else None
+            if previous == answered:
+                return None
+            self._db.execute("INSERT OR REPLACE INTO resolutions VALUES (?, ?, ?)", (asked, answered, time.time()))
+            if previous is None:
+                return None
+            self._db.execute("DELETE FROM answers WHERE asked = ?", (asked,))
+        return str(previous)
 
     def __len__(self) -> int:
         with self._lock:
@@ -164,13 +202,26 @@ class LayeredCache:
                 self.memory.put(key, hit)
         return hit
 
-    def put(self, key: str, answer: Answer) -> None:
+    def put(self, key: str, answer: Answer, asked: str = "", answered: str = "") -> None:
         self.memory.put(key, answer)
         if self.disk is not None:
             try:
-                self.disk.put(key, answer)
+                self.disk.put(key, answer, asked, answered)
             except (sqlite3.Error, OSError) as e:
                 self._drop_disk("cache write", e)
+
+    def reconcile(self, asked: str, answered: str) -> str | None:
+        """See :meth:`DiskCache.reconcile`. Also empties the in-memory cache when the alias moved."""
+        if self.disk is None:
+            return None
+        try:
+            previous = self.disk.reconcile(asked, answered)
+        except (sqlite3.Error, OSError) as e:
+            self._drop_disk("cache read", e)
+            return None
+        if previous is not None:
+            self.memory = MemoryCache()
+        return previous
 
     def close(self) -> None:
         if self.disk is not None:

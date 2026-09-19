@@ -105,6 +105,8 @@ class MockJev:
     yes: float = 0.9
     no: float = 0.1
     fixed_tokens: int = 300
+    model: str = "jev-1.13.0"
+    """The version the answers say they came from; change it to act like a moved alias."""
     bodies: list[dict[str, Any]] = field(default_factory=list)
     headers: list[dict[str, str]] = field(default_factory=list)
     in_flight: int = 0
@@ -254,7 +256,7 @@ class MockJev:
                     },
                 },
             }
-        return 200, {"model": "jev-1.13.0", "answers": answers, "usage": {"input_tokens": tokens, "output_tokens": 10}}
+        return 200, {"model": self.model, "answers": answers, "usage": {"input_tokens": tokens, "output_tokens": 10}}
 
 
 def _overlap(a: str | None, b: str) -> int:

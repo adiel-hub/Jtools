@@ -60,23 +60,35 @@ async def test_a_pinned_model_makes_a_rerun_free(mock, creds, tmp_path):
     assert a == b and len(mock.bodies) == 1 and jev2.meter.calls == 0 and jev2.meter.cached == 1
 
 
-async def test_an_aliased_model_rechecks_once_then_reads_the_cache(mock, creds, tmp_path):
-    """``jev-latest`` moves. One call per run re-establishes what it means today; the rest are free.
+async def test_an_aliased_model_still_makes_a_rerun_free(mock, creds, tmp_path):
+    """Keyed on the name the run asked for, so a rerun costs nothing even with an alias.
 
-    Answers are stored under the version that produced them, so the cache can never replay a
-    retired model's judgments, and the re-check costs one call however long the run is.
+    Keying on the version that answered instead would mean the tools that ask everything at once
+    never find their own rows again, because every key is computed before the first response.
     """
     path = tmp_path / "answers.sqlite"
     async with Jev(creds, transport=httpx.MockTransport(mock), cache_path=path) as jev:
         assert jev.model == "jev-latest"
         a = await jev.ask("state", QUESTIONS)
-        await jev.ask("another state", QUESTIONS)
     async with Jev(creds, transport=httpx.MockTransport(mock), cache_path=path) as jev2:
-        b = await jev2.ask("state", QUESTIONS)  # the re-check: one call
-        await jev2.ask("another state", QUESTIONS)  # keyed on the resolved version now: free
-    assert a == b
-    assert jev2.meter.calls == 1 and jev2.meter.cached == 1
-    assert jev2.meter.model == "jev-1.13.0"
+        b = await jev2.ask("state", QUESTIONS)
+    assert a == b and jev2.meter.calls == 0 and jev2.meter.cached == 1
+
+
+async def test_a_moved_alias_throws_the_old_version_answers_away(mock, creds, tmp_path):
+    """When ``jev-latest`` comes to mean something else, its cached answers stop being served."""
+    path = tmp_path / "answers.sqlite"
+    async with Jev(creds, transport=httpx.MockTransport(mock), cache_path=path) as jev:
+        await jev.ask("state", QUESTIONS)
+
+    rolled = MockJev()
+    rolled.model = "jev-2.0.0"
+    warnings: list[str] = []
+    async with Jev(creds, transport=httpx.MockTransport(rolled), cache_path=path, on_error=warnings.append) as jev2:
+        await jev2.ask("a new line nobody has judged", QUESTIONS)  # the live call that notices
+        await jev2.ask("state", QUESTIONS)  # the old answers are gone, so this is asked again
+    assert any("jev-2.0.0" in w and "jev-1.13.0" in w for w in warnings), warnings
+    assert jev2.meter.calls == 2 and jev2.meter.cached == 0
 
 
 async def test_cache_key_includes_model_and_question(mock, creds, tmp_path):
