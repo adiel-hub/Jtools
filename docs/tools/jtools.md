@@ -11,7 +11,7 @@ j-tools: semantic judgment for the shell
   ...
 
 $ jtools doctor
-jev-tools 0.1.0  python 3.12.4
+jev-tools 0.1.1  python 3.12.4
 config dir: /home/me/.config/jev   cache dir: /home/me/.cache/jev
   typesafe    no key      TYPESAFE_API_KEY
   openrouter  no key      OPENROUTER_API_KEY

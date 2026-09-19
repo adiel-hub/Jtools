@@ -3,7 +3,7 @@
 All notable changes to j-tools. The format follows [Keep a Changelog](https://keepachangelog.com);
 versions follow [SemVer](https://semver.org).
 
-## Unreleased
+## 0.1.1 - 2026-09-19
 
 ### Changed
 
@@ -21,6 +21,13 @@ versions follow [SemVer](https://semver.org).
 
   Built from the backend table, so a backend added later cannot go unmentioned. Naming a backend
   with `--api` already said where its key comes from; this is the branch a new user reaches.
+
+### Documentation
+
+- The README showed a table of key variables and never a command to set one. It now gives both
+  ways -- `export`, or a file under `~/.config/jev/` that needs no shell config -- and follows
+  them with `jtools doctor`, whose full output shows which backends it can see and proves the key
+  works with one real call.
 
 ## 0.1.0 - 2026-09-19
 

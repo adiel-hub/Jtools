@@ -1,6 +1,6 @@
 [project]
 name = "jev-tools"
-version = "0.1.0"
+version = "0.1.1"
 description = "Semantic judgment for the shell: sort, pick, gate, dedupe, tag, route and join text by meaning, judged by TypeSafe's Jev decision model."
 readme = "README.md"
 license = "MIT"

@@ -15,7 +15,7 @@ async with Jev(resolve()) as jev:
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .auth import Credentials, available, resolve
 from .backends import BACKENDS, Backend

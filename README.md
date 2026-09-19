@@ -93,20 +93,43 @@ Python 3.11+. One dependency (`httpx`). Then one key, any of these:
 | Vercel AI Gateway | `AI_GATEWAY_API_KEY` (`vck_…`) | [vercel.com/ai-gateway](https://vercel.com/ai-gateway) |
 | your own System One gateway | `JEV_GATEWAY_URL` + `JEV_GATEWAY_API_KEY` | LiteLLM, a corporate proxy, a mock |
 
-With several keys the first in that order wins; force one with `--api NAME` or `JEV_API`. Keys can
-also live in `~/.config/jev/typesafe.key`, `openrouter.key`, `vercel.key`, `gateway.key` (+ `gateway.url`).
+Set it for this shell, or once and for good:
+
+```bash
+export AI_GATEWAY_API_KEY="vck_..."          # add it to ~/.zshrc or ~/.bashrc to keep it
+
+mkdir -p ~/.config/jev                       # or a file every tool reads, no shell config at all
+echo "vck_..." > ~/.config/jev/vercel.key
+chmod 600 ~/.config/jev/vercel.key
+```
+
+The file is named after the backend: `typesafe.key`, `openrouter.key`, `vercel.key`, `gateway.key`
+(+ `gateway.url`). With several keys the first row of that table wins; force one with `--api NAME`
+or `JEV_API`.
+
+Then check it — `jtools doctor` shows every backend it can see, names the one it picked, and makes
+one real call:
+
+```console
+$ jtools doctor
+jev-tools 0.1.1  python 3.12.4
+config dir: ~/.config/jev   cache dir: ~/.cache/jev
+  typesafe    no key     TYPESAFE_API_KEY
+  openrouter  no key     OPENROUTER_API_KEY
+  vercel      key found  AI_GATEWAY_API_KEY
+  gateway     no key     JEV_GATEWAY_API_KEY
+
+using vercel at https://ai-gateway.vercel.sh/v4/ai/evaluation-model with key vck_…9f2a, model typesafe-ai/jev
+ok: one call in 412 ms, 283 input tokens, $0.0000119, answered by typesafe-ai/jev
+```
+
+With no key at all, every tool exits 3 and tells you the same four places to get one.
 
 Shell completions for all eleven commands are in [`completions/`](completions/):
 
 ```bash
 source completions/j-tools.bash            # bash
 cp completions/_jtools ~/.zfunc/ && echo 'fpath+=~/.zfunc' >> ~/.zshrc   # zsh
-```
-
-```console
-$ jtools doctor
-using vercel at https://ai-gateway.vercel.sh/v4/ai/evaluation-model with key vck_…9f2a, model typesafe-ai/jev
-ok: one call in 412 ms, 283 input tokens, $0.0000119, answered by typesafe-ai/jev
 ```
 
 ## Where this sits
