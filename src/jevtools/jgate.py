@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import os
+import stat
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import IO
@@ -128,10 +130,21 @@ def check_files(r: Run) -> bool:
         if path == "-":
             continue
         try:
-            with open(path, "rb"):
-                pass
+            mode = os.stat(path).st_mode
         except OSError as e:
             bad.append(f"{path}: {e.strerror or e}")
+            continue
+        if stat.S_ISDIR(mode):
+            bad.append(f"{path}: is a directory")
+        elif stat.S_ISREG(mode):
+            try:  # a regular file can be opened and closed again for nothing
+                with open(path, "rb"):
+                    pass
+            except OSError as e:
+                bad.append(f"{path}: {e.strerror or e}")
+        # A pipe, socket or device is left alone: opening one blocks until a writer appears and
+        # then closing it kills that writer, so the check would destroy the input it came to
+        # verify. Existing is as much as can be established without reading it.
     for message in bad:
         r.warn(message)
     return not bad

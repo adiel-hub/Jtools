@@ -114,7 +114,13 @@ def main(
     if args.command == "version":
         print(f"jtools {__version__}", file=out_stream)
         return EXIT_OK
-    return asyncio.run(_doctor(args, out_stream, transport))
+    try:
+        return asyncio.run(_doctor(args, out_stream, transport))
+    except UsageError as e:
+        # jtools has its own entry point, so the mapping execute() does for every other tool has
+        # to be done here: an unusable JEV_* value is a usage error, not a traceback.
+        print(f"{PROG}: {e}", file=err_stream)
+        return EXIT_USAGE
 
 
 def cli() -> None:

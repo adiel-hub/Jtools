@@ -84,6 +84,18 @@ def build_parser(
 QUIET_HELP = "no end-of-run notes on stderr (errors still show)"
 
 
+def shown_defaults() -> tuple[int, float]:
+    """The numbers ``--help`` prints. The environment when it is usable, the constants otherwise.
+
+    A run refuses an unusable value with a message naming the variable, but ``--help`` has to keep
+    working so the user can read about the flag they got wrong.
+    """
+    try:
+        return env_defaults()
+    except UsageError:
+        return DEFAULT_CONCURRENCY, DEFAULT_TIMEOUT
+
+
 def add_common(
     ap: argparse.ArgumentParser,
     *,
@@ -93,6 +105,7 @@ def add_common(
     quiet_help: str | None = None,
 ) -> None:
     g = ap.add_argument_group("common options (every j-tool)")
+    shown_concurrency, shown_timeout = shown_defaults()
     if threshold is not None:
         g.add_argument(
             "-p",
@@ -116,7 +129,7 @@ def add_common(
         type=int,
         default=None,
         metavar="N",
-        help=f"requests in flight (default {DEFAULT_CONCURRENCY}, or $JEV_CONCURRENCY)",
+        help=f"requests in flight (default {shown_concurrency}, or $JEV_CONCURRENCY)",
     )
     g.add_argument(
         "--timeout",
@@ -124,7 +137,7 @@ def add_common(
         default=None,
         metavar="SECONDS",
         help=f"give up on one request after this long, retries and rate-limit waits included "
-        f"(default {DEFAULT_TIMEOUT:g}, or $JEV_TIMEOUT)",
+        f"(default {shown_timeout:g}, or $JEV_TIMEOUT)",
     )
     g.add_argument(
         "--budget",

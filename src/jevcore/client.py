@@ -201,9 +201,9 @@ class Jev:
         credentials: Credentials,
         *,
         model: str | None = None,
-        timeout: float = DEFAULT_TIMEOUT,
+        timeout: float | None = None,
         attempts: int = DEFAULT_ATTEMPTS,
-        concurrency: int = DEFAULT_CONCURRENCY,
+        concurrency: int | None = None,
         budget: float = 0.0,
         disk_cache: bool = True,
         cache_path: str | Path | None = None,
@@ -215,9 +215,12 @@ class Jev:
         self.url = credentials.url
         self.model = (model or os.environ.get("JEV_MODEL") or "").strip() or self.backend.model
         self._alias_checked = False  # whether this run has compared the alias against its meaning
-        self.timeout = timeout
+        # None means "whatever the environment says", so a client built outside the CLI (jtools
+        # doctor, a library caller) honours JEV_TIMEOUT and JEV_CONCURRENCY like a tool does.
+        env_concurrency, env_timeout = env_defaults()
+        self.timeout = env_timeout if timeout is None else timeout
         self.attempts = max(1, attempts)
-        self.concurrency = max(1, concurrency)
+        self.concurrency = max(1, env_concurrency if concurrency is None else concurrency)
         self.budget = max(0.0, budget)
         self.meter = Meter(price_per_mtok=price_per_mtok())
         self.report: Callable[[str], None] = on_error or ErrorReporter(prefix=prefix)

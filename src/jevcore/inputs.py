@@ -297,16 +297,32 @@ def discover(
     errors: list[str] = []
 
     def names(path: str, root: str) -> set[str]:
-        """Every spelling a pattern might reasonably use for this path.
+        """The relative spellings a pattern might reasonably use for this path.
 
         ``jgrep -r --glob 'src/*.py' proj`` reads as "under proj, the Python files in src", so the
-        pattern is matched against the path relative to the directory being searched as well as
-        against the path relative to the working directory and the bare file name.
+        path relative to the directory being searched is one of them, as are the bare file name
+        and, when the root itself is relative, the path as spelled from the working directory.
+        The path relative to the working directory is deliberately absent for an absolute root:
+        that is what let ``--exclude 'tests/*'`` match a directory *above* the root and skip
+        everything under it.
         """
-        return {os.path.basename(path), os.path.relpath(path), os.path.relpath(path, root)}
+        spellings = {os.path.basename(path), os.path.relpath(path, root)}
+        return spellings if os.path.isabs(root) else spellings | {os.path.relpath(path)}
 
     def matches(path: str, root: str, patterns: Sequence[str]) -> bool:
-        return any(fnmatch.fnmatchcase(name, p) for name in names(path, root) for p in patterns)
+        """An absolute pattern is matched against the absolute path; a relative one is not.
+
+        Mixing the two is what made the choice impossible: the absolute spelling has to be there
+        for ``--glob '/srv/app/**'`` to work at all, and must not be there for ``--exclude
+        '*cache*'`` to stop matching every file under ``/srv/cache/app``.
+        """
+        for pattern in patterns:
+            if os.path.isabs(pattern):
+                if fnmatch.fnmatchcase(os.path.abspath(path), pattern):
+                    return True
+            elif any(fnmatch.fnmatchcase(name, pattern) for name in names(path, root)):
+                return True
+        return False
 
     def included(path: str, root: str) -> bool:
         if matches(path, root, excludes):

@@ -27,7 +27,7 @@ jroute [options] "NAME:DESCRIPTION" "NAME:DESCRIPTION" ... [-i FILE]
 | `--default NAME` | bucket for lines below `-p` and for unjudged lines; `-p` requires it |
 | `--stdout NAME` | send only this bucket's records to standard output, in `--json` too |
 | `--truncate` | start bucket files empty instead of appending; nothing is emptied until the first line is routed, so a run that reads nothing leaves the previous run's files alone |
-| `--no-files` | write no files (use with `--json` or `--stdout`, not both: every other record would exist nowhere) |
+| `--no-files` | write no files; with `--stdout NAME` the run keeps only that bucket, which is the point of `tail -f \| jroute … --stdout alert \| notify` |
 | `--json` | `{"bucket", "line", "probability", "probabilities", "source", "lineno"}` per line |
 | `-q` | no summary line on stderr |
 | `-v` | one line per routed line: the bucket, the probability, the text |

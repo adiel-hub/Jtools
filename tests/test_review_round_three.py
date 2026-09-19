@@ -7,6 +7,7 @@ that a line of input is data, never code.
 from __future__ import annotations
 
 import io
+import json
 import os
 import pathlib
 import subprocess
@@ -18,7 +19,7 @@ import pytest
 
 from jevcore.errors import UsageError
 from jevcore.inputs import iter_records
-from jevcore.mock import POISON, MockJev
+from jevcore.mock import POISON, MockJev, serve
 from jevtools.jgate import main as jgate
 from jevtools.jmatch import main as jmatch
 from jevtools.jpick import main as jpick
@@ -463,7 +464,129 @@ def test_a_pattern_does_not_match_above_the_directory_being_searched(tmp_path, m
     assert [os.path.basename(f) for f in absolute] == ["keep.py"], "the path above the root was matched"
 
 
-def test_jroute_refuses_a_combination_that_would_discard_records(invoke, tmp_path):
-    """--stdout picks one bucket and --no-files writes none; under --json the rest exist nowhere."""
-    res = invoke(jroute, ["a:one thing", "b:another", "--no-files", "--json", "--stdout", "a"], "x\n")
-    assert res.code == 2 and "discard" in res.err
+def test_narrowing_flags_narrow_the_same_way_in_both_output_modes(invoke, tmp_path):
+    """--stdout and --no-files both keep less on purpose; --json must not change which is kept.
+
+    An earlier attempt refused the three together as lossy, which named the wrong flag: --no-files
+    with --stdout loses exactly as much without --json, and that combination is the documented
+    `tail -f | jroute … --stdout alert | notify` recipe.
+    """
+    inbox = "Can we get a quote for 50 seats?\nFREE PRIZE click here\n"
+    plain = invoke(jroute, ["sales:a sales lead", "spam:junk", "--no-files", "--stdout", "sales"], inbox)
+    tagged = invoke(jroute, ["sales:a sales lead", "spam:junk", "--no-files", "--json", "--stdout", "sales"], inbox)
+    assert plain.code == 0 and tagged.code == 0
+    assert len(plain.lines) == len(tagged.lines) == 1
+    assert json.loads(tagged.lines[0])["bucket"] == "sales"
+
+
+# --------------------------------------------------------------- the fifth review
+
+
+@pytest.mark.parametrize(
+    "command",
+    [r'echo "\"{}\""', "{}", "$1", "  {}  ", '"$1"'],
+    ids=["escaped quotes inside quotes", "only the placeholder", "only $1", "padded placeholder", "only the parameter"],
+)
+def test_the_line_can_never_become_the_command_or_lose_its_quoting(command):
+    """Two ways the guard was got round: an escaped quote, and a command that is just the line."""
+    with pytest.raises(UsageError):
+        prepare_exec(command)
+
+
+@pytest.mark.parametrize("command", [r"echo \" {}", "notify-send {}", "logger -t api {} && true"])
+def test_a_backslash_outside_quotes_is_not_a_quote(command):
+    """The scan must not reject a command that is fine: `\\" {}` has the placeholder in the open."""
+    assert prepare_exec(command).endswith(('"$1"', '"$1" && true'))
+
+
+@pytest.mark.timeout(60)
+def test_the_gate_does_not_consume_a_named_pipe_checking_it(tmp_path):
+    """Opening a FIFO blocks for a writer and closing it kills that writer, losing the input."""
+    fifo = tmp_path / "pipe"
+    os.mkfifo(fifo)
+    feeder = subprocess.Popen(f"printf 'ERROR disk failed\\n' > {fifo}", shell=True)
+    try:
+        server = serve(MockJev())
+        try:
+            done = subprocess.run(
+                [sys.executable, "-m", "jevtools.jgate", "--each", "an error", str(fifo)],
+                capture_output=True,
+                text=True,
+                env=env_for_gate(server.url, tmp_path),
+                timeout=40,
+            )
+        finally:
+            server.shutdown()
+        assert done.returncode in (0, 1), done.stderr[-400:]
+    finally:
+        feeder.wait(timeout=10)
+
+
+def env_for_gate(url: str, tmp_path) -> dict[str, str]:
+    env = {k: v for k, v in os.environ.items() if not k.endswith("_API_KEY") and not k.startswith("JEV_")}
+    env.pop("vercel_api_key", None)
+    env |= {
+        "JEV_GATEWAY_URL": url,
+        "JEV_GATEWAY_API_KEY": "t",
+        "JEV_API": "gateway",
+        "XDG_CACHE_HOME": str(tmp_path / "cache"),
+        "XDG_CONFIG_HOME": str(tmp_path / "config"),
+        "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent.parent / "src"),
+    }
+    return env
+
+
+def test_doctor_reports_an_unusable_environment_value_rather_than_crashing(tmp_path):
+    """jtools has its own entry point, so it has to map a usage error itself."""
+    env = {k: v for k, v in os.environ.items() if not k.endswith("API_KEY")}
+    env.pop("vercel_api_key", None)
+    env |= {
+        "HOME": str(tmp_path),
+        "TYPESAFE_API_KEY": "k",
+        "JEV_PRICE_PER_MTOK": "abc",
+        "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent.parent / "src"),
+    }
+    done = subprocess.run(
+        [sys.executable, "-m", "jevtools.jtools", "doctor"], capture_output=True, text=True, env=env, timeout=60
+    )
+    assert done.returncode == 2, done.stdout[-300:]
+    assert "Traceback" not in done.stderr and "JEV_PRICE_PER_MTOK" in done.stderr
+
+
+def test_help_and_a_library_client_both_honour_the_environment(tmp_path):
+    """The defaults moved out of import time; --help must still print the number in effect."""
+    env = {k: v for k, v in os.environ.items() if not k.endswith("API_KEY")}
+    env.pop("vercel_api_key", None)
+    env |= {
+        "HOME": str(tmp_path),
+        "TYPESAFE_API_KEY": "k",
+        "JEV_TIMEOUT": "60",
+        "JEV_CONCURRENCY": "3",
+        "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent.parent / "src"),
+    }
+    done = subprocess.run(
+        [sys.executable, "-m", "jevtools.jgrep", "--help"], capture_output=True, text=True, env=env, timeout=60
+    )
+    assert "default 3, or $JEV_CONCURRENCY" in done.stdout, done.stdout
+    assert "default 60" in done.stdout
+
+    code = "from jevcore.auth import resolve; from jevcore.client import Jev; "
+    code += "j = Jev(resolve(None), disk_cache=False); print(j.timeout, j.concurrency)"
+    built = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env, timeout=60)
+    assert built.stdout.split() == ["60.0", "3"], built.stdout + built.stderr[-300:]
+
+
+def test_an_absolute_pattern_matches_an_absolute_path_and_nothing_above_the_root(tmp_path, monkeypatch):
+    """Both directions: an absolute --glob has to work, and --exclude must not see the root's parents."""
+    from jevcore.inputs import discover
+
+    root = tmp_path / "tests" / "proj"
+    (root / "src").mkdir(parents=True)
+    (root / "src" / "a.py").write_text("code\n")
+    monkeypatch.chdir(tmp_path)
+
+    kept, _ = discover([str(root)], recursive=True, excludes=["tests/*"])
+    assert [os.path.basename(f) for f in kept] == ["a.py"], "a directory above the root was matched"
+    found, _ = discover([str(root)], recursive=True, globs=[f"{root}/src/*.py"])
+    assert [os.path.basename(f) for f in found] == ["a.py"], "an absolute pattern matched nothing"
+    assert discover([str(root)], recursive=True, globs=["src/*.py"])[0] == found
