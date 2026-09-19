@@ -38,6 +38,19 @@ jobs:
         if: matrix.python == '3.13'
         run: uv run python scripts/gen_completions.py --check
 
+  package:
+    name: the wheel alone
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Build
+        run: uv build
+      - name: Every command runs from an empty virtualenv, with no key and no network
+        run: uv run --no-project python scripts/check_wheel.py
+
   live:
     name: live smoke (needs a key)
     runs-on: ubuntu-latest

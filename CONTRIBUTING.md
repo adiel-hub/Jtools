@@ -52,6 +52,15 @@ dead endpoints).
 
 With a key in the environment, `uv run pytest -q -m live` makes one real call per tool.
 
+The tests exercise the code; one more check exercises the package. It installs the built wheel
+into an empty virtualenv, where nothing from `src/` is importable, and drives all eleven commands
+against a localhost mock, so a missing entry point or a module left out of the wheel fails here
+rather than in someone's `pip install`:
+
+```bash
+uv build && uv run --no-project python scripts/check_wheel.py
+```
+
 ### Layout
 
 ```
@@ -71,7 +80,7 @@ src/jevcore/        the library every tool shares (see docs/architecture.md)
 src/jevtools/       one file per tool, plus jtools (list, doctor)
 tests/              offline suite, subprocess tests, live smoke
 bench/              reproducible benchmarks (live)
-scripts/            asset, table and completion generators
+scripts/            asset, table and completion generators, plus the wheel check
 completions/        bash and zsh completions, generated from the parsers
 docs/               per-tool docs, architecture, benchmarks, recipes
 ```
