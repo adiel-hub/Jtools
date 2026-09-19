@@ -28,7 +28,7 @@ argument that names an existing file is treated as a file.
 | option | meaning |
 |---|---|
 | `-p P` | probability at which two lines count as duplicates (default 0.5) |
-| `-w`, `--window N` | compare each line with the previous N lines (default 50, max 200) |
+| `-w`, `--window N` | compare each line with the previous N **distinct** lines (exact repeats cost nothing and take no room in the window; default 50, max 200) |
 | `-c`, `--count` | prefix each kept line with the size of its group |
 | `-d`, `--repeated` | print only lines that had duplicates |
 | `-u`, `--unique` | print only lines that had none |
@@ -38,7 +38,7 @@ argument that names an existing file is treated as a file.
 ## How it works
 
 Exact repeats (ignoring case and spacing) are dropped for free. Every other line is compared, in
-**one call**, against the previous `--window` lines: the state is
+**one call**, against the previous `--window` distinct lines: the state is
 `{"candidate": line, "kept": [...]}` with one yes/no question per earlier line. Jev answers all
 the questions in parallel, so a 50-line window costs tokens, not time.
 

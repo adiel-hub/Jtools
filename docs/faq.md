@@ -5,6 +5,13 @@
 ([Vercel AI Gateway](https://vercel.com/ai-gateway), a `vck_…` key), or your own System One gateway via
 `JEV_GATEWAY_URL` + `JEV_GATEWAY_API_KEY`. `jtools doctor` tells you what it found and makes one call.
 
+**Which of those has actually been run against?** Every backend's request and response shape is
+covered by the offline suite, and every endpoint above answers a keyless request with an auth
+error rather than a 404, so the URLs are current. Only the **Vercel AI Gateway** was driven end to
+end with a real key for the recorded benchmarks; that is the one the numbers in
+[benchmarks.md](benchmarks.md) come from. If a backend misbehaves against a live key, that is a
+bug worth an issue — `jtools doctor` output is the whole report.
+
 **Is this an LLM wrapper?** No. Jev is a decision model: it never writes text. Every tool asks a
 typed question (yes/no, choice, score) and gets a probability back. That is why one decision is
 a single short round trip rather than a wait on generated tokens, why the same yes/no costs

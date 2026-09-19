@@ -5,8 +5,10 @@
     cat titles.txt | juniq -c
 
 Like ``uniq``, but "the same" is a judgment. Exact repeats (ignoring case and spacing) are dropped
-for free. Every other line is compared, in ONE call, against the previous ``--window`` lines:
-the state is ``{"candidate": line, "kept": [...]}`` and one yes/no question per earlier line.
+for free. Every other line is compared, in ONE call, against the previous ``--window`` *distinct*
+lines -- a thousand copies of one line spend none of the window, so what a line is compared with
+is a thousand copies' worth of variety rather than a thousand copies. The state is
+``{"candidate": line, "kept": [...]}`` and one yes/no question per earlier line.
 All lines are judged concurrently; verdicts are then resolved in input order, so a line that is
 itself a duplicate can still pull later lines into its group. The first occurrence is kept.
 """
@@ -54,7 +56,7 @@ def parser() -> Parser:
         type=int,
         default=DEFAULT_WINDOW,
         metavar="N",
-        help=f"compare each line with the previous N lines (default {DEFAULT_WINDOW}, max {MAX_WINDOW})",
+        help=f"compare each line with the previous N distinct lines (default {DEFAULT_WINDOW}, max {MAX_WINDOW})",
     )
     ap.add_argument(
         "--show-groups", action="store_true", help="print each kept line followed by its duplicates, indented"
