@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Sequence
-from typing import Any
 
 from .errors import UsageError
 from .questions import Choice, Noul, Score
@@ -136,7 +135,3 @@ def parse_buckets(specs: Sequence[str]) -> dict[str, str]:
 
 def ids_for(n: int, prefix: str = "c") -> list[str]:
     return [f"{prefix}{i + 1}" for i in range(n)]
-
-
-def as_json_state(obj: Any) -> Any:
-    return obj

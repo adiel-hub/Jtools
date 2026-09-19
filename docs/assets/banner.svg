@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="200" viewBox="0 0 880 200" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f1419"/>
+      <stop offset="1" stop-color="#1b2735"/>
+    </linearGradient>
+  </defs>
+  <rect width="880" height="200" rx="16" fill="url(#bg)"/>
+  <g font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15" fill="#8a8f98">
+    <text x="36" y="52">$ cat feedback.txt | <tspan fill="#e6e6e6" font-weight="bold">jsort</tspan> <tspan fill="#e5c07b">"angriest customer first"</tspan> --with-score</text>
+    <text x="36" y="80"><tspan fill="#6fd08c" font-weight="bold">0.950</tspan>  <tspan fill="#e6e6e6">WHY does it log me out every five minutes?? Absolutely unacceptable.</tspan></text>
+    <text x="36" y="104"><tspan fill="#6fd08c" font-weight="bold">0.800</tspan>  <tspan fill="#e6e6e6">Cancel my subscription immediately and refund the last charge.</tspan></text>
+    <text x="36" y="128"><tspan fill="#e06c75" font-weight="bold">0.050</tspan>  <tspan fill="#e6e6e6">Love the new dashboard, thanks team!</tspan></text>
+  </g>
+  <text x="36" y="172" font-size="22" font-weight="700" fill="#ffffff">j-tools</text>
+  <text x="128" y="172" font-size="16" fill="#9aa4b2">semantic judgment for the shell: sort, pick, gate, watch, dedupe, tag, route and join by meaning</text>
+</svg>

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="250" viewBox="0 0 880 250" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="880" height="250" rx="12" fill="#ffffff" stroke="#d0d7de"/>
+  <text x="24" y="34" font-size="17" font-weight="600" fill="#24292f">Every j-tool is one of three typed questions to Jev. No text is generated, ever.</text>
+
+  <g transform="translate(24,60)">
+    <rect width="260" height="160" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+    <text x="16" y="30" font-size="15" font-weight="700" fill="#2da44e">noul</text>
+    <text x="70" y="30" font-size="13" fill="#57606a">is this statement true?</text>
+    <text x="16" y="60" font-size="12" fill="#24292f" font-family="DejaVu Sans Mono, Menlo, monospace">"The text fits: 'a payment problem'"</text>
+    <text x="16" y="86" font-size="12" fill="#24292f">→ probability 0.0 – 1.0</text>
+    <text x="16" y="120" font-size="12" fill="#57606a">jgrep · jgate · jwatch · juniq (pairs)</text>
+    <rect x="16" y="132" width="228" height="10" rx="5" fill="#eaeef2"/>
+    <rect x="16" y="132" width="212" height="10" rx="5" fill="#2da44e"/>
+    <text x="16" y="156" font-size="11" fill="#57606a">p = 0.93</text>
+  </g>
+
+  <g transform="translate(310,60)">
+    <rect width="260" height="160" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+    <text x="16" y="30" font-size="15" font-weight="700" fill="#0969da">choice</text>
+    <text x="84" y="30" font-size="13" fill="#57606a">which option fits best?</text>
+    <text x="16" y="60" font-size="12" fill="#24292f" font-family="DejaVu Sans Mono, Menlo, monospace">{bug, feature, question}</text>
+    <text x="16" y="86" font-size="12" fill="#24292f">→ the option + a distribution</text>
+    <text x="16" y="120" font-size="12" fill="#57606a">jtag --labels · jroute · jpick · jmatch</text>
+    <rect x="16" y="132" width="150" height="10" rx="5" fill="#0969da"/>
+    <rect x="170" y="132" width="40" height="10" rx="5" fill="#9ec5f7"/>
+    <rect x="214" y="132" width="30" height="10" rx="5" fill="#dbe9fb"/>
+    <text x="16" y="156" font-size="11" fill="#57606a">bug 0.71 · feature 0.19 · question 0.10</text>
+  </g>
+
+  <g transform="translate(596,60)">
+    <rect width="260" height="160" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+    <text x="16" y="30" font-size="15" font-weight="700" fill="#bf8700">score</text>
+    <text x="76" y="30" font-size="13" fill="#57606a">where on this ordered scale?</text>
+    <text x="16" y="60" font-size="12" fill="#24292f" font-family="DejaVu Sans Mono, Menlo, monospace">[not at all … perfectly]</text>
+    <text x="16" y="86" font-size="12" fill="#24292f">→ interpolated position + distribution</text>
+    <text x="16" y="120" font-size="12" fill="#57606a">jsort · jhead · jtag --score</text>
+    <g fill="#eaeef2"><rect x="16" y="132" width="40" height="10" rx="3"/><rect x="62" y="132" width="40" height="10" rx="3"/><rect x="108" y="132" width="40" height="10" rx="3"/><rect x="154" y="132" width="40" height="10" rx="3"/><rect x="200" y="132" width="44" height="10" rx="3"/></g>
+    <rect x="154" y="132" width="40" height="10" rx="3" fill="#e9c46a"/>
+    <rect x="200" y="132" width="44" height="10" rx="3" fill="#bf8700"/>
+    <text x="16" y="156" font-size="11" fill="#57606a">score 3.4 / 4 → 0.85</text>
+  </g>
+</svg>

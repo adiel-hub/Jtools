@@ -11,7 +11,6 @@ from typing import Any
 from jevcore.cli import Run
 from jevcore.errors import UsageError
 from jevcore.inputs import InputError, Record, iter_records
-from jevcore.io import fmt_p
 from jevcore.pipeline import collect
 from jevcore.questions import Score, ScoreAnswer
 
@@ -86,7 +85,3 @@ def add_levels_option(ap: argparse.ArgumentParser) -> None:
         metavar="CSV",
         help='your own ordered rubric, lowest first, e.g. "not at all,somewhat,very" (default: a 5-rung fit scale)',
     )
-
-
-def describe_p(p: float | None) -> str:
-    return fmt_p(p)
