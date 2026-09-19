@@ -24,7 +24,15 @@ MAX_GAP = 1.5  # seconds shown between two output lines, at most (see run_scene)
 
 # (name, argv, stdin file or None, title)
 SCENES: list[tuple[str, list[str], str | None, str]] = [
-    ("jsort", ["jsort", "angriest customer first", "--with-score", "examples/feedback.txt"], None, "sort by meaning"),
+    # The question every support lead opens the day with. Worth noting in the output: "Your support
+    # is a joke" is the angriest line and lands fourth, under two calm technical reports -- which is
+    # the difference between judging a ticket and scoring its sentiment.
+    (
+        "jsort",
+        ["jsort", "the most important ticket to deal with right now", "--with-score", "examples/tickets.txt"],
+        None,
+        "sort by meaning",
+    ),
     (
         "jroute",
         [

@@ -19,11 +19,11 @@ the decision is made by [Jev](https://docs.typesafe.ai), TypeSafe's decision mod
 <!--num:latency_p50_round-->240 ms<!--/num--> for about a thousandth of a cent.
 
 ```console
-$ cat feedback.txt | jsort "angriest customer first" --with-score
-0.950	WHY does it log me out every five minutes?? Absolutely unacceptable.
-0.800	Cancel my subscription immediately and refund the last charge. Worst support ever.
-0.700	Your sales rep promised a feature that does not exist. I feel lied to.
-0.050	Love the new dashboard, thanks team!
+$ jsort "the most important ticket to deal with right now" --with-score tickets.txt
+0.848	Login fails with error 500 since this morning
+0.733	I was charged twice for one order and nobody answers
+0.588	Your support is a joke, three days without a reply
+0.147	Could you add a dark theme?
 
 $ tail -f app.log | jwatch "something a human should look at right now" --cooldown 300
 2026-09-18T10:00:05Z ERROR api    payment-svc unreachable, 3 retries exhausted, order 88213 not charged

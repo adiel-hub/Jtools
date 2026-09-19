@@ -1,52 +1,44 @@
 {
   "name": "jsort",
-  "command": "jsort 'angriest customer first' --with-score examples/feedback.txt",
+  "command": "jsort 'the most important ticket to deal with right now' --with-score examples/tickets.txt",
   "stdout": [
     [
-      1.5,
-      "0.990\tCancel my subscription immediately and refund the last charge. Worst support ever."
+      0.211,
+      "0.848\tLogin fails with error 500 since this morning"
     ],
     [
-      1.5,
-      "0.978\tWHY does it log me out every five minutes?? Absolutely unacceptable."
+      0.211,
+      "0.733\tI was charged twice for one order and nobody answers"
     ],
     [
-      1.5,
-      "0.900\tThis is the third time checkout has failed this week. I am done with this app."
+      0.211,
+      "0.640\tThe app crashes when I open settings"
     ],
     [
-      1.5,
-      "0.855\tYour sales rep promised a feature that does not exist. I feel lied to."
+      0.211,
+      "0.588\tYour support is a joke, three days without a reply"
     ],
     [
-      1.5,
-      "0.085\tThe mobile app is a bit slow on older phones but works fine."
+      0.211,
+      "0.477\tExport to CSV would save me hours every week"
     ],
     [
-      1.5,
-      "0.007\tWould be great to have a dark mode."
+      0.211,
+      "0.320\tHow do I reset my password?"
     ],
     [
-      1.5,
-      "0.000\tLove the new dashboard, thanks team!"
+      0.211,
+      "0.147\tCould you add a dark theme?"
     ],
     [
-      1.5,
-      "0.000\tHow do I export my data to CSV?"
-    ],
-    [
-      1.5,
-      "0.000\tPricing question: do you offer enterprise seats?"
-    ],
-    [
-      1.5,
-      "0.000\tEverything works as expected, no complaints."
+      0.211,
+      "0.070\tIs there an API for this?"
     ]
   ],
   "stderr": [],
   "exit": 0,
-  "seconds": 618.594,
-  "shown_seconds": 1.5,
-  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 618.594s",
+  "seconds": 0.239,
+  "shown_seconds": 0.211,
+  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 0.239s",
   "title": "sort by meaning"
 }
