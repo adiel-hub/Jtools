@@ -4,7 +4,10 @@
 
 <p align="center">
   <a href="https://github.com/adiel-hub/Jtools/actions/workflows/ci.yml"><img src="https://github.com/adiel-hub/Jtools/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
-  <a href="https://pypi.org/project/jev-tools/"><img src="https://img.shields.io/pypi/v/jev-tools?color=2da44e" alt="PyPI"></a>
+  <!-- Swap for the PyPI version badge once the first tag ships (see .github/workflows/publish.yml);
+       until then it renders "package or version not found" in red:
+       <a href="https://pypi.org/project/jev-tools/"><img src="https://img.shields.io/pypi/v/jev-tools?color=2da44e" alt="PyPI"></a> -->
+  <a href="#install"><img src="https://img.shields.io/badge/install-uv%20tool%20install-2da44e" alt="install"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="python">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="MIT"></a>
   <img src="https://img.shields.io/badge/offline%20tests-no%20API%20key%20needed-2da44e" alt="tests">
