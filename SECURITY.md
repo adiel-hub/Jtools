@@ -15,6 +15,8 @@ the state before anything is sent.
 
 Keys are read from environment variables or `~/.config/jev/*.key`. They are sent only as the
 `Authorization` header to the backend's URL and are never written to the cache, logs or output.
+A key file is yours to protect: `chmod 600` it, and `jtools doctor` says so if anyone else on the
+machine can read it.
 `--dry-run` prints a redacted key (first and last four characters), and drops the query string
 from the endpoint it prints, since some gateways carry the token there and a dry run is the thing
 people paste into an issue.
@@ -34,9 +36,12 @@ tail -f app.log | jwatch "worth waking someone" --exec 'notify-send {}'
 
 `{}` is substituted as `"$1"`, so a log line containing `$(…)`, backticks, `;` or quotes is text.
 Do not put your own quotes around `{}`: `"{}"` would expand to `""$1""`, where the line is no
-longer quoted, and jwatch refuses that spelling rather than accepting it. To place the line inside
-a longer string, write `$1` yourself: `--exec 'notify-send "api: $1"'`. The command itself is
-still yours, and still runs with your privileges.
+longer quoted, and jwatch refuses that spelling rather than accepting it. It refuses the other
+spellings that would undo the quoting too: an escaped `\{}`, and a command that ends inside an
+open quote. To place the line inside a longer string, write `$1` yourself:
+`--exec 'notify-send "api: $1"'` — `${1}`, `$@` and `$*` work as well, and a command that already
+names the line that way is not given a second copy of it. The command itself is still yours, and
+still runs with your privileges.
 
 ## Not a security boundary
 
