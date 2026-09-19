@@ -8,11 +8,19 @@ versions follow [SemVer](https://semver.org).
 ### Changed
 
 - The "no API key" error now says where to get one. It listed the four variables to set and the
-  file to write, and never named a console -- the one thing somebody with no key is missing. It
-  now points at one backend concretely, with the line to copy:
-  `no key yet? get one at https://vercel.com/ai-gateway, then: export AI_GATEWAY_API_KEY=vck_...`
-  Naming a backend with `--api` already said where its key comes from; this is the branch a new
-  user actually reaches.
+  file to write, and never named a console -- the one thing somebody with no key is missing.
+  The run of comma-separated names is now a column, one line per backend:
+
+  ```
+  no API key. Set one of these, or put the key in ~/.config/jev/<api>.key:
+    TYPESAFE_API_KEY     https://console.typesafe.ai/settings/keys
+    OPENROUTER_API_KEY   https://openrouter.ai/keys
+    AI_GATEWAY_API_KEY   https://vercel.com/ai-gateway
+    JEV_GATEWAY_API_KEY  your own System One endpoint (with JEV_GATEWAY_URL)
+  ```
+
+  Built from the backend table, so a backend added later cannot go unmentioned. Naming a backend
+  with `--api` already said where its key comes from; this is the branch a new user reaches.
 
 ## 0.1.0 - 2026-09-19
 

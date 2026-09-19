@@ -37,19 +37,29 @@ def test_the_no_key_error_says_where_to_get_one(monkeypatch):
     """The first error a new user hits is the one that has to be actionable.
 
     It named the four variables to set and the file to write, and never said where a key comes
-    from -- which is the one thing somebody with no key does not have. Naming Vercel concretely
-    beats four consoles to choose between.
+    from -- the one thing somebody with no key does not have. Every backend is listed with its
+    console, so the reader picks; the message does not pick for them.
     """
     monkeypatch.delenv("TYPESAFE_API_KEY")
     with pytest.raises(AuthError) as e:
         resolve()
     message = str(e.value)
-    assert "https://vercel.com/ai-gateway" in message, "nowhere to get a key"
-    assert "export AI_GATEWAY_API_KEY=" in message, "no command to copy"
-    # Still says everything it said before: a reader may already hold one of the other keys.
-    for env in ("TYPESAFE_API_KEY", "OPENROUTER_API_KEY", "AI_GATEWAY_API_KEY", "JEV_GATEWAY_API_KEY"):
-        assert env in message
+    for backend in BACKENDS.values():
+        assert backend.key_env in message, f"{backend.name} is not offered"
+        where = backend.console or backend.url_env
+        assert where and where in message, f"{backend.name} does not say where its key comes from"
     assert "<api>.key" in message, "the file path is the other way to set it"
+
+
+def test_every_backend_gets_a_line_of_its_own(monkeypatch):
+    """Built from BACKENDS, so a backend added later cannot quietly go unmentioned."""
+    monkeypatch.delenv("TYPESAFE_API_KEY")
+    with pytest.raises(AuthError) as e:
+        resolve()
+    listed = [line for line in str(e.value).splitlines() if line.startswith("  ")]
+    assert len(listed) == len(BACKENDS)
+    starts = {line.split()[0] for line in listed}
+    assert starts == {b.key_env for b in BACKENDS.values()}
 
 
 def test_naming_a_backend_with_no_key_points_at_that_one(monkeypatch):
