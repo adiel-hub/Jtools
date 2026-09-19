@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "bench" / "results"
@@ -30,8 +31,15 @@ def hbar_chart(
 ) -> str:
     """rows: (label, value, colour, annotation)."""
     import math
+    import textwrap
 
-    label_w, bar_x, row_h, top = 250, 260, 34, 70
+    # The subtitle is 12px sans: about 6.4px per character inside the 40px side margins.
+    caption = textwrap.wrap(subtitle, max(40, int((width - 40) / 6.4))) or [""]
+    # Labels are right-aligned into their own column; 13px sans is about 6.9px per character.
+    label_w = max(250, int(max(len(label) for label, *_ in rows) * 6.9) + 20)
+    bar_x, row_h = label_w + 10, 34
+    width = max(width, bar_x + 260)
+    top = 52 + 16 * len(caption)
     height = top + row_h * len(rows) + 40
     vmax = max(v for _, v, _, _ in rows) or 1.0
     span = width - bar_x - 120
@@ -46,7 +54,10 @@ def hbar_chart(
         f"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}' viewBox='0 0 {width} {height}' {FONT}>",
         f"<rect width='{width}' height='{height}' fill='white' rx='8'/>",
         f"<text x='20' y='30' font-size='18' font-weight='600' fill='{INK}'>{esc(title)}</text>",
-        f"<text x='20' y='52' font-size='12' fill='{MUTED}'>{esc(subtitle)}</text>",
+    ]
+    out += [
+        f"<text x='20' y='{52 + 16 * i}' font-size='12' fill='{MUTED}'>{esc(line)}</text>"
+        for i, line in enumerate(caption)
     ]
     for i, (label, value, colour, note) in enumerate(rows):
         y = top + i * row_h
@@ -94,18 +105,20 @@ def latency_chart() -> None:
     data = json.loads((RESULTS / "latency.json").read_text())
     s = data["single"]
     rows = [
-        ("Jev, one question (p50)", s["p50_ms"], ACCENT, f"{s['p50_ms']} ms"),
-        ("Jev, one question (p95)", s["p95_ms"], ACCENT3, f"{s['p95_ms']} ms"),
+        ("one yes/no question, median", s["p50_ms"], ACCENT, f"{s['p50_ms']} ms"),
+        ("one yes/no question, 95th percentile", s["p95_ms"], ACCENT3, f"{s['p95_ms']} ms"),
     ]
     for b in data["batching"]:
-        rows.append(
-            (f"Jev, {b['questions_per_call']} questions in one call (p50)", b["p50_ms"], ACCENT2, f"{b['p50_ms']} ms")
-        )
+        k = b["questions_per_call"]
+        if k == 1:
+            continue  # the same measurement as the first row
+        rows.append((f"{k} questions about one line, median", b["p50_ms"], ACCENT2, f"{b['p50_ms']} ms"))
     svg = hbar_chart(
-        "Latency per call, measured end to end",
-        f"{s['n']} sequential calls through {data['backend']} ({data['model']}), {data['when'][:10]}. More questions, same time.",
+        "How long one decision takes",
+        f"{s['n']} sequential calls through {data['backend']} ({data['model']}) on {data['when'][:10]}, uncached. "
+        "Asking more questions about the same line costs tokens, not time.",
         rows,
-        "milliseconds (client wall time incl. network)",
+        "milliseconds for the HTTP exchange, network included",
     )
     (ASSETS / "latency.svg").write_text(svg)
     t = [r for r in (data.get("throughput") or []) if not r.get("rate_limited")]
@@ -128,34 +141,49 @@ def latency_chart() -> None:
         (ASSETS / "throughput.svg").write_text(svg)
 
 
+def judged(d: dict[str, Any]) -> int:
+    return int(d.get("judged") or d.get("lines") or 0)
+
+
 def accuracy_chart() -> None:
     rows: list[tuple[str, float, str, str]] = []
     spam = RESULTS / "accuracy-spam.json"
     if spam.exists():
         d = json.loads(spam.read_text())
         rows.append(
-            (f"jgrep, SMS spam F1 (n={d['lines']})", d["jgrep_at_0.5"]["f1"], ACCENT, f"{d['jgrep_at_0.5']['f1']:.2f}")
+            (
+                f"jgrep finds SMS spam, F1 (n={judged(d)})",
+                d["jgrep_at_0.5"]["f1"],
+                ACCENT,
+                f"{d['jgrep_at_0.5']['f1']:.2f}",
+            )
         )
-        rows.append(("keyword regex, SMS spam F1", d["keyword_grep"]["f1"], ACCENT4, f"{d['keyword_grep']['f1']:.2f}"))
+        full = d.get("keyword_grep_full_corpus")
+        label = f"a 17-term keyword regex, F1 (n={full['lines']:,})" if full else "a 17-term keyword regex, F1"
+        k = full or d["keyword_grep"]
+        rows.append((label, k["f1"], ACCENT4, f"{k['f1']:.2f}"))
     sent = RESULTS / "accuracy-sentiment.json"
     if sent.exists():
         d = json.loads(sent.read_text())
-        rows.append((f"jsort, sentiment ranking AUC (n={d['lines']})", d["auc"], ACCENT, f"{d['auc']:.2f}"))
+        rows.append((f"jsort ranks review sentiment, AUC (n={judged(d)})", d["auc"], ACCENT, f"{d['auc']:.2f}"))
         rows.append(
-            ("jsort, precision in the top half", d["precision_at_half"], ACCENT2, f"{d['precision_at_half']:.2f}")
+            ("the same, precision in the top half", d["precision_at_half"], ACCENT2, f"{d['precision_at_half']:.2f}")
         )
     news = RESULTS / "accuracy-news.json"
     if news.exists():
         d = json.loads(news.read_text())
-        rows.append((f"jtag, AG News 4-way accuracy (n={d['lines']})", d["accuracy"], ACCENT, f"{d['accuracy']:.2f}"))
-        rows.append(("jtag, AG News macro F1", d["macro_f1"], ACCENT2, f"{d['macro_f1']:.2f}"))
+        rows.append(
+            (f"jtag labels AG News 4 ways, accuracy (n={judged(d)})", d["accuracy"], ACCENT, f"{d['accuracy']:.2f}")
+        )
+        rows.append(("the same, macro F1", d["macro_f1"], ACCENT2, f"{d['macro_f1']:.2f}"))
     if not rows:
         return
     svg = hbar_chart(
         "Accuracy on public labelled corpora",
-        "each row is the installed command, uncached, default threshold; see bench/README.md",
+        "each row runs the installed command, uncached, at its default threshold, from the one-line "
+        "description in docs/benchmarks.md",
         rows,
-        "0 to 1",
+        "0 to 1; higher is better",
     )
     (ASSETS / "accuracy.svg").write_text(svg)
 

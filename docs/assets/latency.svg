@@ -1,21 +1,19 @@
-<svg xmlns='http://www.w3.org/2000/svg' width='760' height='280' viewBox='0 0 760 280' font-family='-apple-system, Segoe UI, Helvetica, Arial, sans-serif'>
-<rect width='760' height='280' fill='white' rx='8'/>
-<text x='20' y='30' font-size='18' font-weight='600' fill='#24292f'>Latency per call, measured end to end</text>
-<text x='20' y='52' font-size='12' fill='#57606a'>8 sequential calls through vercel (typesafe-ai/jev), 2026-09-19. More questions, same time.</text>
-<text x='250' y='90' font-size='13' fill='#24292f' text-anchor='end'>Jev, one question (p50)</text>
-<rect x='260' y='76' width='160.2' height='20' rx='3' fill='#2da44e'/>
-<text x='428.2' y='91' font-size='12' fill='#24292f'>419 ms</text>
-<text x='250' y='124' font-size='13' fill='#24292f' text-anchor='end'>Jev, one question (p95)</text>
-<rect x='260' y='110' width='380.0' height='20' rx='3' fill='#bf8700'/>
-<text x='648.0' y='125' font-size='12' fill='#24292f'>994 ms</text>
-<text x='250' y='158' font-size='13' fill='#24292f' text-anchor='end'>Jev, 1 questions in one call (p50)</text>
-<rect x='260' y='144' width='102.1' height='20' rx='3' fill='#0969da'/>
-<text x='370.1' y='159' font-size='12' fill='#24292f'>267 ms</text>
-<text x='250' y='192' font-size='13' fill='#24292f' text-anchor='end'>Jev, 4 questions in one call (p50)</text>
-<rect x='260' y='178' width='180.1' height='20' rx='3' fill='#0969da'/>
-<text x='448.1' y='193' font-size='12' fill='#24292f'>471 ms</text>
-<text x='250' y='226' font-size='13' fill='#24292f' text-anchor='end'>Jev, 16 questions in one call (p50)</text>
-<rect x='260' y='212' width='113.5' height='20' rx='3' fill='#0969da'/>
-<text x='381.5' y='227' font-size='12' fill='#24292f'>297 ms</text>
-<text x='740' y='266' font-size='11' fill='#57606a' text-anchor='end'>milliseconds (client wall time incl. network)</text>
+<svg xmlns='http://www.w3.org/2000/svg' width='760' height='260' viewBox='0 0 760 260' font-family='-apple-system, Segoe UI, Helvetica, Arial, sans-serif'>
+<rect width='760' height='260' fill='white' rx='8'/>
+<text x='20' y='30' font-size='18' font-weight='600' fill='#24292f'>How long one decision takes</text>
+<text x='20' y='52' font-size='12' fill='#57606a'>8 sequential calls through vercel (typesafe-ai/jev) on 2026-09-19, uncached. Asking more questions about the</text>
+<text x='20' y='68' font-size='12' fill='#57606a'>same line costs tokens, not time.</text>
+<text x='268' y='104' font-size='13' fill='#24292f' text-anchor='end'>one yes/no question, median</text>
+<rect x='278' y='90' width='152.6' height='20' rx='3' fill='#2da44e'/>
+<text x='438.6' y='105' font-size='12' fill='#24292f'>419 ms</text>
+<text x='268' y='138' font-size='13' fill='#24292f' text-anchor='end'>one yes/no question, 95th percentile</text>
+<rect x='278' y='124' width='362.0' height='20' rx='3' fill='#bf8700'/>
+<text x='648.0' y='139' font-size='12' fill='#24292f'>994 ms</text>
+<text x='268' y='172' font-size='13' fill='#24292f' text-anchor='end'>4 questions about one line, median</text>
+<rect x='278' y='158' width='171.5' height='20' rx='3' fill='#0969da'/>
+<text x='457.5' y='173' font-size='12' fill='#24292f'>471 ms</text>
+<text x='268' y='206' font-size='13' fill='#24292f' text-anchor='end'>16 questions about one line, median</text>
+<rect x='278' y='192' width='108.2' height='20' rx='3' fill='#0969da'/>
+<text x='394.2' y='207' font-size='12' fill='#24292f'>297 ms</text>
+<text x='740' y='246' font-size='11' fill='#57606a' text-anchor='end'>milliseconds for the HTTP exchange, network included</text>
 </svg>
