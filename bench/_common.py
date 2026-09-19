@@ -17,12 +17,27 @@ OUT = ROOT / "out"
 RESULTS = ROOT / "results"
 
 
+def build() -> str:
+    """Which build produced a result: the package version, and the commit when there is a checkout."""
+    from jevcore import __version__
+
+    try:
+        sha = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT.parent, check=False
+        )
+        commit = sha.stdout.strip() if sha.returncode == 0 else ""
+    except OSError:
+        commit = ""
+    return f"{__version__}+{commit}" if commit else __version__
+
+
 def backend_info() -> dict[str, Any]:
     creds = resolve()
     return {
         "backend": creds.backend.name,
         "url": creds.url,
         "model": os.environ.get("JEV_MODEL") or creds.backend.model,
+        "build": build(),
         "when": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
     }
 

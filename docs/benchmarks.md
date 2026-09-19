@@ -2,7 +2,7 @@
 
 Every number here was produced by the scripts in [`bench/`](../bench/) running the **installed
 commands** against a **real** endpoint, uncached, and is stored in `bench/results/*.json` with
-the backend, model and timestamp. The charts in `docs/assets/` are rendered from those files by
+the backend, model, build and timestamp. The charts in `docs/assets/` are rendered from those files by
 `scripts/render_charts.py`. Reproduce with any key:
 
 ```bash
