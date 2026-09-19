@@ -169,6 +169,8 @@ def parse_buckets(specs: Sequence[str], *, what: str = "bucket") -> dict[str, st
             raise UsageError(f'{what} {spec!r} must look like "name:description"')
         if not re.fullmatch(NAME, name):
             raise UsageError(f"{what} name {name!r} may only use letters, digits, dot, dash and underscore")
+        if not name.strip("."):
+            raise UsageError(f"{what} name {name!r} is a directory, not a name")
         if name in buckets:
             raise UsageError(f"duplicate {what} {name!r}")
         buckets[name] = desc.strip()

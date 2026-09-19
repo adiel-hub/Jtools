@@ -689,3 +689,23 @@ def test_a_character_device_is_a_readable_argument(invoke, tmp_path):
     res = invoke(jgate, ["an error", good, "/dev/null"])
     assert res.code == 0, f"exited {res.code}: {res.err}"
     assert "/dev/null" not in res.err
+
+
+@pytest.mark.parametrize("spec", [".", "..", "..."])
+def test_a_bucket_that_names_a_directory_is_refused_before_anything_is_written(invoke, tmp_path, spec):
+    """`.` and `..` pass the character check and then name the directory itself.
+
+    Before this they were found out at the first write -- by which time the other buckets had
+    already been created and filled, so the run half happened and then exited 2.
+    """
+    res = invoke(jroute, [f"{spec}:junk", "ok:anything else", "-o", str(tmp_path / "out"), "--ext", ""])
+    assert res.code == 2
+    assert "directory, not a name" in res.err
+    assert not (tmp_path / "out").exists(), "a refused run created its output directory"
+
+
+@pytest.mark.parametrize("spec", [".", ".."])
+def test_the_same_holds_for_the_default_bucket(invoke, tmp_path, spec):
+    res = invoke(jroute, ["a:one thing", "b:another", "--default", spec, "-o", str(tmp_path / "out"), "--ext", ""])
+    assert res.code == 2
+    assert "directory, not a name" in res.err

@@ -80,6 +80,10 @@ def prepare(args: argparse.Namespace) -> None:
     if args.default_bucket and not re.fullmatch(rubric.NAME, args.default_bucket):
         # A bucket name becomes a file name under --out-dir; keep it a name, not a path.
         raise UsageError("--default may only use letters, digits, dot, dash and underscore")
+    if args.default_bucket and not args.default_bucket.strip("."):
+        # `.` and `..` pass the character check and then name the directory itself, which is
+        # found out only when the first line is written -- after other buckets already have theirs.
+        raise UsageError(f"--default {args.default_bucket!r} is a directory, not a name")
     if args.ext and ("/" in args.ext or args.ext.strip(".") == ""):
         raise UsageError("--ext must be a plain file extension, for example .txt")
     if args.stdout and args.stdout not in args.bucket_map and args.stdout != args.default_bucket:
