@@ -1,0 +1,128 @@
+{
+  "backend": "vercel",
+  "url": "https://ai-gateway.vercel.sh/v4/ai/evaluation-model",
+  "model": "typesafe-ai/jev",
+  "when": "2026-09-19T04:52:42+00:00",
+  "dataset": "UCI Sentiment Labelled Sentences (Amazon, IMDb, Yelp)",
+  "lines": 20,
+  "positives": 11,
+  "description": "most positive, happiest customer",
+  "precision_at_half": 1.0,
+  "auc": 0.7576,
+  "score_split_at_0.5": {
+    "precision": 1.0,
+    "recall": 0.625,
+    "f1": 0.7692,
+    "accuracy": 0.8
+  },
+  "jsort_run": {
+    "calls": 15,
+    "tokens": 5299,
+    "dollars": 0.000223,
+    "p50_ms": 307,
+    "seconds": 1200.1,
+    "rate_limited": 101
+  },
+  "ranking": [
+    {
+      "text": "Our server was fantastic and when he found out the wife loves roasted garlic and bone marrow, he added extra to our meal and another marrow to go!",
+      "score": 0.8025,
+      "positive": 1
+    },
+    {
+      "text": "Nothing short of magnificent photography/cinematography in this film.",
+      "score": 0.7725,
+      "positive": 1
+    },
+    {
+      "text": "It is light, has plenty of battery capacity, and is very confortable to wear for somewhat extended periods of time.",
+      "score": 0.6575,
+      "positive": 1
+    },
+    {
+      "text": "i'm glad i found this product on amazon it is hard to find, it wasn't high priced.",
+      "score": 0.54,
+      "positive": 1
+    },
+    {
+      "text": "I'm glad the film didn't go for the most obvious choice, as a lesser film certainly would have.",
+      "score": 0.525,
+      "positive": 1
+    },
+    {
+      "text": "Their Research and Development division obviously knows what they're doing.",
+      "score": 0.4475,
+      "positive": 1
+    },
+    {
+      "text": "The entire audience applauded at the conclusion of the film.",
+      "score": 0.435,
+      "positive": 1
+    },
+    {
+      "text": "Both Rickman and Stowe play their roles to the hilt in this tale of a childrens' book writer who-- maybe?-- has written a subversive tract.",
+      "score": 0.145,
+      "positive": 1
+    },
+    {
+      "text": "I Was Hoping for More.",
+      "score": 0.0075,
+      "positive": 0
+    },
+    {
+      "text": "So there is no way for me to plug it in here in the US unless I go by a converter.",
+      "score": 0.0,
+      "positive": 0
+    },
+    {
+      "text": "Sending it back.",
+      "score": 0.0,
+      "positive": 0
+    },
+    {
+      "text": "This was utterly confusing at first, which caused me to lose a couple of very, very important contacts.",
+      "score": 0.0,
+      "positive": 0
+    },
+    {
+      "text": "This is definitely one of the bad ones.",
+      "score": 0.0,
+      "positive": 0
+    },
+    {
+      "text": "Everything about this movie is stupid.",
+      "score": 0.0,
+      "positive": 0
+    },
+    {
+      "text": "In fact, this stinker smells like a direct-to-video release.",
+      "score": 0.0,
+      "positive": 0
+    },
+    {
+      "text": "Owner's are really great people.!",
+      "score": null,
+      "positive": 1
+    },
+    {
+      "text": "This one is simply a disappointment.",
+      "score": null,
+      "positive": 0
+    },
+    {
+      "text": "I really do recommend this place, you can go wrong with this donut place!",
+      "score": null,
+      "positive": 1
+    },
+    {
+      "text": "The chips that came out were dripping with grease, and mostly not edible.",
+      "score": null,
+      "positive": 0
+    },
+    {
+      "text": "the potatoes were great and so was the biscuit.",
+      "score": null,
+      "positive": 1
+    }
+  ]
+}

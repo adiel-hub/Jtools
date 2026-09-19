@@ -4,6 +4,6 @@
 <circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
 <text x="80" y="20" fill="#8a8f98">a pipe barrier</text>
 <text x="18" y="63" fill="#7aa2f7" font-weight="bold">$</text>
-<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">sh -c 'jgate "mentions a security incident" examples/app.log &amp;&amp; echo "exit 0 -&gt; page security"'</text>
+<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">jgate "mentions a security incident" examples/app.log &amp;&amp; echo "exit 0 -&gt; page security"</text>
 <text x="18" y="85" fill="#e6e6e6" xml:space="preserve">exit 0 -&gt; page security</text>
 </svg>

@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import os
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import IO
 
@@ -100,6 +100,20 @@ class Buckets:
         self.files: dict[str, IO[str]] = {}
         self.counts: dict[str, int] = {}
 
+    def prepare(self, names: Iterable[str]) -> None:
+        """With ``--truncate``, empty every bucket this run could use, not only the ones it fills.
+
+        Otherwise a rerun whose verdicts moved would leave yesterday's lines in a file nobody
+        wrote to today, and the set of files would no longer describe this run.
+        """
+        if not (self.enabled and self.mode == "w"):
+            return
+        self.dir.mkdir(parents=True, exist_ok=True)
+        for name in names:
+            path = self.dir / f"{name}{self.ext}"
+            if path.exists():
+                path.write_text("", encoding="utf-8")
+
     def write(self, bucket: str, line: str) -> None:
         self.counts[bucket] = self.counts.get(bucket, 0) + 1
         if not self.enabled:
@@ -129,6 +143,7 @@ async def run(r: Run) -> int:
         except OSError as e:
             raise UsageError(f"cannot write to --out-dir {args.out_dir!r}: {e.strerror or e}") from None
     buckets = Buckets(args.out_dir, args.ext, args.truncate, not args.no_files)
+    buckets.prepare([*args.bucket_map, args.default_bucket or UNROUTED, UNROUTED])
     stats = {"lines": 0, "unjudged": 0}
     pipe: Pipeline[ChoiceAnswer | None] = Pipeline(concurrency=args.concurrency)
 

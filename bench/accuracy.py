@@ -28,6 +28,7 @@ SENT_URL = "https://archive.ics.uci.edu/static/public/331/sentiment+labelled+sen
 NEWS_URL = "https://raw.githubusercontent.com/mhjabreel/CharCnn_Keras/master/data/ag_news_csv/test.csv"
 
 SPAM_DESCRIPTION = "an unsolicited spam, scam or marketing text message"
+SENTIMENT_DESCRIPTION = "the writer liked what they are reviewing"
 # A keyword filter of the kind people actually write; fixed before looking at any results.
 SPAM_REGEX = r"free|win|won|prize|claim|urgent|cash|txt|text .* to|call now|reply|offer|guaranteed|£|\$|www\.|http"
 NEWS_LABELS = {
@@ -94,66 +95,83 @@ def spam(n: int, jobs: int) -> None:
         ["jgrep", "--json", "-p", "0", "-j", str(jobs), SPAM_DESCRIPTION],
         "".join(t + "\n" for t in lines),
     )
-    if code not in (0, 1):
+    if code not in (0, 1, 5):
         sys.exit(f"jgrep failed: {err[-400:]}")
     p = {r["line"]: r["p"] for r in (json.loads(x) for x in out.splitlines()) if r.get("p") is not None}
-    ps = [p.get(i + 1, 0.0) for i in range(len(lines))]
-    t0 = time.perf_counter()
+    ps: list[float | None] = [p.get(i + 1) for i in range(len(lines))]
+    # A line the API never judged is not a wrong answer; it is a missing one. Score what was judged
+    # and report the rest, instead of counting a rate limit as a mistake.
+    judged = [i for i, x in enumerate(ps) if x is not None]
+    jt = [truth[i] for i in judged]
     keyword = [bool(re.search(SPAM_REGEX, line, re.I)) for line in lines]
+    t0 = time.perf_counter()
+    all_lines, all_labels = load("spam", 0)
+    full = prf([bool(re.search(SPAM_REGEX, line, re.I)) for line in all_lines], [y == 1 for y in all_labels])
     result = {
         **backend_info(),
         "dataset": "UCI SMS Spam Collection",
         "lines": len(lines),
+        "judged": len(judged),
+        "unjudged": len(lines) - len(judged),
         "positives": sum(truth),
         "description": SPAM_DESCRIPTION,
-        "jgrep_at_0.5": prf([x >= 0.5 for x in ps], truth),
-        "jgrep_at_0.9": prf([x >= 0.9 for x in ps], truth),
+        "jgrep_at_0.5": prf([ps[i] >= 0.5 for i in judged], jt),  # type: ignore[operator]
+        "jgrep_at_0.9": prf([ps[i] >= 0.9 for i in judged], jt),  # type: ignore[operator]
         "jgrep_run": stats,
-        "keyword_grep": prf(keyword, truth) | {"regex": SPAM_REGEX, "seconds": round(time.perf_counter() - t0, 4)},
+        "keyword_grep": prf([keyword[i] for i in judged], jt) | {"regex": SPAM_REGEX},
+        "keyword_grep_full_corpus": full
+        | {
+            "lines": len(all_lines),
+            "positives": sum(y == 1 for y in all_labels),
+            "seconds": round(time.perf_counter() - t0, 4),
+            "note": "the same regex over all 5,574 messages; free, so it needs no sample",
+        },
         "predictions": [
             {"text": line, "spam": t, "p": ps[i], "regex": keyword[i]}
             for i, (line, t) in enumerate(zip(lines, truth, strict=True))
         ],
     }
     save("accuracy-spam", result)
-    print(json.dumps(result, indent=2))
+    print(json.dumps({k: v for k, v in result.items() if k != "predictions"}, indent=2))
 
 
 def sentiment(n: int, jobs: int) -> None:
     lines, labels = load("sentiment", n)
     code, out, err, stats = run_tool(
-        ["jsort", "--json", "-j", str(jobs), "most positive, happiest customer"],
+        ["jsort", "--json", "-j", str(jobs), SENTIMENT_DESCRIPTION],
         "".join(t + "\n" for t in lines),
     )
     if code not in (0, 1, 5):
         sys.exit(f"jsort failed: {err[-400:]}")
     rows = [json.loads(x) for x in out.splitlines()]
     truth = dict(zip(lines, labels, strict=True))
-    ranked = [truth.get(r["line"], 0) for r in rows]
+    # jsort puts lines it could not judge last; they are missing answers, not wrong ones.
+    judged_rows = [r for r in rows if r.get("score") is not None]
+    ranked = [truth.get(r["line"], 0) for r in judged_rows]
     positives = sum(ranked)
-    # Precision at the top of the ranking, and how many pairs (pos, neg) are ordered correctly (AUC).
+    # Precision at the top of the ranking, and how many (positive, negative) pairs are ordered right.
     top = ranked[: max(1, positives // 2)]
     pos_ranks = [i for i, y in enumerate(ranked) if y == 1]
     neg_ranks = [i for i, y in enumerate(ranked) if y == 0]
     correct_pairs = sum(1 for pr in pos_ranks for nr in neg_ranks if pr < nr)
     auc = correct_pairs / max(len(pos_ranks) * len(neg_ranks), 1)
-    scores = [r["score"] for r in rows if r.get("score") is not None]
+    scores = [r["score"] for r in judged_rows]
     result = {
         **backend_info(),
         "dataset": "UCI Sentiment Labelled Sentences (Amazon, IMDb, Yelp)",
         "lines": len(lines),
+        "judged": len(judged_rows),
+        "unjudged": len(rows) - len(judged_rows),
         "positives": positives,
-        "description": "most positive, happiest customer",
+        "description": SENTIMENT_DESCRIPTION,
         "precision_at_half": round(sum(top) / len(top), 4),
         "auc": round(auc, 4),
-        "score_split_at_0.5": prf(
-            [s >= 0.5 for s in scores], [truth.get(r["line"], 0) == 1 for r in rows if r.get("score") is not None]
-        ),
+        "score_split_at_0.5": prf([s >= 0.5 for s in scores], [truth.get(r["line"], 0) == 1 for r in judged_rows]),
         "jsort_run": stats,
         "ranking": [{"text": r["line"], "score": r.get("score"), "positive": truth.get(r["line"], 0)} for r in rows],
     }
     save("accuracy-sentiment", result)
-    print(json.dumps(result, indent=2))
+    print(json.dumps({k: v for k, v in result.items() if k != "ranking"}, indent=2))
 
 
 def news(n: int, jobs: int) -> None:
@@ -166,17 +184,22 @@ def news(n: int, jobs: int) -> None:
         sys.exit(f"jtag failed: {err[-400:]}")
     rows = [json.loads(x) for x in out.splitlines()]
     name_of = {k: v[0] for k, v in NEWS_LABELS.items()}
-    predicted = [r.get("label") for r in rows]
     truth_names = [name_of[y] for y in labels]
+    # A line jtag could not judge carries no label; score the labelled ones and report the rest.
+    pairs = [(r.get("label"), t) for r, t in zip(rows, truth_names, strict=True) if r.get("label")]
+    predicted = [p for p, _ in pairs]
+    judged_truth = [t for _, t in pairs]
     per_class = {
-        name: prf([p == name for p in predicted], [t == name for t in truth_names]) for name in name_of.values()
+        name: prf([p == name for p in predicted], [t == name for t in judged_truth]) for name in name_of.values()
     }
     result = {
         **backend_info(),
         "dataset": "AG News test split",
         "lines": len(lines),
+        "judged": len(pairs),
+        "unjudged": len(rows) - len(pairs),
         "labels": spec,
-        "accuracy": round(sum(p == t for p, t in zip(predicted, truth_names, strict=True)) / len(lines), 4),
+        "accuracy": round(sum(p == t for p, t in pairs) / max(len(pairs), 1), 4),
         "macro_f1": round(sum(v["f1"] for v in per_class.values()) / len(per_class), 4),
         "per_class": per_class,
         "jtag_run": stats,
@@ -186,7 +209,7 @@ def news(n: int, jobs: int) -> None:
         ],
     }
     save("accuracy-news", result)
-    print(json.dumps(result, indent=2))
+    print(json.dumps({k: v for k, v in result.items() if k != "predictions"}, indent=2))
 
 
 if __name__ == "__main__":

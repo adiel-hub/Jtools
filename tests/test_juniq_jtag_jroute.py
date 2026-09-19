@@ -186,3 +186,21 @@ def test_jroute_usage(invoke, tmp_path):
 def test_jroute_strict_stops(invoke, tmp_path):
     res = invoke(jroute, ["a:x", "b:y", "-o", str(tmp_path), "--strict"], f"{POISON}\n", mock_override=MockJev())
     assert res.code == 4
+
+
+def test_jroute_truncate_clears_stale_buckets_it_does_not_write(invoke, tmp_path):
+    """A rerun whose verdicts moved must not leave yesterday's lines in an untouched bucket."""
+    out = tmp_path / "s"
+    out.mkdir()
+    (out / "unrouted.txt").write_text("a line from an earlier run\n")
+    (out / "spam.txt").write_text("stale spam\n")
+    res = invoke(
+        jroute, ["sales:a sales lead", "spam:junk", "-o", str(out), "--truncate"], "Pricing for the team plan?\n"
+    )
+    assert res.code == 0
+    assert (out / "sales.txt").read_text() == "Pricing for the team plan?\n"
+    assert (out / "unrouted.txt").read_text() == ""  # nothing was unrouted this time
+    assert (out / "spam.txt").read_text() == ""
+    # Without --truncate the files are appended to, as before.
+    res = invoke(jroute, ["sales:a sales lead", "spam:junk", "-o", str(out)], "Pricing again?\n")
+    assert (out / "sales.txt").read_text().splitlines() == ["Pricing for the team plan?", "Pricing again?"]

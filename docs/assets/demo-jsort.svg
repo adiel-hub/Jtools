@@ -1,33 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="418" viewBox="0 0 1034 418" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
-<rect width="1034" height="418" rx="10" fill="#0f1419"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="308" viewBox="0 0 1034 308" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
+<rect width="1034" height="308" rx="10" fill="#0f1419"/>
 <rect width="1034" height="30" fill="#1a1f26"/>
 <circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
 <text x="80" y="20" fill="#8a8f98">sort by meaning</text>
 <text x="18" y="63" fill="#7aa2f7" font-weight="bold">$</text>
 <text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">jsort 'angriest customer first' --with-score examples/feedback.txt</text>
-<text x="18" y="85" fill="#6fd08c" font-weight="bold">0.970</text>
-<text x="85.2" y="85" fill="#e6e6e6" xml:space="preserve">WHY does it log me out every five minutes?? Absolutely unacceptable.</text>
-<text x="18" y="107" fill="#6fd08c" font-weight="bold">0.912</text>
-<text x="85.2" y="107" fill="#e6e6e6" xml:space="preserve">This is the third time checkout has failed this week. I am done with this app.</text>
-<text x="18" y="129" fill="#e06c75" font-weight="bold">0.003</text>
-<text x="85.2" y="129" fill="#e6e6e6" xml:space="preserve">Pricing question: do you offer enterprise seats?</text>
-<text x="18" y="151" fill="#e06c75" font-weight="bold">0.000</text>
-<text x="85.2" y="151" fill="#e6e6e6" xml:space="preserve">Love the new dashboard, thanks team!</text>
-<text x="18" y="173" fill="#e06c75" font-weight="bold">0.000</text>
-<text x="85.2" y="173" fill="#e6e6e6" xml:space="preserve">How do I export my data to CSV?</text>
-<text x="18" y="195" fill="#e06c75" font-weight="bold">0.000</text>
-<text x="85.2" y="195" fill="#e6e6e6" xml:space="preserve">Everything works as expected, no complaints.</text>
-<text x="18" y="217" fill="#8a8f98" font-weight="bold">-</text>
-<text x="85.2" y="217" fill="#e6e6e6" xml:space="preserve">The mobile app is a bit slow on older phones but works fine.</text>
-<text x="18" y="239" fill="#8a8f98" font-weight="bold">-</text>
-<text x="85.2" y="239" fill="#e6e6e6" xml:space="preserve">Cancel my subscription immediately and refund the last charge. Worst support ever.</text>
-<text x="18" y="261" fill="#8a8f98" font-weight="bold">-</text>
-<text x="85.2" y="261" fill="#e6e6e6" xml:space="preserve">Would be great to have a dark mode.</text>
-<text x="18" y="283" fill="#8a8f98" font-weight="bold">-</text>
-<text x="85.2" y="283" fill="#e6e6e6" xml:space="preserve">Your sales rep promised a feature that does not exist. I feel lied to.</text>
-<text x="18" y="305" fill="#8a8f98" xml:space="preserve">jsort: gave up after 1200s (HTTP 429 (Free tier requests on this model are rate-limited. Upgrade to paid</text>
-<text x="18" y="327" fill="#8a8f98" xml:space="preserve">      credits at https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dtop-up for unrestricted</text>
-<text x="18" y="349" fill="#8a8f98" xml:space="preserve">      access.))</text>
-<text x="18" y="371" fill="#8a8f98" xml:space="preserve">jsort: 4 of 10 lines could not be judged and were sorted last</text>
-<text x="18" y="393" fill="#8a8f98" xml:space="preserve">jsort: 3 more errors were not shown</text>
+<text x="18" y="85" fill="#6fd08c" font-weight="bold">0.990</text>
+<text x="85.2" y="85" fill="#e6e6e6" xml:space="preserve">Cancel my subscription immediately and refund the last charge. Worst support ever.</text>
+<text x="18" y="107" fill="#6fd08c" font-weight="bold">0.978</text>
+<text x="85.2" y="107" fill="#e6e6e6" xml:space="preserve">WHY does it log me out every five minutes?? Absolutely unacceptable.</text>
+<text x="18" y="129" fill="#6fd08c" font-weight="bold">0.900</text>
+<text x="85.2" y="129" fill="#e6e6e6" xml:space="preserve">This is the third time checkout has failed this week. I am done with this app.</text>
+<text x="18" y="151" fill="#6fd08c" font-weight="bold">0.855</text>
+<text x="85.2" y="151" fill="#e6e6e6" xml:space="preserve">Your sales rep promised a feature that does not exist. I feel lied to.</text>
+<text x="18" y="173" fill="#e06c75" font-weight="bold">0.085</text>
+<text x="85.2" y="173" fill="#e6e6e6" xml:space="preserve">The mobile app is a bit slow on older phones but works fine.</text>
+<text x="18" y="195" fill="#e06c75" font-weight="bold">0.007</text>
+<text x="85.2" y="195" fill="#e6e6e6" xml:space="preserve">Would be great to have a dark mode.</text>
+<text x="18" y="217" fill="#e06c75" font-weight="bold">0.000</text>
+<text x="85.2" y="217" fill="#e6e6e6" xml:space="preserve">Love the new dashboard, thanks team!</text>
+<text x="18" y="239" fill="#e06c75" font-weight="bold">0.000</text>
+<text x="85.2" y="239" fill="#e6e6e6" xml:space="preserve">How do I export my data to CSV?</text>
+<text x="18" y="261" fill="#e06c75" font-weight="bold">0.000</text>
+<text x="85.2" y="261" fill="#e6e6e6" xml:space="preserve">Pricing question: do you offer enterprise seats?</text>
+<text x="18" y="283" fill="#e06c75" font-weight="bold">0.000</text>
+<text x="85.2" y="283" fill="#e6e6e6" xml:space="preserve">Everything works as expected, no complaints.</text>
 </svg>

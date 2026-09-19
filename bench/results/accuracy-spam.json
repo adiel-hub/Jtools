@@ -1,0 +1,220 @@
+{
+  "backend": "vercel",
+  "url": "https://ai-gateway.vercel.sh/v4/ai/evaluation-model",
+  "model": "typesafe-ai/jev",
+  "when": "2026-09-19T04:32:41+00:00",
+  "dataset": "UCI SMS Spam Collection",
+  "lines": 30,
+  "positives": 2,
+  "description": "an unsolicited spam, scam or marketing text message",
+  "jgrep_at_0.5": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "accuracy": 1.0
+  },
+  "jgrep_at_0.9": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "accuracy": 0.9333
+  },
+  "jgrep_run": {
+    "calls": 30,
+    "tokens": 9173,
+    "dollars": 0.000385,
+    "p50_ms": 298,
+    "seconds": 1789.4,
+    "rate_limited": 149
+  },
+  "keyword_grep": {
+    "precision": 0.2,
+    "recall": 0.5,
+    "f1": 0.2857,
+    "accuracy": 0.8333,
+    "regex": "free|win|won|prize|claim|urgent|cash|txt|text .* to|call now|reply|offer|guaranteed|£|\\$|www\\.|http",
+    "seconds": 0.0011
+  },
+  "predictions": [
+    {
+      "text": "Go until jurong point, crazy.. Available only in bugis n great world la e buffet... Cine there got amore wat...",
+      "spam": false,
+      "p": 0.48,
+      "regex": false
+    },
+    {
+      "text": "Going on nothing great.bye",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "Hello my boytoy ... Geeee I miss you already and I just woke up. I wish you were here in bed with me, cuddling me. I love you ...",
+      "spam": false,
+      "p": 0.07,
+      "regex": false
+    },
+    {
+      "text": "Having lunch:)you are not in online?why?",
+      "spam": false,
+      "p": 0.06,
+      "regex": false
+    },
+    {
+      "text": "Just got up. have to be out of the room very soon. …. i hadn't put the clocks back til at 8 i shouted at everyone to get up and then realised it was 7. wahay. another hour in bed.",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "Oh all have to come ah?",
+      "spam": false,
+      "p": 0.1,
+      "regex": false
+    },
+    {
+      "text": "No I'm good for the movie, is it ok if I leave in an hourish?",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "Great to hear you are settling well. So what's happenin wit ola?",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "(I should add that I don't really care and if you can't I can at least get this dude to fuck off but hey, your money if you want it)",
+      "spam": false,
+      "p": 0.23,
+      "regex": false
+    },
+    {
+      "text": "Glad to see your reply.",
+      "spam": false,
+      "p": 0.04,
+      "regex": true
+    },
+    {
+      "text": "I hate when she does this. She turns what should be a fun shopping trip into an annoying day of how everything would look in her house.",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "Me not waking up until 4 in the afternoon, sup",
+      "spam": false,
+      "p": 0.02,
+      "regex": false
+    },
+    {
+      "text": "Those were my exact intentions",
+      "spam": false,
+      "p": 0.06,
+      "regex": false
+    },
+    {
+      "text": "O was not into fps then.",
+      "spam": false,
+      "p": 0.03,
+      "regex": false
+    },
+    {
+      "text": "As usual..iam fine, happy &amp; doing well..:)",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "cThen i thk shd b enuff.. Still got conclusion n contents pg n references.. I'll b doing da contents pg n cover pg..",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "Height of Confidence: All the Aeronautics professors wer calld &amp; they wer askd 2 sit in an aeroplane. Aftr they sat they wer told dat the plane ws made by their students. Dey all hurried out of d plane.. Bt only 1 didnt move... He said:\"if it is made by my students,this wont even start........ Datz confidence..",
+      "spam": false,
+      "p": 0.04,
+      "regex": true
+    },
+    {
+      "text": "Havent shopping now lor i juz arrive only",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "I haven't forgotten you, i might have a couple bucks to send you tomorrow, k? I love ya too",
+      "spam": false,
+      "p": 0.02,
+      "regex": false
+    },
+    {
+      "text": "Xmas & New Years Eve tickets are now on sale from the club, during the day from 10am till 8pm, and on Thurs, Fri & Sat night this week. They're selling fast!",
+      "spam": true,
+      "p": 0.73,
+      "regex": false
+    },
+    {
+      "text": "I am late,so call you tomorrow morning.take care sweet dreams....u and me...ummifying...bye.",
+      "spam": false,
+      "p": 0.05,
+      "regex": false
+    },
+    {
+      "text": "Okie",
+      "spam": false,
+      "p": 0.12,
+      "regex": false
+    },
+    {
+      "text": "Lemme know when you're here",
+      "spam": false,
+      "p": 0.05,
+      "regex": false
+    },
+    {
+      "text": "Where to get those?",
+      "spam": false,
+      "p": 0.14,
+      "regex": false
+    },
+    {
+      "text": "Die... I accidentally deleted e msg i suppose 2 put in e sim archive. Haiz... I so sad...",
+      "spam": false,
+      "p": 0.02,
+      "regex": false
+    },
+    {
+      "text": "Did u got that persons story",
+      "spam": false,
+      "p": 0.11,
+      "regex": false
+    },
+    {
+      "text": "How long before you get reply, just defer admission til next semester",
+      "spam": false,
+      "p": 0.15,
+      "regex": true
+    },
+    {
+      "text": "I think the other two still need to get cash but we can def be ready by 9",
+      "spam": false,
+      "p": 0.02,
+      "regex": true
+    },
+    {
+      "text": "Call Germany for only 1 pence per minute! Call from a fixed line via access number 0844 861 85 85. No prepayment. Direct access! www.telediscount.co.uk",
+      "spam": true,
+      "p": 0.8,
+      "regex": true
+    },
+    {
+      "text": "I'm at work. Please call",
+      "spam": false,
+      "p": 0.07,
+      "regex": false
+    }
+  ]
+}

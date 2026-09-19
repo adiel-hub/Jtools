@@ -1,39 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="770" viewBox="0 0 1034 770" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
-<rect width="1034" height="770" rx="10" fill="#0f1419"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="506" viewBox="0 0 1034 506" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
+<rect width="1034" height="506" rx="10" fill="#0f1419"/>
 <rect width="1034" height="30" fill="#1a1f26"/>
 <circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
 <text x="80" y="20" fill="#8a8f98">split a stream into buckets</text>
 <text x="18" y="63" fill="#7aa2f7" font-weight="bold">$</text>
-<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">jroute 'sales:a sales lead' 'support:a support request' 'spam:junk or a scam' -i examples/inbox.txt -o</text>
-<text x="37.2" y="85" fill="#e6e6e6" font-weight="bold" xml:space="preserve">/tmp/sorted --truncate --json</text>
-<text x="18" y="107" fill="#e5c07b" xml:space="preserve">{"bucket": "sales", "line": "Can we get a quote for 50 enterprise seats? We'd like to start next</text>
-<text x="18" y="129" fill="#e6e6e6" xml:space="preserve">      quarter.", "probability": 1.0, "probabilities": {"spam": 0.0, "sales": 1.0, "support": 0.0},</text>
-<text x="18" y="151" fill="#e6e6e6" xml:space="preserve">      "source": "examples/inbox.txt", "lineno": 1}</text>
-<text x="18" y="173" fill="#e5c07b" xml:space="preserve">{"bucket": "support", "line": "My password reset link is not working, please help.", "probability": 1.0,</text>
-<text x="18" y="195" fill="#e6e6e6" xml:space="preserve">      "probabilities": {"support": 1.0, "sales": 0.0, "spam": 0.0}, "source": "examples/inbox.txt",</text>
-<text x="18" y="217" fill="#e6e6e6" xml:space="preserve">      "lineno": 2}</text>
-<text x="18" y="239" fill="#e5c07b" xml:space="preserve">{"bucket": "spam", "line": "CONGRATULATIONS you have been selected for a FREE cruise, click here</text>
-<text x="18" y="261" fill="#e6e6e6" xml:space="preserve">      now!!!", "probability": 1.0, "probabilities": {"sales": 0.0, "support": 0.0, "spam": 1.0},</text>
-<text x="18" y="283" fill="#e6e6e6" xml:space="preserve">      "source": "examples/inbox.txt", "lineno": 3}</text>
-<text x="18" y="305" fill="#e5c07b" xml:space="preserve">{"bucket": "sales", "line": "Pricing for the team plan? We're comparing you with two competitors.",</text>
-<text x="18" y="327" fill="#e6e6e6" xml:space="preserve">      "probability": 1.0, "probabilities": {"sales": 1.0, "spam": 0.0, "support": 0.0}, "source":</text>
-<text x="18" y="349" fill="#e6e6e6" xml:space="preserve">      "examples/inbox.txt", "lineno": 4}</text>
-<text x="18" y="371" fill="#e5c07b" xml:space="preserve">{"bucket": "support", "line": "The export button crashes the app on Safari.", "probability": 1.0,</text>
-<text x="18" y="393" fill="#e6e6e6" xml:space="preserve">      "probabilities": {"support": 1.0, "sales": 0.0, "spam": 0.0}, "source": "examples/inbox.txt",</text>
-<text x="18" y="415" fill="#e6e6e6" xml:space="preserve">      "lineno": 5}</text>
-<text x="18" y="437" fill="#e5c07b" xml:space="preserve">{"bucket": "support", "line": "Re: invoice #4471 - paid twice, please refund one payment.",</text>
-<text x="18" y="459" fill="#e6e6e6" xml:space="preserve">      "probability": 1.0, "probabilities": {"support": 1.0, "sales": 0.0, "spam": 0.0}, "source":</text>
-<text x="18" y="481" fill="#e6e6e6" xml:space="preserve">      "examples/inbox.txt", "lineno": 6}</text>
-<text x="18" y="503" fill="#e5c07b" xml:space="preserve">{"bucket": "spam", "line": "URGENT: your account will be suspended unless you verify at</text>
-<text x="18" y="525" fill="#e6e6e6" xml:space="preserve">      http://totally-not-a-scam.example", "probability": 1.0, "probabilities": {"sales": 0.0, "spam":</text>
-<text x="18" y="547" fill="#e6e6e6" xml:space="preserve">      1.0, "support": 0.0}, "source": "examples/inbox.txt", "lineno": 7}</text>
-<text x="18" y="569" fill="#e5c07b" xml:space="preserve">{"bucket": "sales", "line": "Interested in a demo for our 200-person sales org.", "probability": 1.0,</text>
-<text x="18" y="591" fill="#e6e6e6" xml:space="preserve">      "probabilities": {"sales": 1.0, "spam": 0.0, "support": 0.0}, "source": "examples/inbox.txt",</text>
-<text x="18" y="613" fill="#e6e6e6" xml:space="preserve">      "lineno": 8}</text>
-<text x="18" y="635" fill="#e5c07b" xml:space="preserve">{"bucket": "support", "line": "How do I add a second admin to my workspace?", "probability": 1.0,</text>
-<text x="18" y="657" fill="#e6e6e6" xml:space="preserve">      "probabilities": {"support": 1.0, "sales": 0.0, "spam": 0.0}, "source": "examples/inbox.txt",</text>
-<text x="18" y="679" fill="#e6e6e6" xml:space="preserve">      "lineno": 9}</text>
-<text x="18" y="701" fill="#e5c07b" xml:space="preserve">{"bucket": "spam", "line": "Make money fast working from home $$$", "probability": 1.0, "probabilities":</text>
-<text x="18" y="723" fill="#e6e6e6" xml:space="preserve">      {"sales": 0.0, "support": 0.0, "spam": 1.0}, "source": "examples/inbox.txt", "lineno": 10}</text>
-<text x="18" y="745" fill="#8a8f98" xml:space="preserve">jroute: 10 lines routed (support: 4, sales: 3, spam: 3) -&gt; /tmp/sorted</text>
+<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">jroute "sales:a sales lead" "support:a support request" "spam:junk or a scam" -i examples/inbox.txt -o</text>
+<text x="37.2" y="85" fill="#e6e6e6" font-weight="bold" xml:space="preserve">/tmp/sorted --truncate &amp;&amp; head -n 3 /tmp/sorted/*.txt</text>
+<text x="18" y="107" fill="#e6e6e6" xml:space="preserve">==&gt; /tmp/sorted/sales.txt &lt;==</text>
+<text x="18" y="129" fill="#e6e6e6" xml:space="preserve">Can we get a quote for 50 enterprise seats? We'd like to start next quarter.</text>
+<text x="18" y="151" fill="#e6e6e6" xml:space="preserve">Pricing for the team plan? We're comparing you with two competitors.</text>
+<text x="18" y="173" fill="#e6e6e6" xml:space="preserve">Interested in a demo for our 200-person sales org.</text>
+<text x="18" y="195" fill="#e6e6e6" xml:space="preserve"></text>
+<text x="18" y="217" fill="#e6e6e6" xml:space="preserve">==&gt; /tmp/sorted/spam.txt &lt;==</text>
+<text x="18" y="239" fill="#e6e6e6" xml:space="preserve">CONGRATULATIONS you have been selected for a FREE cruise, click here now!!!</text>
+<text x="18" y="261" fill="#e6e6e6" xml:space="preserve">URGENT: your account will be suspended unless you verify at http://totally-not-a-scam.example</text>
+<text x="18" y="283" fill="#e6e6e6" xml:space="preserve">Make money fast working from home $$$</text>
+<text x="18" y="305" fill="#e6e6e6" xml:space="preserve"></text>
+<text x="18" y="327" fill="#e6e6e6" xml:space="preserve">==&gt; /tmp/sorted/support.txt &lt;==</text>
+<text x="18" y="349" fill="#e6e6e6" xml:space="preserve">My password reset link is not working, please help.</text>
+<text x="18" y="371" fill="#e6e6e6" xml:space="preserve">The export button crashes the app on Safari.</text>
+<text x="18" y="393" fill="#e6e6e6" xml:space="preserve">Re: invoice #4471 - paid twice, please refund one payment.</text>
+<text x="18" y="415" fill="#e6e6e6" xml:space="preserve"></text>
+<text x="18" y="437" fill="#e6e6e6" xml:space="preserve">==&gt; /tmp/sorted/unrouted.txt &lt;==</text>
+<text x="18" y="459" fill="#e6e6e6" xml:space="preserve">Can we get a quote for 50 enterprise seats? We'd like to start next quarter.</text>
+<text x="18" y="481" fill="#8a8f98" xml:space="preserve">jroute: 10 lines routed (support: 4, sales: 3, spam: 3) -&gt; /tmp/sorted</text>
 </svg>

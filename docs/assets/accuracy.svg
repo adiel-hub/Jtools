@@ -1,12 +1,24 @@
-<svg xmlns='http://www.w3.org/2000/svg' width='760' height='178' viewBox='0 0 760 178' font-family='-apple-system, Segoe UI, Helvetica, Arial, sans-serif'>
-<rect width='760' height='178' fill='white' rx='8'/>
+<svg xmlns='http://www.w3.org/2000/svg' width='760' height='314' viewBox='0 0 760 314' font-family='-apple-system, Segoe UI, Helvetica, Arial, sans-serif'>
+<rect width='760' height='314' fill='white' rx='8'/>
 <text x='20' y='30' font-size='18' font-weight='600' fill='#24292f'>Accuracy on public labelled corpora</text>
 <text x='20' y='52' font-size='12' fill='#57606a'>each row is the installed command, uncached, default threshold; see bench/README.md</text>
-<text x='250' y='90' font-size='13' fill='#24292f' text-anchor='end'>jtag, AG News 4-way accuracy (n=20)</text>
-<rect x='260' y='76' width='320.8' height='20' rx='3' fill='#2da44e'/>
-<text x='588.8' y='91' font-size='12' fill='#24292f'>0.50</text>
-<text x='250' y='124' font-size='13' fill='#24292f' text-anchor='end'>jtag, AG News macro F1</text>
-<rect x='260' y='110' width='380.0' height='20' rx='3' fill='#0969da'/>
-<text x='648.0' y='125' font-size='12' fill='#24292f'>0.59</text>
-<text x='740' y='164' font-size='11' fill='#57606a' text-anchor='end'>0 to 1</text>
+<text x='250' y='90' font-size='13' fill='#24292f' text-anchor='end'>jgrep, SMS spam F1 (n=30)</text>
+<rect x='260' y='76' width='380.0' height='20' rx='3' fill='#2da44e'/>
+<text x='648.0' y='91' font-size='12' fill='#24292f'>1.00</text>
+<text x='250' y='124' font-size='13' fill='#24292f' text-anchor='end'>keyword regex, SMS spam F1</text>
+<rect x='260' y='110' width='108.6' height='20' rx='3' fill='#cf222e'/>
+<text x='376.6' y='125' font-size='12' fill='#24292f'>0.29</text>
+<text x='250' y='158' font-size='13' fill='#24292f' text-anchor='end'>jsort, sentiment ranking AUC (n=20)</text>
+<rect x='260' y='144' width='287.9' height='20' rx='3' fill='#2da44e'/>
+<text x='555.9' y='159' font-size='12' fill='#24292f'>0.76</text>
+<text x='250' y='192' font-size='13' fill='#24292f' text-anchor='end'>jsort, precision in the top half</text>
+<rect x='260' y='178' width='380.0' height='20' rx='3' fill='#0969da'/>
+<text x='648.0' y='193' font-size='12' fill='#24292f'>1.00</text>
+<text x='250' y='226' font-size='13' fill='#24292f' text-anchor='end'>jtag, AG News 4-way accuracy (n=20)</text>
+<rect x='260' y='212' width='190.0' height='20' rx='3' fill='#2da44e'/>
+<text x='458.0' y='227' font-size='12' fill='#24292f'>0.50</text>
+<text x='250' y='260' font-size='13' fill='#24292f' text-anchor='end'>jtag, AG News macro F1</text>
+<rect x='260' y='246' width='225.1' height='20' rx='3' fill='#0969da'/>
+<text x='493.1' y='261' font-size='12' fill='#24292f'>0.59</text>
+<text x='740' y='300' font-size='11' fill='#57606a' text-anchor='end'>0 to 1</text>
 </svg>

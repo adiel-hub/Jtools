@@ -2,59 +2,39 @@
   "backend": "vercel",
   "url": "https://ai-gateway.vercel.sh/v4/ai/evaluation-model",
   "model": "typesafe-ai/jev",
-  "when": "2026-09-19T02:08:56+00:00",
+  "when": "2026-09-19T03:26:47+00:00",
   "single": {
     "n": 8,
-    "p50_ms": 397,
-    "p95_ms": 297948,
-    "mean_ms": 37616,
+    "p50_ms": 419,
+    "p95_ms": 994,
+    "mean_ms": 469,
+    "wall_p50_ms": 419,
+    "wall_p95_ms": 298804,
     "tokens_per_call": 301,
-    "dollars_per_call": 0.0,
-    "dollars_per_1000": 0.0,
-    "rate_limited": 22
+    "dollars_per_call": 1.264e-05,
+    "dollars_per_1000": 0.01264,
+    "rate_limited": 42,
+    "note": "p50/p95 are the HTTP exchange; wall_* include rate-limit waits on a throttled key"
   },
   "batching": [
     {
       "questions_per_call": 1,
-      "p50_ms": 288,
+      "p50_ms": 267,
       "tokens_per_call": 305,
-      "dollars_per_call": 0.0
+      "dollars_per_call": 1.281e-05
     },
     {
       "questions_per_call": 4,
-      "p50_ms": 284,
+      "p50_ms": 471,
       "tokens_per_call": 363,
-      "dollars_per_call": 0.0
+      "dollars_per_call": 1.525e-05
     },
     {
       "questions_per_call": 16,
-      "p50_ms": 321,
+      "p50_ms": 297,
       "tokens_per_call": 589,
-      "dollars_per_call": 0.0
+      "dollars_per_call": 2.474e-05
     }
   ],
-  "throughput": [
-    {
-      "jobs": 1,
-      "lines": 8,
-      "calls": 8,
-      "tokens": 2400,
-      "dollars": 0.0,
-      "p50_ms": 365,
-      "seconds": 316.9,
-      "rate_limited": 23,
-      "lines_per_second": 0.0
-    },
-    {
-      "jobs": 8,
-      "lines": 8,
-      "calls": 8,
-      "tokens": 2400,
-      "dollars": 0.0,
-      "p50_ms": 552,
-      "seconds": 615.5,
-      "rate_limited": 45,
-      "lines_per_second": 0.0
-    }
-  ]
+  "throughput": []
 }

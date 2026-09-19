@@ -138,10 +138,18 @@ def asciicast(scene: dict[str, object], title: str) -> str:
     return "\n".join([json.dumps(header), *(json.dumps(e) for e in events)]) + "\n"
 
 
+TROUBLE = ("gave up", "could not be judged", "unjudged", "Traceback", "rate-limited")
+
+
 def clean(scene: dict[str, object]) -> bool:
-    """A cast worth publishing: the tool finished normally and every line was judged."""
+    """A cast worth publishing: the tool finished normally and judged every line.
+
+    A tool's own summary on stderr (jroute's line counts) is part of the demo; only a report of
+    trouble, or an unjudged record in the output, means the cast should be recorded again.
+    """
     lines = [text for _, text in scene["stdout"]]  # type: ignore[union-attr]
-    return scene["exit"] in (0, 1) and not any(text.startswith("-\t") for text in lines) and not scene["stderr"]
+    noise = [msg for msg in scene["stderr"] if any(bad in msg for bad in TROUBLE)]  # type: ignore[union-attr]
+    return scene["exit"] in (0, 1) and not any(text.startswith(("-\t", "-  ")) for text in lines) and not noise
 
 
 def main(names: list[str]) -> None:
