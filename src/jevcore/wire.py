@@ -162,6 +162,17 @@ def parse_answer(qid: str, question: Question, raw: Any, *, yes_key: str, confid
     )
 
 
+def _obj(raw: Any) -> dict[str, Any]:
+    """A response field that should be an object, or an empty one.
+
+    Usage and provider metadata are read for their keys. `or {}` covers a field that is missing,
+    null or empty -- including `[]` -- but not one that holds something of the wrong type: a
+    gateway or proxy that reports usage as `"none"`, or confidence as a string, used to turn
+    metering into an AttributeError over a response whose answers were perfectly good.
+    """
+    return raw if isinstance(raw, dict) else {}
+
+
 def _detail(found: Any) -> str:
     if isinstance(found, list):
         return "; ".join(_detail(item) for item in found)
@@ -201,7 +212,7 @@ class SystemOneWire:
             if qid not in answers:
                 raise JevError(f"invalid response: no answer for question {qid!r}")
             out[qid] = parse_answer(qid, q, answers[qid], yes_key="noul")
-        usage_raw = data.get("usage") or {}
+        usage_raw = _obj(data.get("usage"))
         cost = usage_raw.get("cost")
         usage = Usage(
             input_tokens=_count(usage_raw.get("input_tokens")),
@@ -247,23 +258,23 @@ class VercelWire:
         answers = data.get("answers")
         if not isinstance(answers, dict):
             raise JevError("invalid response: expected an 'answers' object")
-        meta = data.get("providerMetadata") or {}
-        confidences = (meta.get("typesafe") or {}).get("confidence") or {}
+        meta = _obj(data.get("providerMetadata"))
+        confidences = _obj(_obj(meta.get("typesafe")).get("confidence"))
         out: dict[str, Answer] = {}
         for qid, q in questions.items():
             if qid not in answers:
                 raise JevError(f"invalid response: no answer for question {qid!r}")
-            conf = confidences.get(qid) if isinstance(confidences, dict) else None
+            conf = confidences.get(qid)
             out[qid] = parse_answer(qid, q, answers[qid], yes_key="probability", confidence=conf)
-        usage_raw = data.get("usage") or {}
-        gateway = meta.get("gateway") or {}
+        usage_raw = _obj(data.get("usage"))
+        gateway = _obj(meta.get("gateway"))
         cost_raw = gateway.get("cost")
         cost: float | None
         try:
             cost = float(cost_raw) if cost_raw is not None else None
         except (TypeError, ValueError):
             cost = None
-        routing = gateway.get("routing") or {}
+        routing = _obj(gateway.get("routing"))
         model = routing.get("canonicalSlug") if isinstance(routing.get("canonicalSlug"), str) else None
         usage = Usage(
             input_tokens=_count(usage_raw.get("inputTokens")),

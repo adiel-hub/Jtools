@@ -201,3 +201,33 @@ def test_a_text_state_and_the_object_it_spells_are_different_questions():
     """--jsonl re-serialises a non-string field; that text must not answer for the object."""
     q = Noul("a")
     assert cache_key("m", '{"user": "bob"}', q) != cache_key("m", {"user": "bob"}, q)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"answers": {"q": {"noul": 0.7}}, "usage": []},
+        {"answers": {"q": {"noul": 0.7}}, "usage": "none"},
+        {"answers": {"q": {"noul": 0.7}}, "usage": 0},
+    ],
+    ids=["a list", "a string", "a number"],
+)
+def test_system_one_keeps_the_answer_when_usage_is_not_an_object(data):
+    """Metering is not a decision: a usage field of the wrong shape costs a statistic, not the answer."""
+    answers, usage = SYSTEMONE.parse(data, {"q": Noul("is it a problem")})
+    assert isinstance(answers["q"], NoulAnswer) and answers["q"].probability == 0.7
+    assert usage.input_tokens == 0 and usage.cost is None
+
+
+@pytest.mark.parametrize(
+    "meta",
+    [[], "none", {"typesafe": []}, {"typesafe": {"confidence": "x"}}, {"gateway": []}, {"gateway": {"routing": []}}],
+    ids=["metadata is a list", "metadata is a string", "typesafe", "confidence", "gateway", "routing"],
+)
+def test_vercel_keeps_the_answer_when_provider_metadata_is_not_an_object(meta):
+    """`or {}` covers a missing field and an empty one, not a serialiser that writes a map as []."""
+    data = {"answers": {"q": {"probability": 0.7}}, "providerMetadata": meta, "usage": {"inputTokens": 5}}
+    answers, usage = VERCEL.parse(data, {"q": Noul("is it a problem")})
+    assert isinstance(answers["q"], NoulAnswer) and answers["q"].probability == 0.7
+    assert usage.input_tokens == 5, "a bad metadata shape cost the token count as well"
+    assert usage.cost is None and usage.model is None
