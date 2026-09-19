@@ -43,15 +43,15 @@ def describe(tool: str) -> Tool:
     files: list[str] = []
     subcommands: list[str] = []
     for action in parser._actions:
+        values = [str(c) for c in action.choices] if action.choices else []
         if not action.option_strings:
             # A positional; a subparsers action carries the subcommand names.
-            if action.choices:
-                subcommands.extend(str(c) for c in action.choices)
+            subcommands.extend(values)
             continue
         flags.extend(action.option_strings)
-        if action.choices and len(action.choices) <= MAX_CHOICES:
+        if values and len(values) <= MAX_CHOICES:
             for flag in action.option_strings:
-                choices[flag] = [str(c) for c in action.choices]
+                choices[flag] = values
         # The metavar says what the argument is, so the shell can offer the right thing.
         elif action.metavar == "DIR":
             dirs.extend(action.option_strings)

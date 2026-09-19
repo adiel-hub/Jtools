@@ -148,4 +148,11 @@ def canonical(question: Question) -> str:
 
 
 def canonical_state(state: State) -> str:
-    return state if isinstance(state, str) else json.dumps(state, sort_keys=True, ensure_ascii=False)
+    """A stable string for a state, tagged with its kind.
+
+    Without the tag the text ``{"user": "bob"}`` and the object it spells hash alike, so a
+    ``--jsonl`` run and a plain-line run over the same file answer each other's questions.
+    """
+    if isinstance(state, str):
+        return "s:" + state
+    return "j:" + json.dumps(state, sort_keys=True, ensure_ascii=False)

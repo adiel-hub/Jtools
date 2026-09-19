@@ -2,6 +2,8 @@
 
 import pytest
 
+from jevcore.backends import BACKENDS
+from jevcore.cache import cache_key
 from jevcore.errors import JevError
 from jevcore.questions import Choice, ChoiceAnswer, Noul, NoulAnswer, Score, ScoreAnswer, canonical
 from jevcore.wire import SYSTEMONE, VERCEL, parse_answer
@@ -158,3 +160,34 @@ def test_error_detail_handles_the_shapes_apis_use():
         "Authentication failed."
     )
     assert SYSTEMONE.error_detail({}) == ""
+
+
+def test_a_distribution_may_not_name_an_option_nobody_offered():
+    """ranked() is printed to users; a fabricated category must not be able to top it."""
+    q = Choice("route", {"billing": "payments", "bug": "defects"})
+    raw = {"choice": "billing", "probabilities": {"billing": 0.05, "hacked": 0.95}}
+    with pytest.raises(JevError, match="not offered"):
+        parse_answer("q", q, raw, yes_key="noul")
+
+
+def test_a_score_may_not_name_a_rung_outside_the_rubric():
+    """ScoreAnswer.level indexes the rubric; an index off the scale makes legend.get return None."""
+    q = Score("how urgent", ["low", "high"])
+    with pytest.raises(JevError, match=r"outside 0\.\.1"):
+        parse_answer("q", q, {"score": 1.0, "probabilities": {"7": 0.9, "1": 0.1}}, yes_key="noul")
+    with pytest.raises(JevError, match=r"outside 0\.\.1"):
+        parse_answer("q", q, {"score": 1.0, "probabilities": {"-3": 1.0}}, yes_key="noul")
+
+
+@pytest.mark.parametrize("raw,expected", [("300", 300), ("300.0", 300), (301.7, 301), ("many", 0), (None, 0)])
+def test_a_token_count_is_metering_not_a_decision(raw, expected):
+    """A gateway that reports tokens oddly costs the run a statistic, not the answer it paid for."""
+    body = {"answers": {"q": {"type": "noul", "noul": 0.9}}, "usage": {"input_tokens": raw}, "model": "jev-1"}
+    _, usage = BACKENDS["typesafe"].wire.parse(body, {"q": Noul("a")})
+    assert usage.input_tokens == expected
+
+
+def test_a_text_state_and_the_object_it_spells_are_different_questions():
+    """--jsonl re-serialises a non-string field; that text must not answer for the object."""
+    q = Noul("a")
+    assert cache_key("m", '{"user": "bob"}', q) != cache_key("m", {"user": "bob"}, q)

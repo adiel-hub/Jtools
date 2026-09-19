@@ -175,3 +175,48 @@ def test_broken_pipe_is_quiet(tmp_path):
         assert proc.stdout == "alpha\n" and "Traceback" not in proc.stderr
     finally:
         server.shutdown()
+
+
+@pytest.mark.timeout(30)
+@pytest.mark.parametrize("tool", ["jsort", "jhead", "juniq", "jtag", "jmatch", "jgrep"])
+def test_a_dry_run_through_head_is_quiet_too(tool, tmp_path):
+    """--dry-run used to print with bare print(), so a closed pipe reached the user as a traceback."""
+    args = {
+        "jsort": "'most urgent'",
+        "jhead": "2 'most urgent'",
+        "juniq": "'the same request'",
+        "jtag": "--labels bug,feature",
+        "jmatch": f"{tmp_path / 'a.txt'} {tmp_path / 'b.txt'} 'the same person'",
+        "jgrep": "'a crash report'",
+    }[tool]
+    (tmp_path / "a.txt").write_text("Jane\n")
+    (tmp_path / "b.txt").write_text("jane doe\n")
+    cmd = f"{sys.executable} -m jevtools.{tool} {args} --dry-run | head -1"
+    proc = subprocess.run(
+        cmd,
+        shell=True,
+        input="one\ntwo\nthree\n",
+        text=True,
+        capture_output=True,
+        env=env_for(DEAD_URL, tmp_path),
+        timeout=25,
+    )
+    assert "Traceback" not in proc.stderr, proc.stderr[-600:]
+    assert proc.stdout.strip().endswith("dry run; nothing is sent")
+
+
+def test_a_dry_run_does_not_print_a_token_carried_in_the_endpoint_url(tmp_path):
+    """Some gateways put the key in the URL; redacting the header key alone would not help."""
+    env = env_for("https://gw.example.com/v1/systemone?token=SUPERSECRET123", tmp_path)
+    proc = subprocess.run(
+        [sys.executable, "-m", "jevtools.jgrep", "anything", "--dry-run"],
+        input="a line\n",
+        text=True,
+        capture_output=True,
+        env=env,
+        timeout=25,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr[-400:]
+    assert "SUPERSECRET123" not in proc.stdout and "SUPERSECRET123" not in proc.stderr
+    assert "gw.example.com/v1/systemone" in proc.stdout

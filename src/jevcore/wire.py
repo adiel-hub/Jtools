@@ -79,6 +79,20 @@ def _optional_confidence(value: Any) -> float | None:
     return _probability(value, "confidence")
 
 
+def _count(raw: Any) -> int:
+    """A token count from a gateway that may send ``300``, ``"300"``, ``"300.0"`` or nonsense.
+
+    A count is metering, never a decision, so a value that makes no sense costs the run a
+    statistic, not the answer it just paid for.
+    """
+    if isinstance(raw, bool) or raw is None:
+        return 0
+    try:
+        return max(0, int(float(raw)))
+    except (TypeError, ValueError):
+        return 0
+
+
 def parse_answer(qid: str, question: Question, raw: Any, *, yes_key: str, confidence: float | None = None) -> Answer:
     """Turn one raw answer object into a typed answer, validating it against the question."""
     if not isinstance(raw, dict):
@@ -94,8 +108,13 @@ def parse_answer(qid: str, question: Question, raw: Any, *, yes_key: str, confid
         probabilities = _distribution(raw.get("probabilities") or {}, qid)
         if choice not in question.options:
             raise JevError(f"invalid answer for {qid!r}: {choice!r} is not one of the options")
-        for name in question.options:
-            probabilities.setdefault(str(name), 0.0)
+        # The distribution is checked as strictly as the choice: ChoiceAnswer.ranked() is what
+        # tools print, and an option nobody offered must not be able to appear at the top of it.
+        offered = {str(name) for name in question.options}
+        if unknown := sorted(set(probabilities) - offered):
+            raise JevError(f"invalid answer for {qid!r}: probabilities for options not offered: {', '.join(unknown)}")
+        for name in offered:
+            probabilities.setdefault(name, 0.0)
         return ChoiceAnswer(choice, probabilities, _optional_confidence(raw.get("confidence", confidence)))
     score = raw.get("score")
     if isinstance(score, bool) or not isinstance(score, int | float) or not math.isfinite(score):
@@ -114,6 +133,10 @@ def parse_answer(qid: str, question: Question, raw: Any, *, yes_key: str, confid
                 idx = list(question.levels).index(key)
             else:
                 raise JevError(f"invalid answer for {qid!r}: unknown level {key!r}") from None
+        if not 0 <= idx < n:
+            # ScoreAnswer.level picks the most probable rung; an index off the scale would make
+            # it name a rung the rubric does not have, and legend.get would quietly return None.
+            raise JevError(f"invalid answer for {qid!r}: level {idx} is outside 0..{n - 1}")
         by_index[idx] = p
     for i in range(n):
         by_index.setdefault(i, 0.0)
@@ -178,8 +201,8 @@ class SystemOneWire:
         usage_raw = data.get("usage") or {}
         cost = usage_raw.get("cost")
         usage = Usage(
-            input_tokens=int(usage_raw.get("input_tokens") or 0),
-            output_tokens=int(usage_raw.get("output_tokens") or 0),
+            input_tokens=_count(usage_raw.get("input_tokens")),
+            output_tokens=_count(usage_raw.get("output_tokens")),
             cost=float(cost) if isinstance(cost, int | float) else None,
             model=data.get("model") if isinstance(data.get("model"), str) else None,
         )
@@ -240,8 +263,8 @@ class VercelWire:
         routing = gateway.get("routing") or {}
         model = routing.get("canonicalSlug") if isinstance(routing.get("canonicalSlug"), str) else None
         usage = Usage(
-            input_tokens=int(usage_raw.get("inputTokens") or 0),
-            output_tokens=int(usage_raw.get("outputTokens") or 0),
+            input_tokens=_count(usage_raw.get("inputTokens")),
+            output_tokens=_count(usage_raw.get("outputTokens")),
             cost=cost,
             model=model,
         )

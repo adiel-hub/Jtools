@@ -25,6 +25,7 @@ import sys
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import IO, Any
 
 import httpx
@@ -41,13 +42,32 @@ RETRYABLE = frozenset({408, 409, 425, 429, 500, 502, 503, 504, 529})
 THROTTLED = frozenset({429, 529})
 MAX_THROTTLE_PAUSE = 15.0
 TRICKLE_SECONDS = 120.0  # after a 429, send one request at a time for this long
-DEFAULT_CONCURRENCY = int(os.environ.get("JEV_CONCURRENCY", "20") or 20)
 FATAL_AUTH = frozenset({401, 402, 403})
-# TypeSafe reports tokens, not dollars. Its list price is $0.042 per million input tokens.
-PRICE_PER_MTOK = float(os.environ.get("JEV_PRICE_PER_MTOK", "0.042"))
-DEFAULT_TIMEOUT = float(os.environ.get("JEV_TIMEOUT", "15") or 15)
 DEFAULT_ATTEMPTS = 5
 ERROR_REPORT_INTERVAL = 60.0
+TYPICAL_TOKENS = 300  # what one line costs, before any call has measured it
+
+
+def _env_number(name: str, default: float, cast: Callable[[str], Any] = float) -> Any:
+    """An environment default, ignoring a value that is not a number.
+
+    These are read at import, so raising here would stop ``--help`` from printing the very flag
+    the user got wrong. ``JEV_TIMEOUT=15s`` is an easy mistake; it should not brick the command.
+    """
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return cast(raw)
+    except ValueError:
+        print(f"jev: ignoring {name}={raw!r}: not a number; using {default:g}", file=sys.stderr)
+        return default
+
+
+DEFAULT_CONCURRENCY: int = max(1, _env_number("JEV_CONCURRENCY", 20, int))
+# TypeSafe reports tokens, not dollars. Its list price is $0.042 per million input tokens.
+PRICE_PER_MTOK: float = max(0.0, _env_number("JEV_PRICE_PER_MTOK", 0.042))
+DEFAULT_TIMEOUT: float = max(0.1, _env_number("JEV_TIMEOUT", 15.0))
 
 
 @dataclass
@@ -170,7 +190,7 @@ class Jev:
         concurrency: int = DEFAULT_CONCURRENCY,
         budget: float = 0.0,
         disk_cache: bool = True,
-        cache_path: Any = None,
+        cache_path: str | Path | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
         on_error: Callable[[str], None] | None = None,
         prefix: str = "jev",
@@ -178,6 +198,11 @@ class Jev:
         self.backend: Backend = credentials.backend
         self.url = credentials.url
         self.model = (model or os.environ.get("JEV_MODEL") or "").strip() or self.backend.model
+        # Answers are cached under the version that produced them, not under the alias that
+        # asked for it. "jev-latest" moves; a cache keyed on the alias would replay a retired
+        # model's judgments for ever. Until a response names a version, the alias has to do,
+        # so the first call of a run is a miss and re-checks what the alias means today.
+        self._key_model = self.model
         self.timeout = timeout
         self.attempts = max(1, attempts)
         self.concurrency = max(1, concurrency)
@@ -188,15 +213,18 @@ class Jev:
         self._brake_until = 0.0  # monotonic time before which nothing is sent (after a 429/529)
         self._trickle_until = 0.0  # while set, requests go out one at a time (a rate-limited tier)
         self._trickle = asyncio.Lock()
+        self._reserved = 0.0  # dollars promised to calls in flight but not yet billed
+        self._pricing = asyncio.Lock()  # held by the one call that establishes the real price
+        self._priced = False
         self._flights: dict[str, asyncio.Future[dict[str, Answer]]] = {}
         disk: DiskCache | None = None
         if disk_cache:
             try:
-                disk = DiskCache(cache_path)
+                disk = DiskCache(Path(cache_path) if cache_path else None)
             except (OSError, sqlite3.Error) as e:
                 # An unwritable cache dir must not stop a pipeline; run from memory and say so once.
                 self.report(f"answer cache unavailable ({e}); continuing without it")
-        self._cache = LayeredCache(disk)
+        self._cache = LayeredCache(disk, on_error=self.report)
         self._closed = False
         headers = {
             "Authorization": f"Bearer {credentials.key}",
@@ -237,7 +265,7 @@ class Jev:
         """Answer every question about one state. Only questions missing from the cache are sent."""
         if not questions:
             return {}
-        keys = {qid: cache_key(self.model, state, q) for qid, q in questions.items()}
+        keys = {qid: cache_key(self._key_model, state, q) for qid, q in questions.items()}
         answers: dict[str, Answer] = {}
         for qid, key in keys.items():
             hit = self._cache.get(key)
@@ -247,8 +275,7 @@ class Jev:
         if not misses:
             self.meter.cached += 1
             return answers
-        if self.budget and self.meter.cost >= self.budget:
-            raise BudgetExceeded(f"stopped at the ${self.budget:.2f} budget; raise it with --budget")
+        self._check_budget()
 
         # Identical requests already in the air share one call; logs repeat themselves a lot.
         flight_key = "|".join(sorted(keys[qid] for qid in misses))
@@ -256,7 +283,7 @@ class Jev:
         if future is None:
             future = asyncio.ensure_future(self._call(state, misses, {qid: keys[qid] for qid in misses}))
             self._flights[flight_key] = future
-            future.add_done_callback(lambda _f: self._flights.pop(flight_key, None))
+            future.add_done_callback(self._retire(flight_key))
         else:
             self.meter.shared += 1
         # Shield: cancelling one asker must not cancel the call the other sharers are waiting on.
@@ -293,82 +320,154 @@ class Jev:
 
     # -------------------------------------------------------------- internals
 
-    async def _wait_for_brake(self, deadline: float) -> None:
-        brake = self._brake_until - time.monotonic()
-        if brake > 0:
-            await asyncio.sleep(min(brake, max(0.0, deadline - time.monotonic())))
+    def _retire(self, flight_key: str) -> Callable[[asyncio.Future[dict[str, Answer]]], None]:
+        """Drop a finished flight, and read its exception so Python does not print it itself.
+
+        ``ask`` shields the call, so it outlives an asker that was cancelled. Nobody is left to
+        await it, and an unretrieved exception on such a task lands on stderr as a bare traceback,
+        in the middle of the tool's own output.
+        """
+
+        def done(future: asyncio.Future[dict[str, Answer]]) -> None:
+            self._flights.pop(flight_key, None)
+            if not future.cancelled():
+                future.exception()
+
+        return done
+
+    def _cost_estimate(self) -> float:
+        """What the next call will probably cost: what the last ones did, or a typical line."""
+        if self.meter.calls:
+            return self.meter.cost / self.meter.calls
+        return TYPICAL_TOKENS * PRICE_PER_MTOK / 1e6
+
+    def _check_budget(self) -> None:
+        """Dollars already spent plus dollars promised to calls in flight.
+
+        Checking ``meter.cost`` alone lets every concurrent caller through while the first response
+        is still on the wire, which is how a $0.05 budget used to spend $8.
+        """
+        if self.budget and self.meter.cost + self._reserved >= self.budget:
+            raise BudgetExceeded(f"stopped at the ${self.budget:.2f} budget; raise it with --budget")
+
+    async def _wait_for_brake(self, deadline: float) -> bool:
+        """Sleep out a rate-limit brake. ``False`` if it outlasts this request's deadline."""
+        while True:
+            wait = self._brake_until - time.monotonic()
+            if wait <= 0:
+                return True
+            if time.monotonic() + wait > deadline:
+                return False
+            await asyncio.sleep(min(wait, 0.5))  # re-check: another response may have moved the brake
 
     async def _call(self, state: State, questions: Mapping[str, Question], keys: dict[str, str]) -> dict[str, Answer]:
-        """One request, retried inside a total time budget. Returns answers by cache key."""
+        """Wait for a slot and a dollar, then make the request."""
+        async with self._sem:
+            if self.budget and not self._priced:
+                # Nothing has been billed yet, so the estimate is a guess, and a guess that is
+                # low by a factor of a thousand lets -j calls through a budget of one. Let a
+                # single call establish the real price first. It costs one round trip, once.
+                async with self._pricing:
+                    if not self._priced:
+                        try:
+                            return await self._admit(state, questions, keys)
+                        finally:
+                            self._priced = True
+            return await self._admit(state, questions, keys)
+
+    async def _admit(self, state: State, questions: Mapping[str, Question], keys: dict[str, str]) -> dict[str, Answer]:
+        """Reserve the estimated cost, make the request, release the reservation."""
+        # The deadline starts here, not at admission to the queue: --timeout is what one request
+        # may take, and time spent waiting for a -j slot is not the backend being slow.
+        deadline = time.monotonic() + self.timeout
+        self._check_budget()
+        reserved = self._cost_estimate()
+        self._reserved += reserved
+        try:
+            return await self._attempts(state, questions, keys, deadline)
+        finally:
+            self._reserved -= reserved
+
+    async def _attempts(
+        self, state: State, questions: Mapping[str, Question], keys: dict[str, str], deadline: float
+    ) -> dict[str, Answer]:
+        """One request, retried until the deadline. Returns answers by cache key."""
         wire = self.backend.wire
         body = wire.body(self.model, state, questions)
-        deadline = time.monotonic() + self.timeout
         last = "no attempt made"
         attempt = throttles = 0
-        async with self._sem:
-            while True:
-                # After a rate limit every request waits; one 429 must not turn into twenty.
-                await self._wait_for_brake(deadline)
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    break
-                t0 = time.perf_counter()
-                try:
-                    # httpx bounds each socket wait, not the whole exchange; wait_for bounds the
-                    # complete request, including a body that dribbles in.
-                    if time.monotonic() < self._trickle_until:
-                        # A rate-limited tier: releasing twenty waiters at once just earns twenty
-                        # more 429s. Send one at a time until the limit has been quiet for a while.
-                        async with self._trickle:
-                            await self._wait_for_brake(deadline)
-                            remaining = deadline - time.monotonic()
-                            if remaining <= 0:
-                                break
-                            t0 = time.perf_counter()
-                            response = await asyncio.wait_for(
-                                self.http.post(self.url, json=body, timeout=remaining), timeout=remaining
-                            )
-                    else:
+        while True:
+            # After a rate limit every request waits; one 429 must not turn into twenty.
+            if not await self._wait_for_brake(deadline):
+                wait = self._brake_until - time.monotonic()
+                self.meter.throttled += 1
+                raise JevError(
+                    f"rate limited: the backend asked for another {wait:.0f}s, longer than "
+                    f"--timeout {self.timeout:g}s; raise --timeout (or JEV_TIMEOUT) to wait it out"
+                )
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            t0 = time.perf_counter()
+            try:
+                # httpx bounds each socket wait, not the whole exchange; wait_for bounds the
+                # complete request, including a body that dribbles in.
+                if time.monotonic() < self._trickle_until:
+                    # A rate-limited tier: releasing twenty waiters at once just earns twenty
+                    # more 429s. Send one at a time until the limit has been quiet for a while.
+                    async with self._trickle:
+                        await self._wait_for_brake(deadline)
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            break
+                        t0 = time.perf_counter()
                         response = await asyncio.wait_for(
                             self.http.post(self.url, json=body, timeout=remaining), timeout=remaining
                         )
-                except TimeoutError:
-                    last = "deadline exceeded"
-                    break
-                except httpx.TransportError as e:
-                    last = type(e).__name__
                 else:
-                    data = _json(response)
-                    if response.status_code == 200 and "answers" in data:
-                        answers, usage = wire.parse(data, questions)
-                        self.meter.record(usage, time.perf_counter() - t0, self.model)
-                        out: dict[str, Answer] = {}
-                        for qid, answer in answers.items():
-                            key = keys[qid]
-                            self._cache.put(key, answer)
-                            out[key] = answer
-                        return out
-                    detail = wire.error_detail(data) or response.text[:200].strip()
-                    if response.status_code in FATAL_AUTH:
-                        raise AuthError(f"{self.backend.name} said {response.status_code}: {detail}")
-                    if response.status_code not in RETRYABLE:
-                        raise JevError(f"HTTP {response.status_code}: {detail or 'unexpected response'}")
-                    last = f"HTTP {response.status_code}" + (f" ({detail})" if detail else "")
-                    if response.status_code in THROTTLED:
-                        # A rate limit is not a failure of ours: wait it out, as long as --timeout allows.
-                        throttles += 1
-                        self.meter.throttled += 1
-                        pause = _retry_after(response) or min(MAX_THROTTLE_PAUSE, 1.0 * 2 ** min(throttles - 1, 4))
-                        now = time.monotonic()
-                        self._brake_until = max(self._brake_until, now + pause)
-                        self._trickle_until = now + TRICKLE_SECONDS
-                        continue
-                attempt += 1
-                if attempt >= self.attempts:
-                    break
-                self.meter.retries += 1
-                pause = 0.2 * 2 ** (attempt - 1) + random.random() * 0.1  # jitter, not security
-                await asyncio.sleep(max(0.0, min(pause, deadline - time.monotonic())))
+                    response = await asyncio.wait_for(
+                        self.http.post(self.url, json=body, timeout=remaining), timeout=remaining
+                    )
+            except TimeoutError:
+                last = "deadline exceeded"
+                break
+            except httpx.TransportError as e:
+                last = type(e).__name__
+            else:
+                data = _json(response)
+                if response.status_code == 200 and "answers" in data:
+                    answers, usage = wire.parse(data, questions)
+                    self.meter.record(usage, time.perf_counter() - t0, self.model)
+                    if usage.model:
+                        self._key_model = usage.model
+                    # The caller gets the keys it asked with; the cache keeps the resolved ones.
+                    store = {qid: cache_key(self._key_model, state, q) for qid, q in questions.items()}
+                    out: dict[str, Answer] = {}
+                    for qid, answer in answers.items():
+                        self._cache.put(store[qid], answer)
+                        out[keys[qid]] = answer
+                    return out
+                detail = wire.error_detail(data) or response.text[:200].strip()
+                if response.status_code in FATAL_AUTH:
+                    raise AuthError(f"{self.backend.name} said {response.status_code}: {detail}")
+                if response.status_code not in RETRYABLE:
+                    raise JevError(f"HTTP {response.status_code}: {detail or 'unexpected response'}")
+                last = f"HTTP {response.status_code}" + (f" ({detail})" if detail else "")
+                if response.status_code in THROTTLED:
+                    # A rate limit is not a failure of ours: wait it out, as long as --timeout allows.
+                    throttles += 1
+                    self.meter.throttled += 1
+                    pause = _retry_after(response) or min(MAX_THROTTLE_PAUSE, 1.0 * 2 ** min(throttles - 1, 4))
+                    now = time.monotonic()
+                    self._brake_until = max(self._brake_until, now + pause)
+                    self._trickle_until = now + TRICKLE_SECONDS
+                    continue
+            attempt += 1
+            if attempt >= self.attempts:
+                break
+            self.meter.retries += 1
+            pause = 0.2 * 2 ** (attempt - 1) + random.random() * 0.1  # jitter, not security
+            await asyncio.sleep(max(0.0, min(pause, deadline - time.monotonic())))
         raise JevError(f"gave up after {self.timeout:g}s ({last})")
 
 

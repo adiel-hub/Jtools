@@ -149,3 +149,34 @@ async def test_backpressure_does_not_read_far_ahead_of_judging():
 
     await Pipeline(concurrency=5).run(source(), judge, deliver)
     assert gap_max <= 5 * 3
+
+
+async def test_a_gap_in_the_record_numbering_still_delivers_everything():
+    """Ordering counts arrivals, not Record.seq.
+
+    ``iter_records`` skips blank lines but still spends their sequence number, and a tool may
+    filter before the pipeline. A hole in seq used to stall ordered delivery for good: everything
+    after it was judged, paid for, and thrown away, with judged counted and no error reported.
+    """
+    records = [Record(0, "one"), Record(1, "two"), Record(3, "four"), Record(9, "nine")]
+    seen: list[str] = []
+
+    async def judge(rec):
+        await asyncio.sleep(random.random() * 0.01)
+        return rec.text.upper()
+
+    result = await Pipeline(concurrency=4).run(records, judge, lambda rec, v: seen.append(v))
+    assert seen == ["ONE", "TWO", "FOUR", "NINE"]
+    assert result.judged == 4 and not result.halted and result.fatal is None
+
+
+async def test_delivery_starts_at_a_nonzero_first_record():
+    """A tool that skips a header still gets its first record delivered, not held for seq 0."""
+    records = [Record(5, "five"), Record(6, "six")]
+    seen: list[str] = []
+    await Pipeline(concurrency=2).run(records, _echo, lambda rec, v: seen.append(v))
+    assert seen == ["five", "six"]
+
+
+async def _echo(rec):
+    return rec.text

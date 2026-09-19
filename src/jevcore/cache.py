@@ -7,11 +7,13 @@ tools that use the same key scheme. Both are keyed on a hash of the canonical qu
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import sqlite3
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -130,18 +132,34 @@ class DiskCache:
 
 
 class LayeredCache:
-    """Memory in front of disk. Disk is optional."""
+    """Memory in front of disk. Disk is optional, and may fail at any moment.
 
-    def __init__(self, disk: DiskCache | None = None) -> None:
+    The file is shared with other tools in the pipeline and with other versions of them, so it can
+    be locked, full, on a disappearing mount, or carry a schema this build does not know. None of
+    that is a reason to lose a decision the user already paid for: the disk layer is dropped, the
+    run says so once, and everything continues from memory.
+    """
+
+    def __init__(self, disk: DiskCache | None = None, on_error: Callable[[str], None] | None = None) -> None:
         self.memory = MemoryCache()
         self.disk = disk
+        self.on_error = on_error
+
+    def _drop_disk(self, what: str, error: Exception) -> None:
+        self.disk = None
+        if self.on_error is not None:
+            self.on_error(f"answer cache disabled after a {what} failure ({error}); continuing from memory")
 
     def get(self, key: str) -> Answer | None:
         hit = self.memory.get(key)
         if hit is not None:
             return hit
         if self.disk is not None:
-            hit = self.disk.get(key)
+            try:
+                hit = self.disk.get(key)
+            except (sqlite3.Error, OSError) as e:
+                self._drop_disk("cache read", e)
+                return None
             if hit is not None:
                 self.memory.put(key, hit)
         return hit
@@ -149,8 +167,12 @@ class LayeredCache:
     def put(self, key: str, answer: Answer) -> None:
         self.memory.put(key, answer)
         if self.disk is not None:
-            self.disk.put(key, answer)
+            try:
+                self.disk.put(key, answer)
+            except (sqlite3.Error, OSError) as e:
+                self._drop_disk("cache write", e)
 
     def close(self) -> None:
         if self.disk is not None:
-            self.disk.close()
+            with contextlib.suppress(sqlite3.Error, OSError):
+                self.disk.close()

@@ -239,31 +239,41 @@ def dry_run(
     """Show what would be sent, send nothing, exit 0."""
     try:
         creds = resolve(args.api)
-        backend = f"{creds.backend.name} ({creds.url}), key {creds.redacted_key}"
+        backend = f"{creds.backend.name} ({safe_url(creds.url)}), key {creds.redacted_key}"
         model = args.model or os.environ.get("JEV_MODEL") or creds.backend.model
     except AuthError as e:
         backend = f"none usable ({e})"
         model = args.model or "jev-latest"
-    print(f"{prog}: dry run; nothing is sent", file=out)
-    print(f"backend: {backend}", file=out)
-    print(f"model:   {model}", file=out)
+    # Through Output, so `--dry-run | head` ends as quietly as a real run does.
+    show = Output(out, colour="never")
+    lines = [f"{prog}: dry run; nothing is sent", f"backend: {backend}", f"model:   {model}"]
     if note:
-        print(f"note:    {note}", file=out)
-    print("questions:", file=out)
-    for qid, q in questions.items():
-        print(f"  {qid}: {canonical(q)}", file=out)
+        lines.append(f"note:    {note}")
+    lines.append("questions:")
+    lines += [f"  {qid}: {canonical(q)}" for qid, q in questions.items()]
+    lines.append("sample state (redacted):")
     shown = 0
-    print("sample state (redacted):", file=out)
     for state in samples:
         text = state if isinstance(state, str) else json.dumps(state, ensure_ascii=False)
-        print(f"  {redact(text)}", file=out)
+        lines.append(f"  {redact(text)}")
         shown += 1
         if shown >= 3:
             break
     if not shown:
-        print("  (no input)", file=out)
-    out.flush()
+        lines.append("  (no input)")
+    for line in lines:
+        show.write(line)
     return EXIT_OK
+
+
+def safe_url(url: str) -> str:
+    """An endpoint with its query string dropped.
+
+    Some gateways carry the token in the URL. Printing it in full next to a carefully redacted
+    key would hand the secret over anyway, and a dry run is the thing people paste into issues.
+    """
+    base, sep, query = url.partition("?")
+    return f"{base}?…" if sep and query else base
 
 
 def partial(code: int, unjudged: int) -> int:

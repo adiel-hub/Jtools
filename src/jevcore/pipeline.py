@@ -70,7 +70,10 @@ class Pipeline(Generic[R]):
         sem = asyncio.Semaphore(self.concurrency)
         tasks: set[asyncio.Task[None]] = set()
         finished: dict[int, tuple[Record, R | None]] = {}
-        state = {"next": 0, "first_seq": None}
+        # Ordering counts arrivals rather than trusting Record.seq to be contiguous: a source
+        # that skips a record (a blank line, a filter upstream) leaves a hole in seq, and one
+        # hole used to stall delivery for good, silently dropping everything judged after it.
+        state = {"next": 0, "arrived": 0}
         inflight = {"n": 0}
         halted = asyncio.ensure_future(self._halt.wait())
 
@@ -106,17 +109,17 @@ class Pipeline(Generic[R]):
                 result.fatal = result.fatal or e
                 self.halt()
 
-        def dispatch(record: Record, value: R | None) -> None:
+        def dispatch(record: Record, value: R | None, rank: int) -> None:
             result.judged += 1
             if not self.ordered:
                 emit(record, value)
                 return
-            finished[record.seq] = (record, value)
+            finished[rank] = (record, value)
             while state["next"] in finished and not self._halt.is_set():
                 emit(*finished.pop(state["next"]))
                 state["next"] += 1
 
-        async def worker(record: Record) -> None:
+        async def worker(record: Record, rank: int) -> None:
             try:
                 value: R | None
                 if record.is_blank() and not self.judge_blank:
@@ -139,7 +142,7 @@ class Pipeline(Generic[R]):
                 value = None
             finally:
                 sem.release()
-            dispatch(record, value)
+            dispatch(record, value, rank)
 
         def done(task: asyncio.Task[None]) -> None:
             tasks.discard(task)
@@ -163,9 +166,6 @@ class Pipeline(Generic[R]):
                     if on_input_error is not None:
                         on_input_error(item)
                     continue
-                if state["first_seq"] is None:
-                    state["first_seq"] = item.seq
-                    state["next"] = item.seq
                 result.seen += 1
                 if item.truncated:
                     result.truncated += 1
@@ -173,7 +173,8 @@ class Pipeline(Generic[R]):
                 if self._halt.is_set():
                     sem.release()
                     break
-                task = asyncio.create_task(worker(item))
+                task = asyncio.create_task(worker(item, state["arrived"]))
+                state["arrived"] += 1
                 tasks.add(task)
                 task.add_done_callback(done)
         finally:
