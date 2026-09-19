@@ -91,7 +91,7 @@ async def test_retries_transient_errors_then_succeeds(creds):
     async with client(mock, creds, timeout=5) as jev:
         answers = await jev.ask("state", {"q": Noul("x")})
     assert isinstance(answers["q"], NoulAnswer)
-    assert len(mock.bodies) == 3 and jev.meter.retries == 2 and jev.meter.calls == 1
+    assert len(mock.bodies) == 3 and jev.meter.retries == 1 and jev.meter.throttled == 1 and jev.meter.calls == 1
 
 
 async def test_non_retryable_error_is_raised_once(creds):

@@ -1,0 +1,9 @@
+Dana: morning all, agenda is the launch date and the pricing page
+Sam: can we push the launch to Friday? QA found two blockers yesterday
+Dana: fine by me. Decision: launch moves to Friday the 26th
+Priya: I'll own the pricing page copy, draft by Wednesday
+Sam: coffee machine on floor 3 is broken again btw
+Dana: agreed, Priya owns pricing copy; Sam owns the QA blockers
+Priya: should we keep the free tier? marketing wants it gone
+Dana: keeping the free tier for now, revisit after launch
+Sam: lunch?

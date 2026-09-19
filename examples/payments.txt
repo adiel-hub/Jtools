@@ -1,0 +1,4 @@
+Payment received: Globex, 1200 USD, ref GLX-0903
+Wire from ACME CORPORATION, 500.00, memo "inv 1042"
+Payment received: Initech, 75.50 USD
+Refund issued to Wayne Enterprises, 300 USD

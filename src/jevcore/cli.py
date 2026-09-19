@@ -113,7 +113,8 @@ def add_common(
         type=float,
         default=DEFAULT_TIMEOUT,
         metavar="SECONDS",
-        help=f"give up on one request after this long, retries included (default {DEFAULT_TIMEOUT:g})",
+        help=f"give up on one request after this long, retries and rate-limit waits included "
+        f"(default {DEFAULT_TIMEOUT:g}, or $JEV_TIMEOUT)",
     )
     g.add_argument(
         "--budget",

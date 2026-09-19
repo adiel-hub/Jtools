@@ -1,0 +1,4 @@
+Invoice #1042 Acme Corp $500.00 due 2026-09-01
+Invoice #1043 Globex Corporation $1,200.00 due 2026-09-03
+Invoice #1044 Initech LLC $75.50 due 2026-09-10
+Invoice #1045 Umbrella Co $9,800.00 due 2026-09-15

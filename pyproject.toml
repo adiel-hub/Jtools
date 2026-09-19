@@ -94,8 +94,8 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "PLR", "S101", "E501", "PLW1510", "RUF005"]
-"bench/*" = ["ANN", "PLR"]
-"scripts/*" = ["ANN", "PLR"]
+"bench/*" = ["ANN", "PLR", "E501"]
+"scripts/*" = ["ANN", "PLR", "E501"]
 
 [tool.mypy]
 python_version = "3.11"

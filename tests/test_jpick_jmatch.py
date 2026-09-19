@@ -65,7 +65,7 @@ def test_jpick_failed_calls_fall_back_to_input_order(invoke):
 def test_jpick_transient_failure_keeps_the_group_and_recovers(invoke):
     lines = [f"subject {i}" for i in range(20)]
     lines[15] = "URGENT now"
-    mock = MockJev(script=[500, 500, 500, 500])  # the first group's call fails after 4 attempts; the rest work
+    mock = MockJev(script=[500] * 5)  # the first group's call fails after all 5 attempts; the rest work
     res = invoke(jpick, ["most urgent", "--group", "10", "--timeout", "5"], "\n".join(lines) + "\n", mock_override=mock)
     # the failed group is kept whole and narrowed in the next round; the right line still wins
     assert res.lines == ["URGENT now"] and res.code == 5

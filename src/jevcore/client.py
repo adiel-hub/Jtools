@@ -38,12 +38,12 @@ from .wire import Usage
 
 RETRYABLE = frozenset({408, 409, 425, 429, 500, 502, 503, 504, 529})
 THROTTLED = frozenset({429, 529})
-MAX_THROTTLE_PAUSE = 8.0
+MAX_THROTTLE_PAUSE = 15.0
 FATAL_AUTH = frozenset({401, 402, 403})
 # TypeSafe reports tokens, not dollars. Its list price is $0.042 per million input tokens.
 PRICE_PER_MTOK = float(os.environ.get("JEV_PRICE_PER_MTOK", "0.042"))
 DEFAULT_CONCURRENCY = 20
-DEFAULT_TIMEOUT = 15.0
+DEFAULT_TIMEOUT = float(os.environ.get("JEV_TIMEOUT", "15") or 15)
 DEFAULT_ATTEMPTS = 5
 ERROR_REPORT_INTERVAL = 60.0
 
@@ -280,8 +280,9 @@ class Jev:
         body = wire.body(self.model, state, questions)
         deadline = time.monotonic() + self.timeout
         last = "no attempt made"
+        attempt = throttles = 0
         async with self._sem:
-            for attempt in range(self.attempts):
+            while True:
                 # After a rate limit every request waits; one 429 must not turn into twenty.
                 brake = self._brake_until - time.monotonic()
                 if brake > 0:
@@ -319,13 +320,18 @@ class Jev:
                         raise JevError(f"HTTP {response.status_code}: {detail or 'unexpected response'}")
                     last = f"HTTP {response.status_code}" + (f" ({detail})" if detail else "")
                     if response.status_code in THROTTLED:
+                        # A rate limit is not a failure of ours: wait it out, as long as --timeout allows.
+                        throttles += 1
                         self.meter.throttled += 1
-                        pause = _retry_after(response) or min(MAX_THROTTLE_PAUSE, 1.0 * 2**attempt)
+                        pause = _retry_after(response) or min(MAX_THROTTLE_PAUSE, 1.0 * 2 ** min(throttles - 1, 4))
                         self._brake_until = max(self._brake_until, time.monotonic() + pause)
-                if attempt + 1 < self.attempts:
-                    self.meter.retries += 1
-                    pause = 0.2 * 2**attempt + random.random() * 0.1  # jitter, not security
-                    await asyncio.sleep(max(0.0, min(pause, deadline - time.monotonic())))
+                        continue
+                attempt += 1
+                if attempt >= self.attempts:
+                    break
+                self.meter.retries += 1
+                pause = 0.2 * 2 ** (attempt - 1) + random.random() * 0.1  # jitter, not security
+                await asyncio.sleep(max(0.0, min(pause, deadline - time.monotonic())))
         raise JevError(f"gave up after {self.timeout:g}s ({last})")
 
 

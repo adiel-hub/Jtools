@@ -1,0 +1,12 @@
+2026-09-18T10:00:01Z INFO  api    request GET /health 200 3ms
+2026-09-18T10:00:02Z INFO  api    request POST /checkout 200 412ms
+2026-09-18T10:00:04Z INFO  cache  warm, 12,402 keys
+2026-09-18T10:00:05Z WARN  api    request POST /checkout 502 upstream payment-svc connection refused
+2026-09-18T10:00:05Z ERROR api    payment-svc unreachable, 3 retries exhausted, order 88213 not charged
+2026-09-18T10:00:06Z INFO  api    request GET /health 200 2ms
+2026-09-18T10:00:09Z INFO  worker sent 240 emails
+2026-09-18T10:00:12Z WARN  disk   nvme0 temperature 71C
+2026-09-18T10:00:13Z INFO  api    request GET /products 200 88ms
+2026-09-18T10:00:15Z ERROR auth   unauthorized access attempt to /admin from 10.0.0.9, 40 failed logins in 60s
+2026-09-18T10:00:16Z INFO  api    request GET /health 200 2ms
+2026-09-18T10:00:20Z INFO  deploy build 4412 promoted to canary

@@ -1,0 +1,9 @@
+Please add dark mode to the app
+Export data as CSV
+A night theme would be great for late-night work
+Fix the crash when opening settings on iOS
+Let me download my data as a spreadsheet
+Settings screen crashes on iPhone
+Two-factor authentication please
+Please add dark mode to the app
+Support for hardware security keys as a second factor

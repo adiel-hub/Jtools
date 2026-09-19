@@ -17,7 +17,7 @@ async def test_a_429_brakes_the_whole_client_then_recovers(creds):
         results = await asyncio.gather(*(jev.ask(f"line {i}", {"q": Noul("x")}) for i in range(5)))
         elapsed = time.perf_counter() - t0
     assert all(results) and len(results) == 5
-    assert jev.meter.throttled == 1 and jev.meter.retries >= 1
+    assert jev.meter.throttled == 1 and jev.meter.retries == 0  # a rate limit is waited out, not retried
     # The braked requests waited about a second (the first throttle pause) instead of piling on.
     assert 0.8 <= elapsed < 5
     assert "rate-limited" in jev.meter.summary()

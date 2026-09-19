@@ -31,13 +31,13 @@ def live(main, argv, stdin="", monkeypatch=None):
     if monkeypatch is not None:
         monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
     out, err = io.StringIO(), io.StringIO()
-    code = main(list(argv) + ["--no-cache"], out=out, err=err)
+    code = main([*argv, "--no-cache", "--timeout", "900", "-j", "2"], out=out, err=err)
     return code, out.getvalue(), err.getvalue()
 
 
 async def test_all_three_primitives_round_trip():
     creds = resolve()
-    async with Jev(creds, disk_cache=False) as jev:
+    async with Jev(creds, disk_cache=False, timeout=900) as jev:
         answers = await jev.ask(
             "user 12: this is the third time checkout has failed, I am done with this app",
             {
