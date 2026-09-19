@@ -19,8 +19,9 @@ First public release: ten tools and the `jevcore` library.
 - `jwatch`: alerts on a live stream. `--exec`, `--cooldown`, `--max`, `--bell`, `--all-lines`.
 - `juniq`: semantic dedup with a rolling `--window`; `-c`, `-d`, `-u`, `--show-groups`.
 - `jhead`: the N most relevant lines in original order; `--tail`, `--reorder`.
-- `jtag`: label column (`--labels`, choice) or score column (`--score`, score) with `--sep`,
-  `--suffix`, `--with-prob`, `--default`, `--scale`, `--levels`.
+- `jtag`: label column (`--labels` or a repeatable `--label NAME:DESC`, choice) or score column
+  (`--score`, score) with `--sep`, `--suffix`, `--with-prob`, `--default`, `--scale`, `--levels`.
+  A label description may contain commas.
 - `jroute`: split a stream into bucket files; `--out-dir`, `--default`, `--stdout`, `--truncate`,
   `--no-files`, `-i`.
 - `jmatch`: semantic join of two files; `--unmatched`, `--format`, `--group`, `--shortlist`.

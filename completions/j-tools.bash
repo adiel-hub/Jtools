@@ -22,7 +22,7 @@ _jtools_complete() {
     jhead)
         flags="--api --budget --color --concurrency --dry-run --help --json --levels --max-chars --model --no-cache --no-stats --quiet --reorder --stats --strict --tail --timeout --verbose --version --with-score -h -j -q -s -v" ;;
     jtag)
-        flags="--api --budget --color --concurrency --default --dry-run --help --json --labels --levels --max-chars --model --no-cache --no-stats --quiet --scale --score --sep --stats --strict --suffix --threshold --timeout --verbose --version --with-prob -h -j -p -q -v" ;;
+        flags="--api --budget --color --concurrency --default --dry-run --help --json --label --labels --levels --max-chars --model --no-cache --no-stats --quiet --scale --score --sep --stats --strict --suffix --threshold --timeout --verbose --version --with-prob -h -j -p -q -v" ;;
     jroute)
         flags="--api --budget --color --concurrency --default --dry-run --ext --help --input --json --max-chars --model --no-cache --no-files --no-stats --out-dir --quiet --stats --stdout --strict --threshold --timeout --truncate --verbose --version -h -i -j -o -p -q -v" ;;
     jmatch)

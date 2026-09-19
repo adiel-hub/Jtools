@@ -104,40 +104,75 @@ def parse_levels(text: str) -> tuple[str, ...]:
     return levels
 
 
+NAME = r"[A-Za-z0-9._-]+"
+_LABEL_START = re.compile(rf"(?:^|,)\s*({NAME})\s*:")
+_PLAIN_ITEM = re.compile(rf"^\s*{NAME}\s*(?::|$)")
+_ESCAPED_COMMA = re.compile(r"\\,")
+
+
+def _split_commas(text: str) -> list[str]:
+    """Split on commas, except ``\\,`` which means a comma inside a description."""
+    return [part.replace("\0", ",") for part in _ESCAPED_COMMA.sub("\0", text).split(",")]
+
+
 def parse_labels(text: str) -> dict[str, str]:
-    """``"bug,feature:new capability,question"`` -> ``{"bug": "bug", "feature": "new capability", ...}``."""
+    """``"bug,feature:new capability,question"`` -> ``{"bug": "bug", "feature": "new capability", …}``.
+
+    A description may itself contain commas (``"world:politics, war and diplomacy,sports:games"``):
+    when a comma-separated item does not start a new ``name:``, it belongs to the description
+    before it. ``\\,`` is always a literal comma. Names may use letters, digits, dot, dash and
+    underscore, which is what keeps the two readings apart.
+    """
     labels: dict[str, str] = {}
-    for part in text.split(","):
-        part = part.strip()
-        if not part:
-            continue
-        name, _, desc = part.partition(":")
+
+    def add(name: str, description: str) -> None:
         name = name.strip()
         if not name:
-            raise UsageError(f"label {part!r} has no name")
+            raise UsageError(f"label {description.strip()!r} has no name")
+        if not re.fullmatch(NAME, name):
+            raise UsageError(f"label name {name!r} may only use letters, digits, dot, dash and underscore")
         if name in labels:
             raise UsageError(f"duplicate label {name!r}")
-        labels[name] = desc.strip() or name
+        labels[name] = _ESCAPED_COMMA.sub(",", description).strip() or name
+
+    items = _split_commas(text)
+    if all(_PLAIN_ITEM.match(item) for item in items if item.strip()):
+        # Every item names a label, so each item is one label: "bug,feature:new capability".
+        for item in items:
+            if item.strip():
+                name, _, description = item.partition(":")
+                add(name, description)
+    else:
+        # Some item is not a label of its own, so it continues the description before it.
+        starts = list(_LABEL_START.finditer(text))
+        if not starts:
+            raise UsageError(f"cannot read labels from {text!r}; use name:description separated by commas")
+        for item in _split_commas(text[: starts[0].start()]):
+            if item.strip():
+                add(item, "")
+        for i, start in enumerate(starts):
+            end = starts[i + 1].start() if i + 1 < len(starts) else len(text)
+            add(start.group(1), text[start.end() : end])
     if len(labels) < 2:
         raise UsageError("need at least two labels")
     return labels
 
 
-def parse_buckets(specs: Sequence[str]) -> dict[str, str]:
-    """jroute positional ``name:description`` pairs."""
+def parse_buckets(specs: Sequence[str], *, what: str = "bucket") -> dict[str, str]:
+    """One ``name:description`` per argument, so a description may contain anything."""
     buckets: dict[str, str] = {}
     for spec in specs:
         name, sep, desc = spec.partition(":")
         name = name.strip()
         if not sep or not name or not desc.strip():
-            raise UsageError(f'bucket {spec!r} must look like "name:description"')
-        if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
-            raise UsageError(f"bucket name {name!r} may only use letters, digits, dot, dash and underscore")
+            raise UsageError(f'{what} {spec!r} must look like "name:description"')
+        if not re.fullmatch(NAME, name):
+            raise UsageError(f"{what} name {name!r} may only use letters, digits, dot, dash and underscore")
         if name in buckets:
-            raise UsageError(f"duplicate bucket {name!r}")
+            raise UsageError(f"duplicate {what} {name!r}")
         buckets[name] = desc.strip()
     if len(buckets) < 2:
-        raise UsageError("need at least two buckets")
+        raise UsageError(f"need at least two {what}s")
     return buckets
 
 

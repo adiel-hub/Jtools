@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from jevcore.mock import POISON, MockJev
 from jevtools.jroute import main as jroute
 from jevtools.jtag import main as jtag
@@ -204,3 +206,46 @@ def test_jroute_truncate_clears_stale_buckets_it_does_not_write(invoke, tmp_path
     # Without --truncate the files are appended to, as before.
     res = invoke(jroute, ["sales:a sales lead", "spam:junk", "-o", str(out)], "Pricing again?\n")
     assert (out / "sales.txt").read_text().splitlines() == ["Pricing for the team plan?", "Pricing again?"]
+
+
+def test_jtag_label_descriptions_may_contain_commas(invoke, mock):
+    """A comma inside a description must not invent extra labels (it silently did once)."""
+    spec = (
+        "world:news about world affairs, politics or conflict,"
+        "sports:news about sports,"
+        "business:news about business, markets or the economy"
+    )
+    res = invoke(jtag, ["--labels", spec], "Arsenal won the cup final\n")
+    assert res.code == 0
+    criteria = mock.bodies[0]["questions"]["tag"]["criteria"]
+    assert set(criteria) == {"world", "sports", "business"}
+    assert criteria["world"] == "news about world affairs, politics or conflict"
+    assert criteria["business"] == "news about business, markets or the economy"
+    label, _, text = res.out.partition("\t")
+    assert label in criteria and text.strip() == "Arsenal won the cup final"
+
+
+def test_jtag_repeated_label_flag_is_unambiguous(invoke, mock):
+    res = invoke(
+        jtag,
+        ["--label", "world:politics, war and diplomacy", "--label", "sports:games and athletes"],
+        "Arsenal won the cup final\n",
+    )
+    assert res.code == 0
+    assert set(mock.bodies[0]["questions"]["tag"]["criteria"]) == {"world", "sports"}
+    assert invoke(jtag, ["--label", "onlyone:x"]).code == 2
+    assert invoke(jtag, ["--label", "noseparator"]).code == 2
+    assert invoke(jtag, ["--label", "a:x", "--labels", "b,c"]).code == 2  # mutually exclusive
+
+
+def test_parse_labels_rejects_nonsense():
+    from jevcore.errors import UsageError
+    from jevcore.rubric import parse_labels
+
+    assert parse_labels(r"a:x\,y,b:z") == {"a": "x,y", "b": "z"}
+    with pytest.raises(UsageError):
+        parse_labels("only one")
+    with pytest.raises(UsageError):
+        parse_labels("bad name:x,b:y")
+    with pytest.raises(UsageError):
+        parse_labels("a:x,a:y")

@@ -12,6 +12,7 @@ question and writes the winning label; ``--score`` asks a score question and wri
 from __future__ import annotations
 
 import argparse
+import re
 from collections.abc import Sequence
 from typing import IO, Any
 
@@ -45,6 +46,13 @@ def parser() -> Parser:
     mode.add_argument(
         "--labels", metavar="CSV", help='labels, optionally described: "bug,feature:new capability,question"'
     )
+    mode.add_argument(
+        "--label",
+        action="append",
+        metavar="NAME:DESCRIPTION",
+        dest="label_specs",
+        help="one label; repeat for each. Use this when a description contains commas",
+    )
     mode.add_argument("--score", metavar="DESCRIPTION", help='what to rate, e.g. "how positive (0-100)"')
     ap.add_argument("--sep", default="\t", metavar="CHAR", help="column separator (default: tab)")
     ap.add_argument("--suffix", action="store_true", help="put the new column last instead of first")
@@ -67,12 +75,19 @@ def parser() -> Parser:
 
 def prepare(args: argparse.Namespace) -> None:
     args.sep = unescape(args.sep)  # allow --sep '\t' as well as --sep '|'
-    if args.labels:
-        args.label_map = rubric.parse_labels(args.labels)
+    args.label_mode = bool(args.labels or args.label_specs)
+    if args.label_mode:
+        args.label_map = (
+            rubric.parse_buckets(args.label_specs, what="label")
+            if args.label_specs
+            else rubric.parse_labels(args.labels)
+        )
         if args.default and args.default in args.label_map:
             raise UsageError("--default must name a label that is not in --labels (it marks the undecided)")
         if args.scale or args.levels:
             raise UsageError("--scale and --levels apply to --score mode only")
+        if args.default and not re.fullmatch(rubric.NAME, args.default):
+            raise UsageError("--default must be a plain label name")
     else:
         if args.default:
             raise UsageError("--default applies to --labels mode only")
@@ -84,7 +99,7 @@ def prepare(args: argparse.Namespace) -> None:
 
 
 def question(args: argparse.Namespace) -> Question:
-    if args.labels:
+    if args.label_mode:
         return rubric.classify(args.label_map)
     return rubric.fit_score(args.score, args.rubric)
 
@@ -115,7 +130,7 @@ def render(r: Run, rec: Record, answer: Answer | None) -> None:
     payload: dict[str, Any]
     if answer is None:
         column, prob = "-", None
-        payload = {"line": text, "label" if args.labels else "score": None, "judged": False}
+        payload = {"line": text, "label" if args.label_mode else "score": None, "judged": False}
     elif isinstance(answer, ChoiceAnswer):
         label = answer.choice
         prob = answer.probability

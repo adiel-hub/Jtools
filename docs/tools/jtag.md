@@ -24,7 +24,10 @@ jtag [options] (--labels CSV | --score DESCRIPTION) [FILE ...]
 
 | option | meaning |
 |---|---|
-| `--labels CSV` | labels, optionally described: `"bug,feature:new capability,question"` |
+| `--labels CSV` | labels, optionally described: `"bug,feature:new capability,question"`. A description may
+contain commas (`"world:politics, war and diplomacy,sports:games"`): a comma only starts a new label when what
+follows looks like `name:`. Write `\,` for a literal comma. |
+| `--label NAME:DESC` | one label, repeatable. No comma rules at all; use it when a description is complex |
 | `--score DESC` | what to rate; a parenthesised range `(0-100)` or `from 1 to 5` in it sets the output scale (a bare `2024-2025` in prose does not) |
 | `--sep CHAR` | column separator (default tab; `\t`, `,`, `|` work) |
 | `--suffix` | put the new column last instead of first |
