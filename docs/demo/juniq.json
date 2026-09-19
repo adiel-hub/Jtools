@@ -1,0 +1,32 @@
+{
+  "name": "juniq",
+  "command": "juniq 'the same feature request' -c examples/requests.txt",
+  "stdout": [
+    [
+      1.5,
+      "      3 Please add dark mode to the app"
+    ],
+    [
+      1.5,
+      "      2 Export data as CSV"
+    ],
+    [
+      1.5,
+      "      2 Fix the crash when opening settings on iOS"
+    ],
+    [
+      1.5,
+      "      1 Two-factor authentication please"
+    ],
+    [
+      1.5,
+      "      1 Support for hardware security keys as a second factor"
+    ]
+  ],
+  "stderr": [],
+  "exit": 0,
+  "seconds": 298.471,
+  "shown_seconds": 1.5,
+  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 298.471s",
+  "title": "semantic dedup"
+}

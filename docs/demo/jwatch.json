@@ -1,0 +1,28 @@
+{
+  "name": "jwatch",
+  "command": "cat examples/app.log | jwatch 'something an operator should look at right now' --with-score",
+  "stdout": [
+    [
+      1.5,
+      "0.900\t2026-09-18T10:00:05Z WARN  api    request POST /checkout 502 upstream payment-svc connection refused"
+    ],
+    [
+      1.854,
+      "0.930\t2026-09-18T10:00:05Z ERROR api    payment-svc unreachable, 3 retries exhausted, order 88213 not charged"
+    ],
+    [
+      3.354,
+      "0.630\t2026-09-18T10:00:12Z WARN  disk   nvme0 temperature 71C"
+    ],
+    [
+      3.667,
+      "0.950\t2026-09-18T10:00:15Z ERROR auth   unauthorized access attempt to /admin from 10.0.0.9, 40 failed logins in 60s"
+    ]
+  ],
+  "stderr": [],
+  "exit": 0,
+  "seconds": 907.809,
+  "shown_seconds": 3.667,
+  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 907.809s",
+  "title": "alert only on what matters"
+}
