@@ -30,7 +30,7 @@ from jevcore.inputs import Record, iter_records
 from jevcore.io import fmt_p
 from jevcore.questions import ChoiceAnswer
 
-from ._shared import read_all, unescape
+from ._shared import read_all, trace, unescape
 
 PROG = "jmatch"
 DEFAULT_GROUP = 12
@@ -86,10 +86,14 @@ def prepare(args: argparse.Namespace) -> None:
     if args.shortlist is not None and args.shortlist < 1:
         raise UsageError("--shortlist takes 1 or more")
     args.format = unescape(args.format)
-    try:
-        args.format.format(a="", b="", score="", a_line=0, b_line=0)
-    except (KeyError, IndexError, ValueError) as e:
-        raise UsageError(f"--format: {e}; use {{a}} {{b}} {{score}} {{a_line}} {{b_line}}") from None
+    # Validate with exactly the values the run will pass, matched row and unmatched row alike:
+    # b_line is an int for a hit and "" for a miss, so "{b_line:03d}" used to pass here and then
+    # die halfway through the output, after lines had already been written.
+    for sample in ({"b": "b", "b_line": 0}, {"b": "", "b_line": ""}):
+        try:
+            args.format.format(a="a", score="0.80", a_line=1, **sample)
+        except (KeyError, IndexError, ValueError) as e:
+            raise UsageError(f"--format: {e}; use {{a}} {{b}} {{score}} {{a_line}} {{b_line}}") from None
 
 
 def dry(args: argparse.Namespace, out: IO[str]) -> int:
@@ -175,8 +179,16 @@ async def best_match(run: Run, a: Record, candidates: list[Record]) -> Match:
                 survivors.append(res[0])
         if not survivors:
             return Match(failed_calls=failed)  # every judged group said "none"
-        if len(survivors) >= len(items):
+        judged_groups = sum(1 for res in results if res is not None)
+        if not judged_groups:
             return Match(judged=False, failed_calls=failed)  # every call failed; give up on this line
+        if len(survivors) >= len(items):
+            # A failed group is re-added whole, so the survivor list can stop shrinking while some
+            # groups are still answering. Narrow to what was actually judged rather than give up
+            # on a line another group already found a winner for.
+            survivors = [res[0] for res in results if res is not None and res[0] is not None]
+            if not survivors:
+                return Match(failed_calls=failed)
         items = survivors
 
 
@@ -184,11 +196,9 @@ async def run(r: Run) -> int:
     args = r.args
     a_records, b_records = await read_all(r, [args.file_a]), await read_all(r, [args.file_b])
     if not a_records:
-        r.warn(f"{args.file_a}: no lines")
-        return EXIT_NOMATCH
+        return r.empty_input(f"{args.file_a}: no lines")
     if not b_records:
-        r.warn(f"{args.file_b}: no lines")
-        return EXIT_NOMATCH
+        return r.empty_input(f"{args.file_b}: no lines")
     b_words = [words(b.text) for b in b_records] if args.shortlist else []
 
     async def one(a: Record) -> Match:
@@ -196,6 +206,8 @@ async def run(r: Run) -> int:
         return await best_match(r, a, cands)
 
     results = await asyncio.gather(*(one(a) for a in a_records))
+    for a, m in zip(a_records, results, strict=True):
+        trace(r, "-" if m.b is None else f"{fmt_p(m.probability)} {m.b.lineno}", a)
     matched = 0
     for a, m in zip(a_records, results, strict=True):
         hit = m.b is not None and m.probability is not None and m.probability >= args.threshold
@@ -221,7 +233,7 @@ async def run(r: Run) -> int:
             r.out.write(args.format.format(a=a.shown, b="", score=fmt_p(None), a_line=a.lineno, b_line=""))
     unjudged = sum(1 for m in results if not m.judged)
     if unjudged:
-        r.warn(f"{unjudged:,} line(s) of {args.file_a} could not be judged")
+        r.note(f"{unjudged:,} line(s) of {args.file_a} could not be judged")
     return partial(EXIT_OK if matched else EXIT_NOMATCH, unjudged)
 
 

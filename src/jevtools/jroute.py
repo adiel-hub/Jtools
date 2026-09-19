@@ -22,7 +22,7 @@ from typing import IO
 import httpx
 
 from jevcore import rubric
-from jevcore.cli import EXIT_NOMATCH, EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
+from jevcore.cli import EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
 from jevcore.errors import UsageError
 from jevcore.inputs import Record, iter_records
 from jevcore.pipeline import Pipeline
@@ -195,12 +195,10 @@ async def run(r: Run) -> int:
         raise result.fatal
     report_pipeline_errors(r, result)
     if not stats["lines"]:
-        r.warn("empty input")
-        return EXIT_NOMATCH
-    if not args.quiet:
-        summary = ", ".join(f"{name}: {n:,}" for name, n in sorted(buckets.counts.items(), key=lambda kv: -kv[1]))
-        where = "" if args.no_files else f" -> {os.path.abspath(args.out_dir)}"
-        r.warn(f"{stats['lines']:,} lines routed ({summary}){where}")
+        return r.empty_input()
+    summary = ", ".join(f"{name}: {n:,}" for name, n in sorted(buckets.counts.items(), key=lambda kv: -kv[1]))
+    where = "" if args.no_files else f" -> {os.path.abspath(args.out_dir)}"
+    r.note(f"{stats['lines']:,} lines routed ({summary}){where}")
     return partial(EXIT_OK, stats["unjudged"])
 
 

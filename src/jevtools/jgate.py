@@ -126,8 +126,7 @@ async def gate_whole(r: Run) -> int:
     records = await read_all(r, r.args.files, keep_blank=True, mode="whole")
     text = "\n".join(rec.text.rstrip("\n") for rec in records)
     if not text.strip():
-        r.warn("empty input")
-        return EXIT_NOMATCH
+        return r.empty_input()
     if any(rec.truncated for rec in records):
         r.warn(f"input truncated to {r.args.max_chars:,} characters per file; raise --max-chars")
     try:
@@ -207,8 +206,7 @@ async def gate_each(r: Run) -> int:
         raise result.fatal
     report_pipeline_errors(r, result)
     if stats.judged == 0 and not kept:
-        r.warn("empty input")
-        return EXIT_NOMATCH
+        return r.empty_input()
     if stats.decided is not None:
         code = stats.decided
     elif stats.failed_calls and stats.judged == stats.failed_calls:

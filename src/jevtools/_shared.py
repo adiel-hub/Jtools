@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import re
 from collections.abc import Sequence
 from typing import Any
 
@@ -35,6 +36,7 @@ def split_optional_description(positionals: Sequence[str], default: str) -> tupl
 
 def report_input_error(run: Run) -> Any:
     def _report(error: InputError) -> None:
+        run.input_errors += 1
         run.warn(error.message)
 
     return _report
@@ -72,6 +74,12 @@ def score_json(record: Record, answer: ScoreAnswer | None, **extra: Any) -> dict
     return obj
 
 
+def trace(run: Run, verdict: str, record: Record) -> None:
+    """``--verbose``: one line on stderr per decision, as it is made. Same shape in every tool."""
+    if run.args.verbose:
+        run.warn(f"{verdict:<12} {record.text[:70]}")
+
+
 def render_scored(run: Run, record: Record, answer: ScoreAnswer | None, with_score: bool) -> None:
     if with_score:
         run.out.scored(answer.normalized if answer else None, record.shown)
@@ -79,11 +87,20 @@ def render_scored(run: Run, record: Record, answer: ScoreAnswer | None, with_sco
         run.out.write(record.shown)
 
 
+ESCAPES = {"t": "\t", "n": "\n", "r": "\r", "0": "\0", "a": "\a", "b": "\b", "f": "\f", "v": "\v", "\\": "\\"}
+_ESCAPE = re.compile(r"\\(.)", re.S)
+
+
 def unescape(text: str) -> str:
-    r"""Turn ``\t``, ``\n`` and friends into the characters they name, leaving non-ASCII text alone."""
+    r"""Turn ``\t``, ``\n`` and the rest of the usual escapes into the characters they name.
+
+    Only those. Decoding the whole string as ``unicode_escape`` is shorter and crashes on
+    ``--sep '\u2192'``, on ``--sep '\'``, and on any separator above U+00FF, none of which is a
+    reason to stop. Anything this table does not know is left exactly as the user wrote it.
+    """
     if "\\" not in text:
         return text
-    return text.encode("utf-8").decode("unicode_escape").encode("latin-1").decode("utf-8")
+    return _ESCAPE.sub(lambda m: ESCAPES.get(m.group(1), m.group(0)), text)
 
 
 def report_pipeline_errors(run: Run, result: PipelineResult, limit: int = 3) -> None:

@@ -28,7 +28,7 @@ from jevcore.inputs import Record, iter_records
 from jevcore.io import DIM, RESET
 from jevcore.questions import NoulAnswer
 
-from ._shared import read_all, split_optional_description
+from ._shared import read_all, split_optional_description, trace
 
 PROG = "juniq"
 DEFAULT_DESCRIPTION = "the same thing said in different words"
@@ -96,13 +96,20 @@ async def run(r: Run) -> int:
     args = r.args
     records = await read_all(r, args.files)
     if not records:
-        return EXIT_NOMATCH
+        return r.empty_input()
+    by_seq = {rec.seq: rec for rec in records}
 
     # Free pass: exact repeats.
     first_by_norm: dict[str, int] = {}
     exact_dup_of: dict[int, int] = {}
     unique: list[Record] = []
     for rec in records:
+        if rec.truncated:
+            # Two different long lines share their first --max-chars characters, and the text this
+            # sees is already cut. Only the model can say whether they mean the same thing, so a
+            # cut line is never folded away for free.
+            unique.append(rec)
+            continue
         key = normalise(rec.text)
         if key in first_by_norm:
             exact_dup_of[rec.seq] = first_by_norm[key]
@@ -150,12 +157,16 @@ async def run(r: Run) -> int:
             groups[target].append(rec)
     for seq, orig in exact_dup_of.items():
         target = rep[orig]
-        groups[target].append(next(x for x in records if x.seq == seq))
+        groups[target].append(by_seq[seq])
         rep[seq] = target
     for members in groups.values():
         members.sort(key=lambda x: x.seq)
 
     kept = [rec for rec in records if rep.get(rec.seq) == rec.seq]
+    for rec in records:
+        target = rep.get(rec.seq)
+        trace(r, "keep" if target == rec.seq else f"dup of #{target}", rec)
+    printed = 0
     for rec in kept:
         members = groups[rec.seq]
         dups = members[1:]
@@ -163,6 +174,7 @@ async def run(r: Run) -> int:
             continue
         if args.unique and dups:
             continue
+        printed += 1
         if args.json:
             r.out.json(
                 {
@@ -182,9 +194,13 @@ async def run(r: Run) -> int:
             r.out.write(f"{len(members):>7} {rec.shown}")
         else:
             r.out.write(rec.shown)
+    if cut := sum(1 for rec in records if rec.truncated):
+        # Worth saying: two different lines can look alike once they are cut to the same length.
+        r.note(f"{cut:,} line(s) were compared on their first {args.max_chars:,} characters; raise --max-chars")
     if unjudged:
-        r.warn(f"{unjudged:,} line(s) could not be compared and were kept")
-    return partial(EXIT_OK, unjudged)
+        r.note(f"{unjudged:,} line(s) could not be compared and were kept")
+    # -d and -u are filters; printing nothing is "no match", as it is for every other tool.
+    return partial(EXIT_OK if printed else EXIT_NOMATCH, unjudged)
 
 
 def main(

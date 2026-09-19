@@ -148,9 +148,9 @@ def add_common(
         default=None,
         help="print calls, tokens, cost and latency to stderr (default: when stderr is a terminal)",
     )
-    g.add_argument("-q", "--quiet", action="store_true", help="print less (tool-specific; see --help)")
+    g.add_argument("-q", "--quiet", action="store_true", help="no end-of-run notes on stderr (errors still show)")
     verbose_flags = ("-v", "--verbose") if short_verbose else ("--verbose",)
-    g.add_argument(*verbose_flags, action="store_true", help="explain decisions on stderr")
+    g.add_argument(*verbose_flags, action="store_true", help="one line on stderr per decision, as it is made")
     g.add_argument("--version", action="version", version=f"%(prog)s {__version__} (jev-tools)")
     if files:
         ap.add_argument("files", nargs="*", metavar="FILE", help="input files; none or - means standard input")
@@ -187,10 +187,23 @@ class Run:
     out: Output
     err: IO[str]
     reporter: ErrorReporter
+    input_errors: int = 0
+    """Files that could not be read. A typo in a file name is exit 2, not "nothing matched"."""
 
     @property
     def strict(self) -> bool:
         return bool(self.args.strict)
+
+    @property
+    def quiet(self) -> bool:
+        return bool(getattr(self.args, "quiet", False))
+
+    def empty_input(self, message: str = "empty input") -> int:
+        """Nothing to judge: usage (2) when a file was unreadable, otherwise no match (1)."""
+        if self.input_errors:
+            return EXIT_USAGE
+        self.note(message)
+        return EXIT_NOMATCH
 
     async def judge(self, state: State, questions: Mapping[str, Question]) -> dict[str, Answer] | None:
         """Ask, honouring ``--strict``: fail closed (raise) or fail open (``None``)."""
@@ -199,7 +212,13 @@ class Run:
         return await self.jev.try_ask(state, questions)
 
     def warn(self, message: str) -> None:
+        """Something went wrong. Always printed: -q hides notes, never problems."""
         eprint(self.prog, message, self.err)
+
+    def note(self, message: str) -> None:
+        """An end-of-run remark: counts, summaries, how many lines went unjudged. ``-q`` hides these."""
+        if not self.quiet:
+            eprint(self.prog, message, self.err)
 
     def verbose(self, message: str) -> None:
         if self.args.verbose:

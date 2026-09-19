@@ -19,14 +19,14 @@ from typing import IO, Any
 import httpx
 
 from jevcore import rubric
-from jevcore.cli import EXIT_NOMATCH, EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
+from jevcore.cli import EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
 from jevcore.errors import UsageError
 from jevcore.inputs import Record, iter_records
 from jevcore.io import fmt_p, paint, score_colour
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Answer, ChoiceAnswer, Question, ScoreAnswer
 
-from ._shared import add_levels_option, report_input_error, report_pipeline_errors, unescape
+from ._shared import add_levels_option, report_input_error, report_pipeline_errors, trace, unescape
 
 PROG = "jtag"
 
@@ -119,11 +119,25 @@ def format_score(value: float, rng: tuple[float, float] | None) -> str:
     return f"{scaled:.1f}"
 
 
+def verdict(args: argparse.Namespace, answer: Answer | None) -> str:
+    """The one-word decision --verbose shows: the label, or the score on its scale."""
+    if isinstance(answer, ChoiceAnswer):
+        return answer.choice
+    if isinstance(answer, ScoreAnswer):
+        return format_score(answer.normalized, args.range)
+    return "-"
+
+
 def render(r: Run, rec: Record, answer: Answer | None) -> None:
     args = r.args
     text = rec.shown
     if rec.is_blank():
-        r.out.write(text)
+        # --json is the machine-readable mode: one object per line, or jq stops at the first blank.
+        if args.json:
+            key = "label" if args.label_mode else "score"
+            r.out.json({"line": text, key: None, "judged": False, "blank": True, "lineno": rec.lineno})
+        else:
+            r.out.write(text)
         return
     column: str
     prob: float | None
@@ -183,6 +197,7 @@ async def run(r: Run) -> int:
             stats["lines"] += 1
             if answer is None:
                 stats["unjudged"] += 1
+            trace(r, verdict(args, answer), rec)
         render(r, rec, answer)
 
     source = iter_records(args.files or None, max_chars=args.max_chars, stop=pipe.stop_event)
@@ -191,8 +206,10 @@ async def run(r: Run) -> int:
         raise result.fatal
     report_pipeline_errors(r, result)
     if stats["unjudged"]:
-        r.warn(f"{stats['unjudged']:,} line(s) could not be judged and were tagged '-'")
-    return partial(EXIT_OK if stats["lines"] else EXIT_NOMATCH, stats["unjudged"])
+        r.note(f"{stats['unjudged']:,} line(s) could not be judged and were tagged '-'")
+    if not stats["lines"]:
+        return r.empty_input()
+    return partial(EXIT_OK, stats["unjudged"])
 
 
 def main(

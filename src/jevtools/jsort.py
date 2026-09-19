@@ -18,12 +18,12 @@ from typing import IO
 import httpx
 
 from jevcore import rubric
-from jevcore.cli import EXIT_NOMATCH, EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
+from jevcore.cli import EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
 from jevcore.errors import UsageError
 from jevcore.inputs import iter_records
 from jevcore.questions import Score
 
-from ._shared import add_levels_option, read_all, render_scored, score_json, score_records, split_description
+from ._shared import add_levels_option, read_all, render_scored, score_json, score_records, split_description, trace
 
 PROG = "jsort"
 
@@ -69,9 +69,12 @@ async def run(r: Run) -> int:
     args = r.args
     records = await read_all(r, args.files)
     if not records:
-        return EXIT_NOMATCH
+        return r.empty_input()
     scores = await score_records(r, records, question(args))
     unjudged = sum(1 for v in scores.values() if v is None)
+    for record in records:
+        answer = scores[record.seq]
+        trace(r, "-" if answer is None else f"{answer.normalized:.2f}", record)
 
     def key(seq: int) -> tuple[int, float, int]:
         answer = scores[seq]
@@ -90,7 +93,7 @@ async def run(r: Run) -> int:
         else:
             render_scored(r, record, answer, args.with_score)
     if unjudged:
-        r.warn(f"{unjudged:,} of {len(records):,} lines could not be judged and were sorted last")
+        r.note(f"{unjudged:,} of {len(records):,} lines could not be judged and were sorted last")
     return partial(EXIT_OK, unjudged)
 
 

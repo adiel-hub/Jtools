@@ -362,11 +362,11 @@ async def run(r: Run) -> int:
             n = counts.get(name, 0)
             r.out.write(f"{name}:{n}" if show_file else str(n))
     if totals["truncated"]:
-        r.warn(f"truncated {totals['truncated']:,} records to {args.max_chars:,} characters; raise --max-chars")
+        r.note(f"truncated {totals['truncated']:,} records to {args.max_chars:,} characters; raise --max-chars")
     if totals["input_errors"] > MAX_ERRORS_SHOWN:
-        r.warn(f"and {totals['input_errors'] - MAX_ERRORS_SHOWN:,} more input errors")
+        r.note(f"and {totals['input_errors'] - MAX_ERRORS_SHOWN:,} more input errors")
     if totals["unjudged"]:
-        r.warn(f"{totals['unjudged']:,} record(s) could not be judged and passed through")
+        r.note(f"{totals['unjudged']:,} record(s) could not be judged and passed through")
     if args.quiet and totals["matched"]:
         return EXIT_OK
     if discovery_errors or totals["input_errors"]:

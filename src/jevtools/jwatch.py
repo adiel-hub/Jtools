@@ -183,9 +183,9 @@ async def run(r: Run) -> int:
         for t in pending:
             t.cancel()
     if stats.suppressed:
-        r.warn(f"{stats.suppressed} alert(s) were suppressed by the cooldown when the input ended")
+        r.note(f"{stats.suppressed} alert(s) were suppressed by the cooldown when the input ended")
     if stats.unjudged:
-        r.warn(f"{stats.unjudged:,} line(s) could not be judged")
+        r.note(f"{stats.unjudged:,} line(s) could not be judged")
     return partial(EXIT_OK if stats.alerts else EXIT_NOMATCH, stats.unjudged)
 
 

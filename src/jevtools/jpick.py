@@ -21,13 +21,13 @@ from typing import IO
 import httpx
 
 from jevcore import rubric
-from jevcore.cli import EXIT_NOMATCH, EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
+from jevcore.cli import EXIT_OK, Parser, Run, build_parser, cli_entry, dry_run, execute, partial
 from jevcore.errors import UsageError
 from jevcore.inputs import Record, iter_records
 from jevcore.io import fmt_p
 from jevcore.questions import ChoiceAnswer
 
-from ._shared import read_all, split_description
+from ._shared import read_all, split_description, trace
 
 PROG = "jpick"
 DEFAULT_GROUP = 12
@@ -176,8 +176,11 @@ async def run(r: Run) -> int:
     args = r.args
     records = await read_all(r, args.files)
     if not records:
-        return EXIT_NOMATCH
+        return r.empty_input()
     finalists, failed = await tournament(r, args.description, records, args.top, args.group)
+    chosen = {f.record.seq: i for i, f in enumerate(finalists, 1)}
+    for record in records:
+        trace(r, f"#{chosen[record.seq]}" if record.seq in chosen else "out", record)
     for rank, f in enumerate(finalists, 1):
         if args.json:
             r.out.json(
@@ -203,9 +206,9 @@ async def run(r: Run) -> int:
         else:
             r.out.write(text)
     if failed:
-        r.warn(f"{failed:,} comparison call(s) failed; affected groups were not narrowed")
+        r.note(f"{failed:,} comparison call(s) failed; affected groups were not narrowed")
     if len(finalists) < min(args.top, len(records)):
-        r.warn(f"only {len(finalists)} of the {args.top} requested lines could be ranked")
+        r.note(f"only {len(finalists)} of the {args.top} requested lines could be ranked")
     return partial(EXIT_OK, failed)
 
 
