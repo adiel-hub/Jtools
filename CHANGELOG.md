@@ -35,9 +35,10 @@ First public release: ten tools and the `jevcore` library.
   (`boolean`/`choice`/`score`, confidence and cost from provider metadata).
 - Questions about one state are batched into one request; identical in-flight requests share
   one call; answers are cached in memory and in `~/.cache/jev/answers.sqlite`.
-- Bounded concurrency (default 20), retries with jitter inside a total deadline, a shared brake
-  after HTTP 429/529 with `Retry-After` support, a dollar budget (default $1), and error
-  reports throttled to one per minute.
+- Bounded concurrency (default 20, `JEV_CONCURRENCY`), retries with jitter inside a total deadline
+  (`--timeout`, `JEV_TIMEOUT`), a shared brake after HTTP 429/529 with `Retry-After` support and a
+  trickle mode that sends one request at a time for two minutes after a rate limit, a dollar budget
+  (default $1, `JEV_BUDGET`), and error reports throttled to one per minute.
 - Common CLI surface on every tool: `--json`, `--dry-run`, `-p`, `--model`, `--api`, `-j`,
   `--timeout`, `--budget`, `--max-chars`, `--no-cache`, `--strict`, `--color`, `--stats`.
 - Exit codes: 0 ok, 1 no match, 2 usage, 3 auth, 4 API/budget, 5 partial (some lines unjudged).

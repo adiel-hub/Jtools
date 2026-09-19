@@ -57,7 +57,10 @@ model.
   inside one total deadline (`--timeout`, default 15 s), so a dribbling response body cannot hang
   a line forever.
 - **Rate-limit brake**: a 429/529 sets a client-wide "send nothing before T" timestamp
-  (`Retry-After` when present, else 1, 2, 4, 8 s). One rate limit does not fan out into twenty.
+  (`Retry-After` when present, else 1, 2, 4, 8, 15 s) and switches the client into a trickle mode
+  for two minutes, in which requests are sent one at a time. One rate limit does not fan out into
+  twenty, and releasing the brake does not earn twenty more. Rate-limit waits do not count as retry
+  attempts; only `--timeout` bounds them.
 - **Budget**: `--budget` (default $1, `JEV_BUDGET`) stops a run that is about to cost more than
   you meant. Cached answers stay free.
 - **Fail-open**: `try_ask` returns `None` on a per-request error and reports it at most once a

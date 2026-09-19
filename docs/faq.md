@@ -27,9 +27,12 @@ to steer the answer. Do not use j-tools as a security boundary; use `-p 0.9` and
 it matters. `jgate` fails closed on API errors for the same reason.
 
 **Rate limits.** Free-tier gateways throttle. j-tools waits them out: a 429 brakes every
-request (one limit does not fan out into twenty), and the wait is bounded only by `--timeout`
-(default 15 s; set `JEV_TIMEOUT=600` for a slow tier). After that the line passes through
-unjudged and the exit status is 5.
+request (one limit does not fan out into twenty) and requests then trickle out one at a time for
+two minutes; the wait is bounded only by `--timeout` (default 15 s; set `JEV_TIMEOUT=600` and
+`JEV_CONCURRENCY=4` for a slow tier). After that the line passes through unjudged and the exit
+status is 5. The Vercel AI Gateway free tier, for instance, allows about five Jev requests per
+three minutes; `jtools doctor` works, pipelines of a few dozen lines take minutes, and paid
+credits lift the limit.
 
 **Exit codes.** 0 ok, 1 nothing matched, 2 usage or file error, 3 no or bad key, 4 API error or
 budget spent (with `--strict`, the first API error), 5 partial: some lines could not be judged

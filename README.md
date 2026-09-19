@@ -142,7 +142,7 @@ Every tool:
 --dry-run        print the backend, the exact questions and a redacted input sample; send nothing
 --model ID       pin a model (default: the backend's latest Jev alias)
 --api NAME       typesafe | openrouter | vercel | gateway
--j N             requests in flight (default 20)
+-j N             requests in flight (default 20, or $JEV_CONCURRENCY)
 --timeout SEC    per request, retries and rate-limit waits included (default 15, or $JEV_TIMEOUT)
 --budget USD     stop at this spend (default 1.00, or $JEV_BUDGET; 0 = no limit)
 --max-chars N    judge only the first N characters of a record (default 8000)
@@ -167,8 +167,8 @@ Exit codes: **0** ok · **1** nothing matched · **2** usage or file error · **
 - **Fail-open.** An API error means a line passes through unjudged, the run continues, the exit
   status becomes 5, and the error is reported once a minute. `--strict` fails closed. `jgate`
   fails closed by default, because a gate that opens during an outage is not a gate.
-- **Rate limits.** A 429 brakes every request in the client; nothing fans out. The wait is bounded
-  by `--timeout`.
+- **Rate limits.** A 429 brakes every request in the client, and for the next two minutes requests
+  go out one at a time instead of as a burst. Nothing fans out; the wait is bounded by `--timeout`.
 - **Budget.** `--budget` (default $1) stops a run before it costs more than you meant.
 - **Two wire formats, one library.** `jevcore` speaks TypeSafe's System One API (also OpenRouter and
   gateways) and the Vercel AI Gateway's evaluation modality; every tool sees typed answers only.
