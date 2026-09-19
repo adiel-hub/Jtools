@@ -93,6 +93,13 @@ Python 3.11+. One dependency (`httpx`). Then one key, any of these:
 With several keys the first in that order wins; force one with `--api NAME` or `JEV_API`. Keys can
 also live in `~/.config/jev/typesafe.key`, `openrouter.key`, `vercel.key`, `gateway.key` (+ `gateway.url`).
 
+Shell completions for all eleven commands are in [`completions/`](completions/):
+
+```bash
+source completions/j-tools.bash            # bash
+cp completions/_jtools ~/.zfunc/ && echo 'fpath+=~/.zfunc' >> ~/.zshrc   # zsh
+```
+
 ```console
 $ jtools doctor
 using vercel at https://ai-gateway.vercel.sh/v4/ai/evaluation-model with key vck_…9f2a, model typesafe-ai/jev

@@ -34,6 +34,9 @@ jobs:
       - name: Docs match the recorded benchmark results
         if: matrix.python == '3.13'
         run: uv run python scripts/update_docs.py --check
+      - name: Shell completions match the parsers
+        if: matrix.python == '3.13'
+        run: uv run python scripts/gen_completions.py --check
 
   live:
     name: live smoke (needs a key)

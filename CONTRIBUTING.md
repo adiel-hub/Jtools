@@ -71,7 +71,8 @@ src/jevcore/        the library every tool shares (see docs/architecture.md)
 src/jevtools/       one file per tool, plus jtools (list, doctor)
 tests/              offline suite, subprocess tests, live smoke
 bench/              reproducible benchmarks (live)
-scripts/            README asset generators
+scripts/            asset, table and completion generators
+completions/        bash and zsh completions, generated from the parsers
 docs/               per-tool docs, architecture, benchmarks, recipes
 ```
 
@@ -87,7 +88,8 @@ docs/               per-tool docs, architecture, benchmarks, recipes
 4. Phrase questions in `jevcore/rubric.py`, not inline. Jev answers the description the user
    wrote; keep our wrapping minimal and consistent.
 5. Run the whole suite, `ruff`, `ruff format` and `mypy`. CI runs them on 3.11, 3.12 and 3.13.
-6. Add a line to `CHANGELOG.md` and, for a new flag, to the tool's page in `docs/tools/`.
+6. Add a line to `CHANGELOG.md` and, for a new flag, to the tool's page in `docs/tools/`, then
+   run `uv run python scripts/gen_completions.py` so the shell completions stay in step.
 
 ### Style
 

@@ -91,3 +91,18 @@ def test_contributing_states_the_hard_rule():
     assert "Hard Rule" in text
     for forbidden in ("generate text", "embedding"):
         assert forbidden in text, f"CONTRIBUTING.md does not rule out {forbidden}"
+
+
+def test_shell_completions_match_the_parsers():
+    """`scripts/gen_completions.py --check`: a new flag must be completable."""
+    import subprocess
+    import sys as _sys
+
+    proc = subprocess.run(
+        [_sys.executable, str(ROOT / "scripts" / "gen_completions.py"), "--check"],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr or proc.stdout
