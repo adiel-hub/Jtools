@@ -161,7 +161,8 @@ def summary() -> str:
             lo, hi = min(r["relative_to_jev"] for r in chat), max(r["relative_to_jev"] for r in chat)
             lines.append(
                 f"- **vs chat models:** the same yes/no decision costs {lo:g}x to {hi:g}x more at list price "
-                f"({', '.join(r['model'].split('/')[-1] for r in chat[:3])}, …), before counting their 4-5x higher latency."
+                f"({', '.join(r['model'].split('/')[-1] for r in chat[:3])}, …). "
+                "Their latency is not measured here; see the method notes."
             )
     acc = []
     if spam:

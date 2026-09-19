@@ -113,7 +113,7 @@ ok: one call in 412 ms, 283 input tokens, $0.0000119, answered by typesafe-ai/je
 | what the model does | **judges**: yes/no, pick one, rate on a scale | **generates** text: summaries, commands, rewrites | **compares vectors**: nearest neighbours |
 | output | calibrated probabilities, labels, ranks, exit codes | prose | similarity scores |
 | "angriest customer first" | yes, that is a rubric | you get a paragraph about anger | no, anger is not a similarity |
-| per line | ~<!--num:latency_p50_round-->420 ms<!--/num-->, ~<!--num:dollars_per_call-->$0.000013<!--/num--> (measured below) | 1-3 s, <!--num:cost_ratio_range-->3.8-130.9x the cost<!--/num--> | fast after indexing; needs an index |
+| per line | ~<!--num:latency_p50_round-->420 ms<!--/num-->, ~<!--num:dollars_per_call-->$0.000013<!--/num--> (measured below) | a round trip plus generated tokens, <!--num:cost_ratio_range-->3.8-130.9x the cost<!--/num--> | fast after indexing; needs an index |
 | composes with `&&`, `sort`, `head` | yes, by design | awkwardly | no |
 | failure mode | pass-through + exit 5; gate fails closed | hallucinated text | silent misses |
 
@@ -136,7 +136,7 @@ results are in [`bench/`](bench/). Details and method notes: [docs/benchmarks.md
 
 - **Latency:** 419 ms median per decision end to end (p95 994 ms), measured through vercel; asking 16 questions about the same line costs about the same time as one.
 - **Cost:** 301 input tokens and $0.000013 per decision, $0.0126 per 1,000.
-- **vs chat models:** the same yes/no decision costs 3.8x to 130.9x more at list price (qwen3.8-flash, gpt-5.6-luna, gemini-3.8-flash, …), before counting their 4-5x higher latency.
+- **vs chat models:** the same yes/no decision costs 3.8x to 130.9x more at list price (qwen3.8-flash, gpt-5.6-luna, gemini-3.8-flash, …). Their latency is not measured here; see the method notes.
 - **Accuracy, from a one-line description, with no tuning:** `jgrep` finds SMS spam with F1 1.00 (n=30), where a 17-term keyword regex scores 0.29 on the same 30 messages; `jsort` ranks review sentiment with AUC 0.76 (n=20); `jtag` labels AG News four ways with 50% accuracy (n=20).
 
 <!-- END bench-summary -->
