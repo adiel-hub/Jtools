@@ -11,7 +11,8 @@ printed in input order, so it works on ``tail -f`` as well as on files. Exit sta
 be judged and passed through unjudged).
 
 Several descriptions (``-e``) go in ONE call per line; a line matches if any fits, or all with
-``--all``. ``-C N`` shows Jev the N lines either side (still one decision per line). ``--para``,
+``--all``. ``-A``/``-B``/``-C`` print the lines around a match, as in grep; ``--judge-context N``
+is the different thing of showing Jev the N lines either side when it decides. ``--para``,
 ``--whole``, ``--jsonl`` and ``--csv`` change what a record is: a structured record is judged
 entire (Jev reads the object) unless ``--field`` names one value inside it.
 """
@@ -22,7 +23,7 @@ import argparse
 import json
 from collections import deque
 from collections.abc import Iterable, Iterator, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import IO
 
 import httpx
@@ -56,6 +57,22 @@ MAX_ERRORS_SHOWN = 10
 class _GroupState:
     matched: int = 0
     stop_all: bool = False
+
+
+@dataclass
+class _Context:
+    """The book-keeping -A/-B/-C need: what to hold back, what to still print, what was printed.
+
+    Records arrive here in input order (context and --unordered are refused together), which is
+    what lets a match reach back for the lines before it and forward for the lines after.
+    """
+
+    before: deque[tuple[Record, str]] = field(default_factory=deque)
+    after_left: int = 0
+    last_printed: int = 0
+    """Line number of the last record printed for this input; 0 before anything."""
+    anything_printed: bool = False
+    input_id: int | None = None
 
 
 def parser() -> Parser:
@@ -122,12 +139,20 @@ def parser() -> Parser:
     unit.add_argument("--csv", action="store_true", help="read CSV with a header; judge the whole row, or just --field")
     ap.add_argument("--field", metavar="NAME", help="judge only this JSON field (dotted path) or CSV column")
     ap.add_argument(
-        "-C",
-        "--context",
+        "-A", "--after-context", type=int, default=0, metavar="N", help="also print N records after each match"
+    )
+    ap.add_argument(
+        "-B", "--before-context", type=int, default=0, metavar="N", help="also print N records before each match"
+    )
+    ap.add_argument(
+        "-C", "--context", type=int, default=0, metavar="N", help="also print N records either side of each match"
+    )
+    ap.add_argument(
+        "--judge-context",
         type=int,
         default=0,
         metavar="N",
-        help="also show Jev the N records either side; the decision (and what prints) is still one record",
+        help="show Jev the N records either side when deciding; still one decision per record",
     )
     ap.add_argument("--unordered", action="store_true", help="print matches as answers arrive, not in input order")
     return ap
@@ -143,12 +168,20 @@ def prepare(args: argparse.Namespace) -> None:
         args.descriptions, args.files = positionals[:1], positionals[1:]
     if args.max_count is not None and args.max_count < 0:
         raise UsageError("-m takes 0 or more matches")
-    if args.context < 0:
-        raise UsageError("-C takes 0 or more records")
+    if min(args.context, args.after_context, args.before_context, args.judge_context) < 0:
+        raise UsageError("-A, -B, -C and --judge-context take 0 or more records")
     if args.field and not (args.jsonl or args.csv):
         raise UsageError("--field requires --jsonl or --csv")
-    if args.whole and args.context:
-        raise UsageError("--whole and -C cannot be combined; a whole file has nothing around it")
+    args.after_context = max(args.after_context, args.context)
+    args.before_context = max(args.before_context, args.context)
+    if args.whole and (args.after_context or args.before_context or args.judge_context):
+        raise UsageError("--whole has nothing around it; -A, -B, -C and --judge-context need records")
+    if (args.after_context or args.before_context) and args.unordered:
+        # A record's neighbours are only knowable in input order, which is exactly what --unordered
+        # gives up. Silently printing the wrong lines around a match would be worse than refusing.
+        raise UsageError("-A, -B and -C need input order; --unordered gives it up")
+    if (args.after_context or args.before_context) and args.json:
+        raise UsageError("-A, -B and -C print surrounding records, which --json has no shape for")
     if args.files_with_matches and args.count:
         raise UsageError("-l and -c cannot be combined")
     if args.files_without_match and args.count:
@@ -160,7 +193,7 @@ def prepare(args: argparse.Namespace) -> None:
 
 
 def questions(args: argparse.Namespace) -> dict[str, Noul]:
-    build = rubric.fits_in_context if args.context else rubric.fits
+    build = rubric.fits_in_context if args.judge_context else rubric.fits
     return {f"d{i}": build(d) for i, d in enumerate(args.descriptions)}
 
 
@@ -180,12 +213,12 @@ def dry(args: argparse.Namespace, out: IO[str]) -> int:
                 structured=args.structured,
                 field=args.field,
             ),
-            args.context,
+            args.judge_context,
         )
         if isinstance(r, Record)
     )
     note = "one call per record, all descriptions together" + (
-        f"; each record is sent with {args.context} neighbours either side" if args.context else ""
+        f"; each record is sent with {args.judge_context} neighbours either side" if args.judge_context else ""
     )
     return dry_run(PROG, args, questions(args), sample, out, note=note)
 
@@ -231,7 +264,7 @@ def marked(text: str, prefix: str) -> str:
 
 def state(rec: Record, args: argparse.Namespace) -> State:
     """What Jev is shown: the record alone, or marked with ``>`` inside its context."""
-    if not args.context:
+    if not args.judge_context:
         return rec.state
     window = [marked(t, "  ") for t in rec.before]
     window.append(marked(rec.text, "> "))
@@ -267,6 +300,20 @@ def render(
     return body + ("\n" if args.para and not (args.whole or args.files_with_matches) else "")
 
 
+def render_context(rec: Record, args: argparse.Namespace, show_file: bool) -> str:
+    """A neighbouring record printed for -A/-B/-C.
+
+    Separated from its file and line by ``-`` rather than ``:``, which is how grep distinguishes a
+    line it is showing you from a line that matched, and with no probability column: this record
+    was judged, but its verdict is not the reason it is on screen.
+    """
+    prefix = (f"{rec.source}-" if show_file else "") + (f"{rec.lineno}-" if args.line_number else "")
+    body = prefix + rec.shown
+    if args.prob:
+        body = f"{'-':>5}\t{body}"
+    return body + ("\n" if args.para else "")
+
+
 async def scan(
     r: Run, files: list[str], show_file: bool, totals: dict[str, int], counts: dict[int, int], offset: int = 0
 ) -> bool:
@@ -290,18 +337,60 @@ async def scan(
         ps = [a.probability if isinstance(a, NoulAnswer) else 0.0 for a in (answers[q] for q in qs)]
         return (min(ps) if args.all else max(ps)), ps
 
+    ctx = _Context(before=deque(maxlen=args.before_context or 1))
+    showing_context = bool(args.after_context or args.before_context)
+
     def emit(rec: Record, name: str, p: float | None, ps: list[float]) -> None:
         first_row = rec.header is not None and rec.input_id not in headers_written
         if first_row and not (args.json or args.files_with_matches or args.files_without_match):
             r.out.write(rec.header or "")
             headers_written.add(rec.input_id)
         r.out.write(render(replace(rec, source=name), p, ps, args, show_file, r.out.colour))
+        ctx.last_printed, ctx.anything_printed = rec.lineno, True
+
+    def emit_context(rec: Record, name: str) -> None:
+        r.out.write(render_context(replace(rec, source=name), args, show_file))
+        ctx.last_printed, ctx.anything_printed = rec.lineno, True
+
+    def start_group(first_lineno: int) -> None:
+        """grep's ``--`` between runs of output that are not next to each other."""
+        if ctx.anything_printed and first_lineno > ctx.last_printed + 1:
+            r.out.write("--")
+
+    def context_reset(rec: Record) -> None:
+        if ctx.input_id != rec.input_id:
+            ctx.input_id, ctx.after_left, ctx.last_printed = rec.input_id, 0, 0
+            ctx.before.clear()
+
+    def on_match(rec: Record, name: str, p: float | None, ps: list[float]) -> None:
+        """Print a match, and with -A/-B/-C the records around it."""
+        if not showing_context:
+            emit(rec, name, p, ps)
+            return
+        held = [(b, n) for b, n in ctx.before if b.lineno > ctx.last_printed]
+        start_group(held[0][0].lineno if held else rec.lineno)
+        for before_rec, before_name in held:
+            emit_context(before_rec, before_name)
+        emit(rec, name, p, ps)
+        ctx.before.clear()
+        ctx.after_left = args.after_context
+
+    def on_other(rec: Record, name: str) -> None:
+        """A record that did not match: trailing context, or something to hold for -B."""
+        if not showing_context:
+            return
+        if ctx.after_left > 0:
+            emit_context(rec, name)
+            ctx.after_left -= 1
+        elif args.before_context:
+            ctx.before.append((rec, name))
 
     def deliver(rec: Record, value: tuple[float, list[float]] | None) -> None:
         name = STDIN if rec.source == "-" else rec.source
         where = offset + rec.input_id
         totals["seen"] += 1
         counts.setdefault(where, 0)
+        context_reset(rec)
         if rec.is_blank():
             p, ps = 0.0, [0.0] * len(qs)
         elif value is None:
@@ -312,16 +401,19 @@ async def scan(
                 args.quiet or args.count or args.files_with_matches or args.files_without_match
             ):
                 emit(rec, name, None, [])
+            else:
+                on_other(rec, name)
             return
         else:
             p, ps = value
         if (p >= args.threshold) == args.invert_match:
+            on_other(rec, name)
             return
         totals["matched"] += 1
         matched_here.matched += 1
         counts[where] += 1
         if not (args.quiet or args.count or args.files_without_match):
-            emit(rec, name, p, ps)
+            on_match(rec, name, p, ps)
         if args.quiet:
             matched_here.stop_all = True
             pipe.halt()
@@ -346,7 +438,7 @@ async def scan(
             max_chars=args.max_chars,
             stop=pipe.stop_event,
         ),
-        args.context,
+        args.judge_context,
     )
     result = await pipe.run(source, judge, deliver, on_input_error)
     if result.fatal is not None:

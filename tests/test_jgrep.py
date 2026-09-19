@@ -111,8 +111,8 @@ def test_jsonl_and_csv_fields(invoke, tmp_path):
     assert res.mock.bodies and {b["state"] for b in res.mock.bodies} <= {"alpha, yes", "beta"}
 
 
-def test_context_sends_neighbours_but_prints_one_line(invoke, mock):
-    res = invoke(main, ["alpha", "-C", "1"], "one\nalpha\nthree\nfour\n")
+def test_judge_context_sends_neighbours_but_prints_one_line(invoke, mock):
+    res = invoke(main, ["alpha", "--judge-context", "1"], "one\nalpha\nthree\nfour\n")
     assert res.out == "alpha\n"
     states = [b["state"] for b in mock.bodies]
     assert "  one\n> alpha\n  three" in states
@@ -288,4 +288,71 @@ def test_files_without_match_prints_names_only(invoke, tmp_path):
 
 @pytest.mark.parametrize("flags", [["-L", "-c"], ["-L", "-l"]])
 def test_files_without_match_refuses_the_flags_it_contradicts(invoke, flags):
+    assert invoke(main, [*flags, "x"]).code == 2
+
+
+CONTEXT_INPUT = "one\ntwo\nalpha three\nfour\nfive\nsix\nalpha seven\neight\nnine\n"
+
+
+def test_after_context_prints_the_lines_that_follow_a_match(invoke):
+    """grep's -A. Context lines carry `-` where a match carries `:`, and groups with a gap
+    between them are separated by `--`, so the output reads the way grep's does."""
+    res = invoke(main, ["alpha", "-n", "-A", "1"], CONTEXT_INPUT)
+    assert res.lines == ["3:alpha three", "4-four", "--", "7:alpha seven", "8-eight"]
+
+
+def test_before_context_prints_the_lines_that_lead_up_to_a_match(invoke):
+    res = invoke(main, ["alpha", "-n", "-B", "1"], CONTEXT_INPUT)
+    assert res.lines == ["2-two", "3:alpha three", "--", "6-six", "7:alpha seven"]
+
+
+def test_context_prints_both_sides(invoke):
+    res = invoke(main, ["alpha", "-n", "-C", "1"], CONTEXT_INPUT)
+    assert res.lines == ["2-two", "3:alpha three", "4-four", "--", "6-six", "7:alpha seven", "8-eight"]
+
+
+def test_overlapping_context_prints_each_line_once_and_drops_the_separator(invoke):
+    """Two matches close enough for their windows to meet are one run of output, not two.
+
+    A line between them must not print twice, and there is no gap to mark with `--`.
+    """
+    res = invoke(main, ["alpha", "-n", "-C", "2"], CONTEXT_INPUT)
+    assert res.lines == [
+        "1-one",
+        "2-two",
+        "3:alpha three",
+        "4-four",
+        "5-five",
+        "6-six",
+        "7:alpha seven",
+        "8-eight",
+        "9-nine",
+    ]
+    assert "--" not in res.lines
+
+
+def test_context_does_not_change_which_records_match(invoke):
+    """-A/-B/-C are about printing. The decision is still one record on its own, and the count of
+    matches -- and of calls -- is the same as without them."""
+    plain = invoke(main, ["alpha", "-c"], CONTEXT_INPUT)
+    withc = invoke(main, ["alpha", "-c", "-C", "2"], CONTEXT_INPUT)
+    assert plain.lines == withc.lines == ["2"]
+    assert len(withc.mock.bodies) == len(plain.mock.bodies), "context changed how many records were judged"
+
+
+def test_judge_context_is_a_separate_thing_from_printing_context(invoke, mock):
+    """--judge-context puts the neighbours in the question; -A/-B/-C put them on screen."""
+    invoke(main, ["alpha", "--judge-context", "1"], CONTEXT_INPUT)
+    assert any("alpha three" in json.dumps(b["state"]) and "two" in json.dumps(b["state"]) for b in mock.bodies), (
+        "--judge-context did not send the neighbours"
+    )
+    mock.bodies.clear()
+    invoke(main, ["alpha", "-C", "1"], CONTEXT_INPUT)
+    assert all(
+        json.dumps(b["state"]).count("alpha three") == 0 or "two" not in json.dumps(b["state"]) for b in mock.bodies
+    ), "-C leaked the neighbours into the question"
+
+
+@pytest.mark.parametrize("flags", [["-A", "1", "--json"], ["-A", "1", "--unordered"], ["--whole", "-C", "1"]])
+def test_context_refuses_what_it_cannot_honour(invoke, flags):
     assert invoke(main, [*flags, "x"]).code == 2

@@ -9,7 +9,7 @@ _jtools_complete() {
     subs=""
     case "$tool" in
     jgrep)
-        flags="--all --api --budget --color --concurrency --context --count --csv --dry-run --exclude --field --files-with-matches --files-without-match --glob --help --hidden --invert-match --json --jsonl --line-number --max-chars --max-count --model --no-cache --no-filename --no-stats --para --prob --quiet --recursive --stats --strict --threshold --timeout --unordered --verbose --version --whole --with-filename -C -H -L -c -e -h -j -l -m -n -o -p -q -r -v" ;;
+        flags="--after-context --all --api --before-context --budget --color --concurrency --context --count --csv --dry-run --exclude --field --files-with-matches --files-without-match --glob --help --hidden --invert-match --json --jsonl --judge-context --line-number --max-chars --max-count --model --no-cache --no-filename --no-stats --para --prob --quiet --recursive --stats --strict --threshold --timeout --unordered --verbose --version --whole --with-filename -A -B -C -H -L -c -e -h -j -l -m -n -o -p -q -r -v" ;;
     jsort)
         flags="--api --asc --budget --color --concurrency --dry-run --help --json --levels --limit --max-chars --model --no-cache --no-stats --quiet --stats --strict --timeout --verbose --version --with-score -h -j -n -q -s -v" ;;
     jpick)

@@ -11,7 +11,8 @@ First public release: ten tools and the `jevcore` library.
 
 - `jgrep`: grep by meaning. `-e` (several descriptions in one call), `--all`, `-v`, `-o`, `-n`,
   `-H`, `-c`, `-l`, `-L`, `-m`, `-q`, `-r` with `--glob`/`--exclude`/`--hidden`, `--para`, `--whole`,
-  `-C N` context, `--jsonl` / `--csv` (the whole record, or one `--field` of it), `--json`,
+  `-A`/`-B`/`-C` printed context and `--judge-context` (neighbours in the question),
+  `--jsonl` / `--csv` (the whole record, or one `--field` of it), `--json`,
   `--unordered`.
 - `jsort`: rank lines by fit (score primitive). `--asc`, `-n`, `--with-score`, `--levels`.
 - `jpick`: choose the best line by tournament (choice primitive). `--top`, `--why`, `--group`.

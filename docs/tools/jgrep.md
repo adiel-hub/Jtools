@@ -34,7 +34,8 @@ jgrep [options] DESCRIPTION [FILE ...]
 | `-q`, `--quiet` | print nothing, stop at the first match, let the exit status answer |
 | `-r`, `--recursive`, `--glob PAT`, `--exclude PAT`, `--hidden` | recursive search; skips VCS/dependency dirs and binaries |
 | `--para`, `--whole` | judge paragraphs or whole files |
-| `-C N`, `--context N` | show Jev the N records either side; still one decision per record, and only that record prints |
+| `-A N`/`--after-context`, `-B N`/`--before-context`, `-C N`/`--context` | print N records after / before / either side of each match, as grep does: `-` where a match has `:`, and `--` between runs that are not adjacent. What matched does not change |
+| `--judge-context N` | the different thing: show Jev the N records either side **when deciding**. Still one decision per record, and only that record prints |
 | `--jsonl`, `--csv` | judge the whole record, and print it. Jev reads a JSON object natively, so the record goes as an object rather than as text that happens to contain JSON — which is what lets one description weigh several fields at once |
 | `--field NAME` | with `--jsonl` or `--csv`: judge only this value, still printing the full record (dotted JSON paths work) |
 | `--json` | one JSON object per match: `{"file", "line", "p", "text", ["ps"], ["record", "field"]}` |
@@ -58,7 +59,7 @@ Plus the [common options](../../README.md#common-options) every tool has.
 
 - Jev answers the description you wrote. "a complaint" and "an angry complaint" are different
   filters. Borderline lines get probabilities in the middle; that is what `-p` is for.
-- `-C N` costs about 2N+1 lines of tokens per decision, and on a live stream a line waits for the
+- `--judge-context N` costs about 2N+1 lines of tokens per decision, and on a live stream a line waits for the
   N lines after it.
 - Each description costs about 27 extra tokens and no extra time; five `-e` filters in one pass
   cost about the same as one.
