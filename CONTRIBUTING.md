@@ -40,6 +40,14 @@ Open a "Tool proposal" issue first; the template asks the right questions.
 
 ```bash
 git clone https://github.com/adiel-hub/Jtools && cd Jtools
+make install                         # uv sync --all-groups
+make check                           # everything CI runs: lint, types, tests, docs, completions
+```
+
+`make help` lists the rest. Each target is one command from this file, so nothing in the Makefile
+is a shortcut you cannot also type by hand:
+
+```bash
 uv sync --all-groups                 # or: python -m venv .venv && pip install -e . && pip install pytest pytest-asyncio pytest-timeout mypy ruff pillow
 uv run pytest -q -m "not live"       # offline suite against MockJev; no key needed
 uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy src
@@ -62,7 +70,7 @@ against a localhost mock, so a missing entry point or a module left out of the w
 rather than in someone's `pip install`:
 
 ```bash
-uv build && uv run --no-project python scripts/check_wheel.py
+make wheel      # uv build && uv run --no-project python scripts/check_wheel.py
 ```
 
 ### Layout
