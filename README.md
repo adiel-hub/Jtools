@@ -7,7 +7,7 @@
   <a href="https://pypi.org/project/jev-tools/"><img src="https://img.shields.io/pypi/v/jev-tools?color=2da44e" alt="PyPI"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="python">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="MIT"></a>
-  <img src="https://img.shields.io/badge/tests-178%20offline%20%2B%2013%20live-2da44e" alt="tests">
+  <img src="https://img.shields.io/badge/offline%20tests-no%20API%20key%20needed-2da44e" alt="tests">
 </p>
 
 # j-tools
@@ -77,8 +77,8 @@ Animated versions: `docs/assets/demo-*.gif`; asciinema casts: `docs/demo/*.cast`
 ## Install
 
 ```bash
-uv tool install jev-tools          # installs all eleven commands (or: pipx install jev-tools)
-uv tool install git+https://github.com/adiel-hub/Jtools   # straight from main
+uv tool install git+https://github.com/adiel-hub/Jtools   # all eleven commands, straight from main
+uv tool install jev-tools                                 # once the first release is on PyPI
 ```
 
 Python 3.11+. One dependency (`httpx`). Then one key, any of these:
@@ -106,7 +106,7 @@ ok: one call in 412 ms, 283 input tokens, $0.0000119, answered by typesafe-ai/je
 | what the model does | **judges**: yes/no, pick one, rate on a scale | **generates** text: summaries, commands, rewrites | **compares vectors**: nearest neighbours |
 | output | calibrated probabilities, labels, ranks, exit codes | prose | similarity scores |
 | "angriest customer first" | yes, that is a rubric | you get a paragraph about anger | no, anger is not a similarity |
-| per line | ~200 ms, ~$0.00001 | 1-3 s, 10-100x the cost | fast after indexing; needs an index |
+| per line | ~420 ms, ~$0.000013 (measured below) | 1-3 s, 4-130x the cost | fast after indexing; needs an index |
 | composes with `&&`, `sort`, `head` | yes, by design | awkwardly | no |
 | failure mode | pass-through + exit 5; gate fails closed | hallucinated text | silent misses |
 
@@ -218,7 +218,7 @@ More in [docs/faq.md](docs/faq.md).
 ```bash
 git clone https://github.com/adiel-hub/Jtools && cd Jtools
 uv sync --all-groups
-uv run pytest -q -m "not live"         # 178 offline tests against MockJev, no key needed
+uv run pytest -q -m "not live"         # the offline suite against MockJev, no key needed
 uv run pytest -q -m live               # one real call per tool, with any key set
 uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy src
 ```
