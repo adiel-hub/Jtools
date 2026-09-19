@@ -42,11 +42,29 @@ def report_input_error(run: Run) -> Any:
     return _report
 
 
+LARGE_INPUT = 200_000
+"""Records above which a tool that holds the whole input says what that costs.
+
+jsort, jpick, jhead, juniq and jmatch cannot stream: ranking needs every record before it can
+place the first one. Measured against the mock, that is roughly 6.5 KB per record once the
+outstanding requests are counted, so 200,000 lines is well over a gigabyte and a million is not
+survivable on most machines. The default budget stops a run near 77,000 lines long before that
+matters; `--budget 0` removes the only thing that was standing in the way, so the tool says so
+while there is still something the user can do about it.
+"""
+
+
 async def read_all(run: Run, files: Sequence[str], *, keep_blank: bool = False, mode: str = "lines") -> list[Record]:
-    return await collect(
+    records = await collect(
         iter_records(files or None, mode=mode, max_chars=run.args.max_chars, keep_blank=keep_blank),
         report_input_error(run),
     )
+    if len(records) >= LARGE_INPUT:
+        run.warn(
+            f"{len(records):,} records held in memory at once: this tool has to see all of them to answer. "
+            "Expect gigabytes; split the input, or pipe it through head, if the machine cannot spare them"
+        )
+    return records
 
 
 async def score_records(run: Run, records: Sequence[Record], question: Score) -> dict[int, ScoreAnswer | None]:

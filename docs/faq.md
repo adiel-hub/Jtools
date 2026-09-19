@@ -56,7 +56,10 @@ and passed through. `jgate` uses 0/1 for pass/fail and 4 for "could not judge".
 
 **Does it stream?** Yes. Lines are judged the moment they arrive and printed in input order;
 `tail -f app.log | jwatch …` and `tail -f … | jgrep …` work with no buffering. Tools whose nature
-needs all the input (`jsort`, `jpick`, `jhead`, `juniq`, `jmatch`) read to EOF first.
+needs all the input (`jsort`, `jpick`, `jhead`, `juniq`, `jmatch`) read to EOF first, and hold it:
+reckon on a few kilobytes per record while the run is in flight, so a few hundred thousand lines is
+gigabytes. The default budget stops a run near 77,000 lines long before that bites; with
+`--budget 0` the tool says what it is holding once the count passes 200,000.
 
 **Long lines?** Records are cut at `--max-chars` (default 8,000; `jgate` uses 60,000 for whole
 inputs) with a warning. Jev's context is 32k tokens per state.

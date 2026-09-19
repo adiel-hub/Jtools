@@ -130,3 +130,24 @@ def test_jroute_puts_every_line_in_exactly_one_bucket(invoke, lines, text, tmp_p
     assert res.code in (0, 5), res.err
     landed = [line for f in sorted(out.glob("*.txt")) for line in f.read_text().splitlines()]
     assert sorted(landed) == sorted(lines), "a line was routed twice, or nowhere"
+
+
+def test_a_tool_that_cannot_stream_says_so_before_it_spends_the_memory(invoke, monkeypatch):
+    """jsort and friends hold every record at once; above a point that is worth a sentence.
+
+    The warning is issued after reading and before judging, which is where a user can still do
+    something about it: the default budget stops a run near 77,000 lines, so an input large enough
+    to matter has already had `--budget 0` applied to it.
+    """
+    from jevtools import _shared
+
+    monkeypatch.setattr(_shared, "LARGE_INPUT", 20)
+    res = invoke(jsort, ["most urgent"], "".join(f"line {i}: a condition\n" for i in range(25)))
+    assert res.code == 0
+    assert "25 records held in memory at once" in res.err
+    assert len(res.lines) == 25, "the warning replaced the answer"
+
+
+def test_an_ordinary_input_is_not_warned_about(invoke, text):
+    res = invoke(jsort, ["most urgent"], text)
+    assert "held in memory" not in res.err
