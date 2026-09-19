@@ -22,8 +22,16 @@ def load(name: str) -> dict[str, Any] | None:
     return json.loads(path.read_text()) if path.exists() else None
 
 
+LIST_PRICE_PER_TOKEN = 0.042 / 1e6
+
+
 def money(d: float) -> str:
     return f"${d:.4f}" if d >= 0.001 else f"${d:.6f}"
+
+
+def run_dollars(run: dict[str, Any]) -> float:
+    """Dollars of a recorded tool run; a free-tier gateway reports $0, so tokens are priced at list."""
+    return float(run.get("dollars") or 0) or float(run.get("tokens") or 0) * LIST_PRICE_PER_TOKEN
 
 
 def latency_table() -> str:
@@ -36,6 +44,7 @@ def latency_table() -> str:
         "|---|---:|",
         f"| single yes/no call, p50 | {s['p50_ms']} ms |",
         f"| single yes/no call, p95 | {s['p95_ms']} ms |",
+        f"| the same, wall time incl. rate-limit waits (p50 / p95) | {s.get('wall_p50_ms', '?')} / {s.get('wall_p95_ms', '?')} ms |",
         f"| input tokens per call | {s['tokens_per_call']} |",
         f"| dollars per call | {money(s['dollars_per_call'])} |",
         f"| dollars per 1,000 decisions | {money(s['dollars_per_1000'])} |",
@@ -47,7 +56,8 @@ def latency_table() -> str:
         )
     for t in d.get("throughput", []):
         lps = t.get("lines_per_second")
-        rows.append(f"| jgrep -j {t['jobs']}, {t['lines']} lines | {t.get('seconds')} s ({lps} lines/s) |")
+        if not t.get("rate_limited"):
+            rows.append(f"| jgrep -j {t['jobs']}, {t['lines']} lines | {t.get('seconds')} s ({lps} lines/s) |")
     head = (
         f"Measured {d['when'][:10]} through **{d['backend']}** (`{d['model']}`), {s['n']} sequential calls, uncached."
     )
@@ -76,7 +86,7 @@ def accuracy_table() -> str:
             f"### jgrep vs a keyword regex: {spam['dataset']} ({spam['lines']} messages, {spam['positives']} spam)\n\n"
             f"Description: *{spam['description']}*\n\n"
             "| filter | precision | recall | F1 | time | cost |\n|---|---:|---:|---:|---:|---:|\n"
-            f"| `jgrep` at p ≥ 0.5 | {j['precision']:.2f} | {j['recall']:.2f} | **{j['f1']:.2f}** | {run.get('seconds', '?')} s | {money(run.get('dollars', 0))} |\n"
+            f"| `jgrep` at p ≥ 0.5 | {j['precision']:.2f} | {j['recall']:.2f} | **{j['f1']:.2f}** | {run.get('seconds', '?')} s | {money(run_dollars(run))} |\n"
             f"| `jgrep` at p ≥ 0.9 | {j9['precision']:.2f} | {j9['recall']:.2f} | {j9['f1']:.2f} | | |\n"
             f"| keyword regex ({k['regex'].count('|') + 1} terms) | {k['precision']:.2f} | {k['recall']:.2f} | {k['f1']:.2f} | {k['seconds']} s | free |\n"
         )
@@ -90,7 +100,7 @@ def accuracy_table() -> str:
             f"| AUC (a random positive ranks above a random negative) | **{sent['auc']:.2f}** |\n"
             f"| precision in the top half of the ranking | {sent['precision_at_half']:.2f} |\n"
             f"| accuracy of a 0.5 score cut | {sent['score_split_at_0.5']['accuracy']:.2f} |\n"
-            f"| time / cost | {run.get('seconds', '?')} s / {money(run.get('dollars', 0))} |\n"
+            f"| time / cost | {run.get('seconds', '?')} s / {money(run_dollars(run))} |\n"
         )
     news = load("accuracy-news")
     if news:
@@ -103,7 +113,7 @@ def accuracy_table() -> str:
             f"### jtag four-way classification: {news['dataset']} ({news['lines']} articles)\n\n"
             f"Labels: `{news['labels']}`\n\n"
             f"Accuracy **{news['accuracy']:.2f}**, macro F1 {news['macro_f1']:.2f}, "
-            f"{run.get('seconds', '?')} s, {money(run.get('dollars', 0))}.\n\n"
+            f"{run.get('seconds', '?')} s, {money(run_dollars(run))}.\n\n"
             "| label | precision | recall | F1 |\n|---|---:|---:|---:|\n" + rows + "\n"
         )
     return "\n".join(parts)

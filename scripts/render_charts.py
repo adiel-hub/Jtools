@@ -108,8 +108,8 @@ def latency_chart() -> None:
         "milliseconds (client wall time incl. network)",
     )
     (ASSETS / "latency.svg").write_text(svg)
-    t = data.get("throughput") or []
-    if t:
+    t = [r for r in (data.get("throughput") or []) if not r.get("rate_limited")]
+    if t:  # a throttled key measures the quota, not the tool
         rows = [
             (
                 f"jgrep -j {r['jobs']}",

@@ -227,3 +227,22 @@ async def test_meter_summary_and_dict(mock, creds):
     d = jev.meter.as_dict()
     assert d["calls"] == 1 and d["latency_p50_ms"] is not None
     json.dumps(d)
+
+
+async def test_zero_cost_from_a_free_tier_is_priced_at_list(creds):
+    """The Vercel free tier reports cost "0" for billed tokens; the meter must not report $0."""
+
+    def handler(request):
+        return httpx.Response(
+            200,
+            json={
+                "answers": {"q": {"type": "boolean", "probability": 0.5}},
+                "usage": {"inputTokens": 1000, "outputTokens": 1},
+                "providerMetadata": {"gateway": {"cost": "0"}},
+            },
+        )
+
+    vercel = Credentials(BACKENDS["vercel"], "vck_test", VERCEL_URL)
+    async with Jev(vercel, transport=httpx.MockTransport(handler), disk_cache=False) as jev:
+        await jev.ask("s", {"q": Noul("x")})
+    assert jev.meter.cost == pytest.approx(1000 * 0.042 / 1e6)

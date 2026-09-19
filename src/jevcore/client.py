@@ -71,7 +71,8 @@ class Meter:
         self.calls += 1
         self.input_tokens += usage.input_tokens
         self.output_tokens += usage.output_tokens
-        self.cost += usage.cost if usage.cost is not None else usage.input_tokens * PRICE_PER_MTOK / 1e6
+        # A gateway that reports no cost (or a free tier that reports $0) is priced at TypeSafe's list price.
+        self.cost += usage.cost if usage.cost else usage.input_tokens * PRICE_PER_MTOK / 1e6
         self.latencies.append(seconds)
         self.model = usage.model or fallback_model
 

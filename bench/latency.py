@@ -46,26 +46,28 @@ def percentile(xs: list[float], q: float) -> float:
 
 
 async def single_calls(n: int) -> dict[str, object]:
-    latencies: list[float] = []
-    tokens: list[int] = []
-    cost = 0.0
+    """Sequential single-question calls. Latency is the HTTP exchange itself (from the client's
+    meter); wall time, which includes any rate-limit waits, is reported next to it."""
+    wall: list[float] = []
     async with Jev(resolve(), disk_cache=False) as jev:
         for i in range(n):
             t0 = time.perf_counter()
             await jev.ask(f"{LINE} [{i}]", {"q": Noul(f'The text fits this description: "{DESCRIPTIONS[0]}"')})
-            latencies.append(time.perf_counter() - t0)
-        tokens.append(jev.meter.input_tokens)
-        cost = jev.meter.cost
-        throttled = jev.meter.throttled
+            wall.append(time.perf_counter() - t0)
+        request = list(jev.meter.latencies)
+        tokens, cost, throttled = jev.meter.input_tokens, jev.meter.cost, jev.meter.throttled
     return {
         "n": n,
-        "p50_ms": round(percentile(latencies, 0.5) * 1000),
-        "p95_ms": round(percentile(latencies, 0.95) * 1000),
-        "mean_ms": round(statistics.fmean(latencies) * 1000),
-        "tokens_per_call": round(tokens[0] / n),
+        "p50_ms": round(percentile(request, 0.5) * 1000),
+        "p95_ms": round(percentile(request, 0.95) * 1000),
+        "mean_ms": round(statistics.fmean(request) * 1000),
+        "wall_p50_ms": round(percentile(wall, 0.5) * 1000),
+        "wall_p95_ms": round(percentile(wall, 0.95) * 1000),
+        "tokens_per_call": round(tokens / n),
         "dollars_per_call": round(cost / n, 8),
         "dollars_per_1000": round(cost / n * 1000, 5),
         "rate_limited": throttled,
+        "note": "p50/p95 are the HTTP exchange; wall_* include rate-limit waits on a throttled key",
     }
 
 
@@ -73,13 +75,12 @@ async def batching(repeats: int) -> list[dict[str, object]]:
     out = []
     async with Jev(resolve(), disk_cache=False) as jev:
         for k in (1, 4, 16):
-            lat: list[float] = []
+            before_calls = len(jev.meter.latencies)
             before_tokens, before_cost = jev.meter.input_tokens, jev.meter.cost
             for r in range(repeats):
                 qs = {f"d{i}": Noul(f'The text fits this description: "{d}"') for i, d in enumerate(DESCRIPTIONS[:k])}
-                t0 = time.perf_counter()
                 await jev.ask(f"{LINE} [batch {k} {r}]", qs)
-                lat.append(time.perf_counter() - t0)
+            lat = jev.meter.latencies[before_calls:]
             out.append(
                 {
                     "questions_per_call": k,
@@ -103,7 +104,7 @@ def throughput(n: int) -> list[dict[str, object]]:
                 "jobs": jobs,
                 "lines": n,
                 **stats,
-                "lines_per_second": round(n / stats["seconds"], 1) if stats.get("seconds") else None,
+                "lines_per_second": round(n / stats["seconds"], 2) if stats.get("seconds") else None,
             }
         )
     return out
@@ -113,7 +114,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=30, help="sequential single calls (default 30)")
     ap.add_argument("--batch-repeats", type=int, default=3)
-    ap.add_argument("--throughput-lines", type=int, default=24)
+    ap.add_argument(
+        "--throughput-lines", type=int, default=24, help="0 skips the throughput run (pointless on a throttled key)"
+    )
     a = ap.parse_args()
     result: dict[str, object] = backend_info()
     print("single calls...", flush=True)
@@ -122,9 +125,12 @@ def main() -> None:
     print("batching...", flush=True)
     result["batching"] = asyncio.run(batching(a.batch_repeats))
     print(result["batching"], flush=True)
-    print("throughput...", flush=True)
-    result["throughput"] = throughput(a.throughput_lines)
-    print(result["throughput"], flush=True)
+    if a.throughput_lines > 0:
+        print("throughput...", flush=True)
+        result["throughput"] = throughput(a.throughput_lines)
+        print(result["throughput"], flush=True)
+    else:
+        result["throughput"] = []
     save("latency", result)
 
 

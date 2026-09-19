@@ -34,8 +34,8 @@ def main() -> None:
     if latency_path.exists():
         latency = json.loads(latency_path.read_text())
         jev_tokens = int(latency["single"]["tokens_per_call"])
-        jev_measured = float(latency["single"]["dollars_per_1000"])
-        source = "measured (bench/results/latency.json)"
+        jev_measured = float(latency["single"]["dollars_per_1000"]) or jev_tokens * JEV_INPUT_PER_TOKEN * 1000
+        source = "measured tokens (bench/results/latency.json) x list price"
     else:
         jev_tokens, jev_measured, source = 300, 300 * JEV_INPUT_PER_TOKEN * 1000, "estimate (300 tokens)"
     rows = [
@@ -57,7 +57,7 @@ def main() -> None:
                 "prompt_tokens": jev_tokens,
                 "output_tokens": ANSWER_TOKENS,
                 "dollars_per_1000": round(dollars, 5),
-                "relative_to_jev": round(dollars / jev_measured, 1),
+                "relative_to_jev": round(dollars / jev_measured, 1) if jev_measured else None,
                 "source": "list price arithmetic",
             }
         )
