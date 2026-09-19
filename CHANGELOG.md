@@ -65,10 +65,10 @@ development and the tests exist so it cannot go wrong again:
 - In `--json` mode every output line is a JSON object, blank input lines included.
 - An unreadable input file is exit 2 in every tool, never "nothing matched", and a gate refuses
   to answer at all for input it could not read.
-- The `--exec` command in `jwatch` receives the alert line as an argument, never as command
-  text, so a log line is data and not code.
-- In `jroute`, `--truncate` empties nothing until a line is actually routed, so a run that
-  reads nothing cannot destroy the previous run's buckets.
+- `jwatch --exec` receives the alert line as an argument, never as command text, so a log line
+  is data and not code.
+- `jroute --truncate` empties nothing until a line is actually routed, so a run that reads
+  nothing cannot destroy the previous run's buckets.
 - Only a newline ends a line. A bare carriage return, which progress bars and some container logs
   produce constantly, stays inside its record.
 - A byte-order mark, which every spreadsheet export begins with, does not become part of the

@@ -42,22 +42,26 @@ def markdown_files() -> list[Path]:
     return [p for p in sorted(ROOT.rglob("*.md")) if not skip & set(p.parts)]
 
 
-def code_lines(text: str) -> list[str]:
-    """Lines inside fenced blocks, plus single-backtick spans, with any prompt removed."""
-    out: list[str] = []
+def code_lines(text: str) -> list[tuple[str, bool]]:
+    """(line, is_inline) for every fenced line and every single-backtick span, prompts removed.
+
+    A fenced line is a command somebody could run. An inline span is usually prose naming a tool
+    and a flag, as in "the ``--exec`` command in ``jwatch``", so it is held to a stricter rule.
+    """
+    out: list[tuple[str, bool]] = []
     fenced = False
     for line in text.splitlines():
         if FENCE.match(line):
             fenced = not fenced
             continue
         if fenced:
-            out.append(PROMPT.sub("", line))
+            out.append((PROMPT.sub("", line), False))
         else:
-            out.extend(span.replace("\\|", "|") for span in re.findall(r"`([^`\n]+)`", line))
+            out += [(span.replace("\\|", "|"), True) for span in re.findall(r"`([^`\n]+)`", line)]
     return out
 
 
-def invocations(line: str) -> list[list[str]]:
+def invocations(line: str, inline: bool = False) -> list[list[str]]:
     """The `j*` commands in one shell line, as argv lists."""
     line = line.strip()
     if not line or line.endswith(("\\", "|", "&&")) or any(bad in line for bad in UNREADABLE):
@@ -69,8 +73,7 @@ def invocations(line: str) -> list[list[str]]:
     found, current = [], []
     for token in [*tokens, ";"]:
         if token in SPLITTERS:
-            # One bare word is the tool being named in prose, not a command line.
-            if len(current) > 1 and current[0] in COMMANDS and not any(SYNOPSIS.search(t) for t in current):
+            if keep(current, inline):
                 found.append(current)
             current = []
         elif token.startswith((">", "<", "2>")):
@@ -96,15 +99,25 @@ def recorded_demos() -> list[tuple[str, str]]:
     return scenes
 
 
+def keep(argv: list[str], inline: bool) -> bool:
+    """Is this a command line, or prose that happens to name a tool?"""
+    if len(argv) < 2 or argv[0] not in COMMANDS or any(SYNOPSIS.search(t) for t in argv):
+        return False  # one bare word, or a usage synopsis full of brackets
+    # Inside a sentence, "`jwatch --exec`" names a flag; it is not something anyone would run.
+    # A real inline example carries something that is not a flag: a description, a file, a
+    # subcommand. Inside a fenced block, every line is meant to be run as written.
+    return not inline or any(not t.startswith("-") for t in argv[1:])
+
+
 def documented() -> list[tuple[str, list[str]]]:
     """(where it is written, argv) for every documented invocation, deduplicated."""
     seen: set[tuple[str, ...]] = set()
     out: list[tuple[str, list[str]]] = []
     sources = [(md.relative_to(ROOT).as_posix(), code_lines(md.read_text())) for md in markdown_files()]
-    sources += [(where, [command]) for where, command in recorded_demos()]
+    sources += [(where, [(command, False)]) for where, command in recorded_demos()]
     for where, lines in sources:
-        for line in lines:
-            for argv in invocations(line):
+        for line, inline in lines:
+            for argv in invocations(line, inline):
                 key = tuple(argv)
                 if key not in seen:
                     seen.add(key)
