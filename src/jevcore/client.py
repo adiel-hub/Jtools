@@ -217,7 +217,9 @@ class Jev:
         self._alias_checked = False  # whether this run has compared the alias against its meaning
         # None means "whatever the environment says", so a client built outside the CLI (jtools
         # doctor, a library caller) honours JEV_TIMEOUT and JEV_CONCURRENCY like a tool does.
-        env_concurrency, env_timeout = env_defaults()
+        # Only asked for when it is needed: a caller passing both should not be stopped by a
+        # variable it is not using.
+        env_concurrency, env_timeout = env_defaults() if timeout is None or concurrency is None else (0, 0.0)
         self.timeout = env_timeout if timeout is None else timeout
         self.attempts = max(1, attempts)
         self.concurrency = max(1, env_concurrency if concurrency is None else concurrency)

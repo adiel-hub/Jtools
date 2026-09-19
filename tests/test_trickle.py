@@ -62,3 +62,12 @@ def test_an_unusable_timeout_names_the_variable(monkeypatch, value):
     monkeypatch.setenv("JEV_TIMEOUT", value)
     with pytest.raises(UsageError, match=f"JEV_TIMEOUT={value!r}"):
         env_defaults()
+
+
+def test_a_caller_that_passes_both_values_is_not_stopped_by_the_environment(monkeypatch, creds):
+    """The variables are a default, not a gate: a caller supplying both is not using them."""
+    monkeypatch.setenv("JEV_TIMEOUT", "nope")
+    jev = Jev(creds, timeout=5.0, concurrency=2, disk_cache=False)
+    assert (jev.timeout, jev.concurrency) == (5.0, 2)
+    with pytest.raises(UsageError, match="JEV_TIMEOUT"):
+        Jev(creds, concurrency=2, disk_cache=False)
