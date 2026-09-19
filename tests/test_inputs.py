@@ -5,6 +5,8 @@ import sys
 import threading
 import time
 
+import pytest
+
 from jevcore.inputs import InputError, Record, discover, get_field, iter_records
 from tests.conftest import write
 
@@ -147,3 +149,30 @@ def test_discover_walks_sorted_skips_junk_and_binaries(tmp_path, monkeypatch):
     assert files == [] and "is a directory" in errors[0]
     files, errors = discover(["nope.txt", "-"], recursive=False)
     assert files == ["-"] and "no such file" in errors[0]
+
+
+@pytest.mark.parametrize(
+    "name,data,kwargs,expected",
+    [
+        ("lines, CRLF", b"one\r\ntwo\r\n", {}, [(1, "one"), (2, "two")]),
+        ("lines, bare CR", b"a 50%\rb\nc\n", {}, [(1, "a 50%\rb"), (2, "c")]),
+        ("lines, BOM", "﻿one\ntwo\n".encode(), {}, [(1, "one"), (2, "two")]),
+        ("paragraphs, CRLF", b"a one\r\na two\r\n\r\nb one\r\n", {"mode": "para"}, [(1, "a one\na two"), (4, "b one")]),
+        ("jsonl, CRLF", b'{"t":"alpha"}\r\n{"t":"beta"}\r\n', {"jsonl_field": "t"}, [(1, "alpha"), (2, "beta")]),
+        ("jsonl, BOM", '﻿{"t":"alpha"}\n'.encode(), {"jsonl_field": "t"}, [(1, "alpha")]),
+        ("csv, CRLF", b"id,t\r\n1,alpha\r\n", {"csv_field": "t"}, [(2, "alpha")]),
+        ("csv, BOM on the key column", "﻿id,t\n1,alpha\n".encode(), {"csv_field": "id"}, [(2, "1")]),
+        ("csv, newline inside a field", b'id,t\n1,"one\ntwo"\n', {"csv_field": "t"}, [(2, "one\ntwo")]),
+    ],
+)
+def test_line_endings_and_byte_order_marks(tmp_path, name, data, kwargs, expected):
+    """What counts as the end of a line, in every mode, for the bytes real files actually contain.
+
+    Only a newline ends a line: a bare carriage return is progress-bar output, not a new record.
+    A byte-order mark belongs to the encoding, not to the first field's name. The CSV reader keeps
+    its own newline handling, because a quoted field may contain one.
+    """
+    f = tmp_path / "input.txt"
+    f.write_bytes(data)
+    records = list(iter_records([str(f)], **kwargs))
+    assert [(r.lineno, r.text) for r in records] == expected, name
