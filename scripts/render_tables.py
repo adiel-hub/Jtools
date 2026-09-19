@@ -17,6 +17,11 @@ ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "bench" / "results"
 
 
+def judged(result: dict[str, Any]) -> int:
+    """How many records the run actually got an answer for."""
+    return int(result.get("judged") or result.get("lines") or 0)
+
+
 def load(name: str) -> dict[str, Any] | None:
     path = RESULTS / f"{name}.json"
     return json.loads(path.read_text()) if path.exists() else None
@@ -81,20 +86,29 @@ def accuracy_table() -> str:
     if spam:
         j, k = spam["jgrep_at_0.5"], spam["keyword_grep"]
         j9 = spam["jgrep_at_0.9"]
+        full = spam.get("keyword_grep_full_corpus")
         run = spam["jgrep_run"]
         parts.append(
-            f"### jgrep vs a keyword regex: {spam['dataset']} ({spam['lines']} messages, {spam['positives']} spam)\n\n"
+            f"### jgrep vs a keyword regex: {spam['dataset']} "
+            f"({judged(spam)} of {spam['lines']} sampled messages judged, {spam['positives']} spam)\n\n"
             f"Description: *{spam['description']}*\n\n"
             "| filter | precision | recall | F1 | time | cost |\n|---|---:|---:|---:|---:|---:|\n"
             f"| `jgrep` at p ≥ 0.5 | {j['precision']:.2f} | {j['recall']:.2f} | **{j['f1']:.2f}** | {run.get('seconds', '?')} s | {money(run_dollars(run))} |\n"
             f"| `jgrep` at p ≥ 0.9 | {j9['precision']:.2f} | {j9['recall']:.2f} | {j9['f1']:.2f} | | |\n"
-            f"| keyword regex ({k['regex'].count('|') + 1} terms) | {k['precision']:.2f} | {k['recall']:.2f} | {k['f1']:.2f} | {k['seconds']} s | free |\n"
+            f"| keyword regex, same sample ({k['regex'].count('|') + 1} terms) | {k['precision']:.2f} | {k['recall']:.2f} | {k['f1']:.2f} | | free |\n"
+            + (
+                f"| the same regex over all {full['lines']:,} messages | {full['precision']:.2f} | {full['recall']:.2f} "
+                f"| {full['f1']:.2f} | {full['seconds']} s | free |\n"
+                if full
+                else ""
+            )
         )
     sent = load("accuracy-sentiment")
     if sent:
         run = sent["jsort_run"]
         parts.append(
-            f"### jsort ranking quality: {sent['dataset']} ({sent['lines']} sentences, {sent['positives']} positive)\n\n"
+            f"### jsort ranking quality: {sent['dataset']} "
+            f"({judged(sent)} of {sent['lines']} sampled sentences judged, {sent['positives']} positive)\n\n"
             f"Description: *{sent['description']}*\n\n"
             "| measure | value |\n|---|---:|\n"
             f"| AUC (a random positive ranks above a random negative) | **{sent['auc']:.2f}** |\n"
@@ -110,7 +124,8 @@ def accuracy_table() -> str:
             f"| {name} | {v['precision']:.2f} | {v['recall']:.2f} | {v['f1']:.2f} |" for name, v in per.items()
         )
         parts.append(
-            f"### jtag four-way classification: {news['dataset']} ({news['lines']} articles)\n\n"
+            f"### jtag four-way classification: {news['dataset']} "
+            f"({judged(news)} of {news['lines']} sampled articles judged)\n\n"
             f"Labels: `{news['labels']}`\n\n"
             f"Accuracy **{news['accuracy']:.2f}**, macro F1 {news['macro_f1']:.2f}, "
             f"{run.get('seconds', '?')} s, {money(run_dollars(run))}.\n\n"
@@ -145,15 +160,26 @@ def summary() -> str:
             )
     acc = []
     if spam:
+        full = spam.get("keyword_grep_full_corpus")
+        terms = spam["keyword_grep"]["regex"].count("|") + 1
+        where = f"over all {full['lines']:,} messages" if full else f"on the same {judged(spam)} messages"
+        baseline = (full or spam["keyword_grep"])["f1"]
         acc.append(
-            f"SMS spam F1 {spam['jgrep_at_0.5']['f1']:.2f} vs {spam['keyword_grep']['f1']:.2f} for a 17-term regex (n={spam['lines']})"
+            f"`jgrep` finds SMS spam with F1 {spam['jgrep_at_0.5']['f1']:.2f} (n={judged(spam)}), where a "
+            f"{terms}-term keyword regex scores {baseline:.2f} {where}"
         )
     if sent:
-        acc.append(f"sentiment ranking AUC {sent['auc']:.2f} (n={sent['lines']})")
+        acc.append(f"`jsort` ranks review sentiment with AUC {sent['auc']:.2f} (n={judged(sent)})")
     if news:
-        acc.append(f"AG News 4-way accuracy {news['accuracy']:.2f} (n={news['lines']})")
+        acc.append(f"`jtag` labels AG News four ways with {news['accuracy']:.0%} accuracy (n={judged(news)})")
     if acc:
-        lines.append("- **Accuracy, one-line descriptions, no tuning:** " + "; ".join(acc) + ".")
+        lines.append("- **Accuracy, from a one-line description, with no tuning:** " + "; ".join(acc) + ".")
+        unjudged = sum(int(r.get("unjudged") or 0) for r in (spam, sent, news) if r)
+        if unjudged:
+            lines.append(
+                f"- **Measured on a free-tier key:** {unjudged} more records hit its rate limit and were "
+                "left unjudged; they are reported, not counted as mistakes."
+            )
     return "\n".join(lines) + "\n"
 
 
