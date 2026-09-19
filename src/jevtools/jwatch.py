@@ -28,7 +28,7 @@ from jevcore.inputs import Record, iter_records
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Noul, NoulAnswer
 
-from ._shared import report_input_error, split_description
+from ._shared import report_input_error, report_pipeline_errors, split_description
 
 PROG = "jwatch"
 EXEC_GRACE_SECONDS = 10.0
@@ -112,7 +112,7 @@ async def run(r: Run) -> int:
     loop = asyncio.get_running_loop()
 
     async def judge(rec: Record) -> float | None:
-        answers = await r.jev.try_ask(rec.text, {"fits": q})
+        answers = await r.judge(rec.text, {"fits": q})
         if not answers:
             return None
         a = answers["fits"]
@@ -177,6 +177,7 @@ async def run(r: Run) -> int:
     result = await pipe.run(source, judge, deliver, report_input_error(r))
     if result.fatal is not None:
         raise result.fatal
+    report_pipeline_errors(r, result)
     if children:
         _done, pending = await asyncio.wait(children, timeout=EXEC_GRACE_SECONDS)
         for t in pending:

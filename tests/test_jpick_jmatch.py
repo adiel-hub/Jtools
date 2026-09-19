@@ -62,11 +62,26 @@ def test_jpick_failed_calls_fall_back_to_input_order(invoke):
     assert res.code == 5 and res.lines == ["Your invoice"]
 
 
+class _FirstGroupDown(MockJev):
+    """The first-round group holding "subject 0" (ten candidates) is unreachable; everything else works."""
+
+    def handle(self, body, headers):
+        state = body.get("state")
+        if isinstance(state, list) and len(state) == 10 and any(c.get("text") == "subject 0" for c in state):
+            self.bodies.append(body)
+            return 503, {"error": {"message": "down"}}
+        return super().handle(body, headers)
+
+
 def test_jpick_transient_failure_keeps_the_group_and_recovers(invoke):
     lines = [f"subject {i}" for i in range(20)]
     lines[15] = "URGENT now"
-    mock = MockJev(script=[500] * 5)  # the first group's call fails after all 5 attempts; the rest work
-    res = invoke(jpick, ["most urgent", "--group", "10", "--timeout", "5"], "\n".join(lines) + "\n", mock_override=mock)
+    res = invoke(
+        jpick,
+        ["most urgent", "--group", "10", "--timeout", "3"],
+        "\n".join(lines) + "\n",
+        mock_override=_FirstGroupDown(),
+    )
     # the failed group is kept whole and narrowed in the next round; the right line still wins
     assert res.lines == ["URGENT now"] and res.code == 5
 
@@ -114,7 +129,7 @@ def test_jmatch_unmatched_format_and_json(invoke, tmp_path):
     a = write(tmp_path, "a.txt", "Acme invoice\nzzz\n")
     b = write(tmp_path, "b.txt", "Acme invoice paid\n")
     res = invoke(jmatch, [a, b, "same", "--unmatched", "--format", "{a} => {b} ({score})"])
-    assert res.lines == ["Acme invoice => Acme invoice paid (0.800)", "zzz =>  (0.800)"]
+    assert res.lines == ["Acme invoice => Acme invoice paid (0.800)", "zzz =>  (-)"]
     res = invoke(jmatch, [a, b, "same", "--json"])
     rows = [json.loads(line) for line in res.lines]
     assert rows[0]["matched"] is True and rows[1]["matched"] is False and rows[1]["b"] is None

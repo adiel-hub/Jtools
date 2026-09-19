@@ -45,6 +45,8 @@ from jevcore.io import fmt_p, paint, score_colour
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Noul, NoulAnswer
 
+from ._shared import report_pipeline_errors
+
 PROG = "jgrep"
 MAX_ERRORS_SHOWN = 10
 
@@ -151,9 +153,11 @@ def questions(args: argparse.Namespace) -> dict[str, Noul]:
 
 
 def dry(args: argparse.Namespace, out: IO[str]) -> int:
-    files, _ = discover(
+    files, errors = discover(
         args.files, recursive=args.recursive, globs=args.glob, excludes=args.exclude, hidden=args.hidden
     )
+    if errors:
+        raise UsageError(errors[0])
     sample = (
         state(r, args)
         for r in contextual(
@@ -223,11 +227,16 @@ def state(rec: Record, args: argparse.Namespace) -> str:
     return "\n".join(window)
 
 
-def render(rec: Record, p: float, ps: list[float], args: argparse.Namespace, show_file: bool, colour: bool) -> str:
+def render(
+    rec: Record, p: float | None, ps: list[float], args: argparse.Namespace, show_file: bool, colour: bool
+) -> str:
+    """One output record. ``p`` is ``None`` for a record that could not be judged (fail-open)."""
     if args.json:
-        obj: dict[str, object] = {"file": rec.source, "line": rec.lineno, "p": round(p, 4)}
+        obj: dict[str, object] = {"file": rec.source, "line": rec.lineno, "p": None if p is None else round(p, 4)}
         if len(ps) > 1:
             obj["ps"] = [round(x, 4) for x in ps]
+        if p is None:
+            obj["unjudged"] = True
         if not (args.whole or args.files_with_matches):
             obj["text"] = rec.shown
             if rec.data is not None:
@@ -241,7 +250,7 @@ def render(rec: Record, p: float, ps: list[float], args: argparse.Namespace, sho
         body = prefix + rec.shown
     if args.prob:
         label = fmt_p(p)
-        body = f"{paint(label, score_colour(p), colour)}\t{body}"
+        body = f"{paint(label, score_colour(p), colour) if p is not None else label}\t{body}"
     return body + ("\n" if args.para and not (args.whole or args.files_with_matches) else "")
 
 
@@ -262,6 +271,13 @@ async def scan(r: Run, files: list[str], show_file: bool, totals: dict[str, int]
         ps = [a.probability if isinstance(a, NoulAnswer) else 0.0 for a in (answers[q] for q in qs)]
         return (min(ps) if args.all else max(ps)), ps
 
+    def emit(rec: Record, name: str, p: float | None, ps: list[float]) -> None:
+        first_row = rec.header is not None and rec.input_id not in headers_written
+        if first_row and not (args.json or args.files_with_matches):
+            r.out.write(rec.header or "")
+            headers_written.add(rec.input_id)
+        r.out.write(render(replace(rec, source=name), p, ps, args, show_file, r.out.colour))
+
     def deliver(rec: Record, value: tuple[float, list[float]] | None) -> None:
         name = STDIN if rec.source == "-" else rec.source
         totals["seen"] += 1
@@ -270,17 +286,10 @@ async def scan(r: Run, files: list[str], show_file: bool, totals: dict[str, int]
             p, ps = 0.0, [0.0] * len(qs)
         elif value is None:
             totals["unjudged"] += 1
-            if not args.invert_match:
-                # Fail open: an unjudged line passes through so no data is silently dropped.
-                if not (args.quiet or args.count or args.files_with_matches):
-                    r.out.write(
-                        ("" if not show_file else f"{name}:") + rec.shown
-                        if not args.json
-                        else json.dumps(
-                            {"file": name, "line": rec.lineno, "p": None, "text": rec.shown, "unjudged": True},
-                            ensure_ascii=False,
-                        )
-                    )
+            # Fail open: an unjudged record passes through (not with -v) so no data is silently
+            # dropped. It is not a match: it is not counted and does not stop -m/-q/-l.
+            if not args.invert_match and not (args.quiet or args.count or args.files_with_matches):
+                emit(rec, name, None, [])
             return
         else:
             p, ps = value
@@ -290,11 +299,7 @@ async def scan(r: Run, files: list[str], show_file: bool, totals: dict[str, int]
         matched_here.matched += 1
         counts[name] += 1
         if not (args.quiet or args.count):
-            first_row = rec.header is not None and rec.input_id not in headers_written
-            if first_row and not (args.json or args.files_with_matches):
-                r.out.write(rec.header or "")
-                headers_written.add(rec.input_id)
-            r.out.write(render(replace(rec, source=name), p, ps, args, show_file, r.out.colour))
+            emit(rec, name, p, ps)
         if args.quiet:
             matched_here.stop_all = True
             pipe.halt()
@@ -320,6 +325,7 @@ async def scan(r: Run, files: list[str], show_file: bool, totals: dict[str, int]
     result = await pipe.run(source, judge, deliver, on_input_error)
     if result.fatal is not None:
         raise result.fatal
+    report_pipeline_errors(r, result)
     totals["truncated"] += result.truncated
     return matched_here.stop_all
 

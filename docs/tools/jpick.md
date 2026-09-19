@@ -29,8 +29,9 @@ jpick [options] DESCRIPTION [FILE ...]
 ## How it works
 
 Candidates are sent `--group` at a time as a JSON array of `{"id", "text"}` with a choice
-question over the ids. Group winners (top N with `--top N`) advance; rounds repeat until one
-group remains, whose distribution is the final ranking. 1,000 lines with the default group of 12
+question over the ids. Group winners (top N with `--top N`, always dropping at least one) advance;
+rounds repeat until one group remains, whose distribution is the final ranking. That final group
+may be larger than `--group` (up to 40) when that is what it takes to hand back N lines. 1,000 lines with the default group of 12
 take about 90 calls; 12 lines take one.
 
 `--why` is not generated text. It is the winner's probability and the runner-up from the same

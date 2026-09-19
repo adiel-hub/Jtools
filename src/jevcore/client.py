@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import os
 import random
+import sqlite3
 import sys
 import time
 from collections.abc import Callable, Mapping
@@ -184,7 +185,14 @@ class Jev:
         self._sem = asyncio.Semaphore(self.concurrency)
         self._brake_until = 0.0  # monotonic time before which nothing is sent (after a 429/529)
         self._flights: dict[str, asyncio.Future[dict[str, Answer]]] = {}
-        self._cache = LayeredCache(DiskCache(cache_path) if disk_cache else None)
+        disk: DiskCache | None = None
+        if disk_cache:
+            try:
+                disk = DiskCache(cache_path)
+            except (OSError, sqlite3.Error) as e:
+                # An unwritable cache dir must not stop a pipeline; run from memory and say so once.
+                self.report(f"answer cache unavailable ({e}); continuing without it")
+        self._cache = LayeredCache(disk)
         self._closed = False
         headers = {
             "Authorization": f"Bearer {credentials.key}",
@@ -210,6 +218,12 @@ class Jev:
         if self._closed:
             return
         self._closed = True
+        # Shielded calls may still be in the air after their askers were cancelled; end them quietly.
+        flights = [f for f in self._flights.values() if not f.done()]
+        for f in flights:
+            f.cancel()
+        if flights:
+            await asyncio.gather(*flights, return_exceptions=True)
         await self.http.aclose()
         self._cache.close()
 
@@ -241,7 +255,8 @@ class Jev:
             future.add_done_callback(lambda _f: self._flights.pop(flight_key, None))
         else:
             self.meter.shared += 1
-        by_key = await future
+        # Shield: cancelling one asker must not cancel the call the other sharers are waiting on.
+        by_key = await asyncio.shield(future)
         return answers | {qid: by_key[keys[qid]] for qid in misses}
 
     async def try_ask(self, state: State, questions: Mapping[str, Question]) -> dict[str, Answer] | None:

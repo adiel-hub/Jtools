@@ -299,6 +299,7 @@ def execute(
     """
     out_stream = out or sys.stdout
     err_stream = err or sys.stderr
+    _tolerate_bad_bytes(sys.stdin)
     try:
         args = parser.parse_intermixed_args(argv)
         validate_common(args)
@@ -356,12 +357,24 @@ def execute(
     except UsageError as e:
         eprint(prog, str(e), err_stream)
         code = EXIT_USAGE
+    except OSError as e:  # an output directory that cannot be created, a file that vanished
+        eprint(prog, f"{e.strerror or e}: {e.filename}" if getattr(e, "filename", None) else str(e), err_stream)
+        code = EXIT_USAGE
     except BrokenOutput:
         code = EXIT_OK
     reporter.flush()
     if stats_wanted(args, err_stream):
         eprint(prog, summary_note + jev.meter.summary(), err_stream)
     return code
+
+
+def _tolerate_bad_bytes(stream: Any) -> None:
+    """A stray non-UTF-8 byte on stdin must cost one character, not the whole stream."""
+    reconfigure = getattr(stream, "reconfigure", None)
+    if reconfigure is None:
+        return
+    with contextlib.suppress(Exception):
+        reconfigure(errors="replace")
 
 
 def cli_entry(main: Callable[[], int]) -> None:

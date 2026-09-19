@@ -38,7 +38,10 @@ combined with `--fail-open`).
 - Whole-input mode sends the entire input as one state (first 60,000 characters per file by
   default; `--max-chars` raises it). Empty input exits 1.
 - `--each` stops at the first fitting line; `--all` stops at the first line that does not fit.
-  With `--all`, one line that could not be judged fails the gate (exit 4) unless `--fail-open`.
+  A line that could not be judged fails the gate (exit 4) whenever it could change the verdict:
+  always under `--all`, and under `--each` when no judged line fit. `--fail-open` turns that into
+  a pass. With `-P` the input is read first, then echoed complete and in input order.
+- Whole-input mode defaults to 60,000 characters; per-line modes keep the common 8,000.
 - Exit status: 0 pass, 1 fail, 2 usage, 3 auth, 4 API or unjudged.
 
 ## Not a security boundary

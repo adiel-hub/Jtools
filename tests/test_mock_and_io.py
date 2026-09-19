@@ -83,7 +83,7 @@ def test_redact_masks_emails_digits_and_tokens():
 
 def test_rubric_parsers():
     assert parse_scale("how positive (0-100)") == (0.0, 100.0)
-    assert parse_scale("rate 1 to 5") == (1.0, 5.0)
+    assert parse_scale("rate from 1 to 5") == (1.0, 5.0)
     assert parse_scale("plain") is None
     assert parse_levels("low, mid ,high") == ("low", "mid", "high")
     assert parse_labels("bug,feature:a new capability") == {"bug": "bug", "feature": "a new capability"}

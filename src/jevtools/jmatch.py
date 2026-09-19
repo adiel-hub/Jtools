@@ -18,6 +18,7 @@ import asyncio
 import math
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import IO
 
 import httpx
@@ -29,7 +30,7 @@ from jevcore.inputs import Record, iter_records
 from jevcore.io import fmt_p
 from jevcore.questions import ChoiceAnswer
 
-from ._shared import read_all
+from ._shared import read_all, unescape
 
 PROG = "jmatch"
 DEFAULT_GROUP = 12
@@ -84,7 +85,7 @@ def prepare(args: argparse.Namespace) -> None:
         raise UsageError(f"--group must be between 2 and {MAX_GROUP}")
     if args.shortlist is not None and args.shortlist < 1:
         raise UsageError("--shortlist takes 1 or more")
-    args.format = args.format.encode().decode("unicode_escape")
+    args.format = unescape(args.format)
     try:
         args.format.format(a="", b="", score="", a_line=0, b_line=0)
     except (KeyError, IndexError, ValueError) as e:
@@ -141,8 +142,18 @@ def chunks(items: list[Record], size: int) -> list[list[Record]]:
     return out
 
 
-async def best_match(run: Run, a: Record, candidates: list[Record]) -> tuple[Record | None, float | None, int]:
-    """Returns (b or None, probability or None if nothing could be judged, failed_calls)."""
+@dataclass(slots=True)
+class Match:
+    b: Record | None = None
+    """The matching B line, or None when Jev chose "none" (or nothing could be judged)."""
+    probability: float | None = None
+    """Probability of the chosen B line; None when there is no candidate to score."""
+    judged: bool = True
+    """False when every call for this A line failed (fail-open)."""
+    failed_calls: int = 0
+
+
+async def best_match(run: Run, a: Record, candidates: list[Record]) -> Match:
     args = run.args
     failed = 0
     items = candidates
@@ -152,9 +163,9 @@ async def best_match(run: Run, a: Record, candidates: list[Record]) -> tuple[Rec
         if len(groups) == 1:
             res = results[0]
             if res is None:
-                return None, None, failed + 1
+                return Match(judged=False, failed_calls=failed + 1)
             b, p = res
-            return b, p, failed
+            return Match(b, p if b is not None else None, True, failed)
         survivors: list[Record] = []
         for g, res in zip(groups, results, strict=True):
             if res is None:
@@ -163,9 +174,9 @@ async def best_match(run: Run, a: Record, candidates: list[Record]) -> tuple[Rec
             elif res[0] is not None:
                 survivors.append(res[0])
         if not survivors:
-            return None, 0.0, failed
+            return Match(failed_calls=failed)  # every judged group said "none"
         if len(survivors) >= len(items):
-            return None, None, failed  # every call failed; give up on this line
+            return Match(judged=False, failed_calls=failed)  # every call failed; give up on this line
         items = survivors
 
 
@@ -180,39 +191,35 @@ async def run(r: Run) -> int:
         return EXIT_NOMATCH
     b_words = [words(b.text) for b in b_records] if args.shortlist else []
 
-    async def one(a: Record) -> tuple[Record | None, float | None, int]:
+    async def one(a: Record) -> Match:
         cands = shortlist(a, b_records, b_words, args.shortlist) if args.shortlist else b_records
         return await best_match(r, a, cands)
 
     results = await asyncio.gather(*(one(a) for a in a_records))
     matched = 0
-    failed_total = 0
-    for a, (b, p, failed) in zip(a_records, results, strict=True):
-        failed_total += failed
-        hit = b is not None and p is not None and p >= args.threshold
+    for a, m in zip(a_records, results, strict=True):
+        hit = m.b is not None and m.probability is not None and m.probability >= args.threshold
         if hit:
             matched += 1
+        b = m.b if hit else None
+        score = m.probability if hit else None
         if args.json:
             r.out.json(
                 {
                     "a": a.shown,
-                    "b": b.shown if hit and b else None,
-                    "score": None if p is None else round(p, 4),
+                    "b": b.shown if b else None,
+                    "score": None if score is None else round(score, 4),
                     "matched": hit,
                     "a_line": a.lineno,
-                    "b_line": b.lineno if hit and b else None,
-                    "judged": p is not None,
+                    "b_line": b.lineno if b else None,
+                    "judged": m.judged,
                 }
             )
-        elif hit and b is not None:
-            r.out.write(args.format.format(a=a.shown, b=b.shown, score=fmt_p(p), a_line=a.lineno, b_line=b.lineno))
+        elif b is not None:
+            r.out.write(args.format.format(a=a.shown, b=b.shown, score=fmt_p(score), a_line=a.lineno, b_line=b.lineno))
         elif args.unmatched:
-            r.out.write(
-                args.format.format(
-                    a=a.shown, b="", score=fmt_p(p if p is not None else None), a_line=a.lineno, b_line=""
-                )
-            )
-    unjudged = sum(1 for _, p, _f in results if p is None)
+            r.out.write(args.format.format(a=a.shown, b="", score=fmt_p(None), a_line=a.lineno, b_line=""))
+    unjudged = sum(1 for m in results if not m.judged)
     if unjudged:
         r.warn(f"{unjudged:,} line(s) of {args.file_a} could not be judged")
     return partial(EXIT_OK if matched else EXIT_NOMATCH, unjudged)

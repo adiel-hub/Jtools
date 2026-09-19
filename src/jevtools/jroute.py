@@ -27,7 +27,7 @@ from jevcore.inputs import Record, iter_records
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Choice, ChoiceAnswer
 
-from ._shared import report_input_error
+from ._shared import report_input_error, report_pipeline_errors
 
 PROG = "jroute"
 UNROUTED = "unrouted"
@@ -120,6 +120,14 @@ class Buckets:
 async def run(r: Run) -> int:
     args = r.args
     q = question(args)
+    if not args.no_files:
+        try:
+            Path(args.out_dir).mkdir(parents=True, exist_ok=True)
+            probe = Path(args.out_dir) / f".jroute-write-test-{os.getpid()}"
+            probe.write_text("")
+            probe.unlink()
+        except OSError as e:
+            raise UsageError(f"cannot write to --out-dir {args.out_dir!r}: {e.strerror or e}") from None
     buckets = Buckets(args.out_dir, args.ext, args.truncate, not args.no_files)
     stats = {"lines": 0, "unjudged": 0}
     pipe: Pipeline[ChoiceAnswer | None] = Pipeline(concurrency=args.concurrency)
@@ -164,6 +172,7 @@ async def run(r: Run) -> int:
         buckets.close()
     if result.fatal is not None:
         raise result.fatal
+    report_pipeline_errors(r, result)
     if not stats["lines"]:
         r.warn("empty input")
         return EXIT_NOMATCH

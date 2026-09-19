@@ -77,15 +77,23 @@ def classify(labels: dict[str, str], instructions: str | None = None) -> Choice:
     return Choice(instructions or "Which label describes the text best?", labels)
 
 
-_RANGE = re.compile(r"\(?\b(-?\d+(?:\.\d+)?)\s*(?:-|\u2013|to)\s*(-?\d+(?:\.\d+)?)\b\)?")
+_NUM = r"(-?\d+(?:\.\d+)?)"
+_BARE_RANGE = re.compile(rf"^\s*{_NUM}\s*(?:-|\u2013|to)\s*{_NUM}\s*$")
+# In a description, only a parenthesised range or an explicit "from X to Y" counts, so that
+# "how relevant to the 2024-2025 roadmap" is not read as a scale.
+_DESC_RANGE = re.compile(rf"\(\s*{_NUM}\s*(?:-|\u2013|to)\s*{_NUM}\s*\)|\bfrom\s+{_NUM}\s+to\s+{_NUM}\b", re.I)
 
 
-def parse_scale(text: str) -> tuple[float, float] | None:
-    """``"how positive (0-100)"`` -> ``(0.0, 100.0)``; ``None`` when no range is written."""
-    m = _RANGE.search(text)
+def parse_scale(text: str, *, bare: bool = False) -> tuple[float, float] | None:
+    """``"how positive (0-100)"`` -> ``(0.0, 100.0)``; ``None`` when no range is written.
+
+    With ``bare=True`` (the ``--scale`` flag) the whole text must be the range, e.g. ``1-5``.
+    """
+    m = _BARE_RANGE.match(text) if bare else _DESC_RANGE.search(text)
     if not m:
         return None
-    lo, hi = float(m.group(1)), float(m.group(2))
+    numbers = [g for g in m.groups() if g is not None]
+    lo, hi = float(numbers[0]), float(numbers[1])
     return (lo, hi) if lo != hi else None
 
 

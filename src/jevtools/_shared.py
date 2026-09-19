@@ -11,7 +11,7 @@ from typing import Any
 from jevcore.cli import Run
 from jevcore.errors import UsageError
 from jevcore.inputs import InputError, Record, iter_records
-from jevcore.pipeline import collect
+from jevcore.pipeline import PipelineResult, collect
 from jevcore.questions import Score, ScoreAnswer
 
 
@@ -77,6 +77,21 @@ def render_scored(run: Run, record: Record, answer: ScoreAnswer | None, with_sco
         run.out.scored(answer.normalized if answer else None, record.shown)
     else:
         run.out.write(record.shown)
+
+
+def unescape(text: str) -> str:
+    r"""Turn ``\t``, ``\n`` and friends into the characters they name, leaving non-ASCII text alone."""
+    if "\\" not in text:
+        return text
+    return text.encode("utf-8").decode("unicode_escape").encode("latin-1").decode("utf-8")
+
+
+def report_pipeline_errors(run: Run, result: PipelineResult, limit: int = 3) -> None:
+    """Non-API failures inside a judge (bad encoding, a closed cache): say what happened, briefly."""
+    for message in result.errors[:limit]:
+        run.warn(message)
+    if len(result.errors) > limit:
+        run.warn(f"and {len(result.errors) - limit:,} more records failed the same way")
 
 
 def add_levels_option(ap: argparse.ArgumentParser) -> None:

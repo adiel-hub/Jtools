@@ -25,7 +25,7 @@ jtag [options] (--labels CSV | --score DESCRIPTION) [FILE ...]
 | option | meaning |
 |---|---|
 | `--labels CSV` | labels, optionally described: `"bug,feature:new capability,question"` |
-| `--score DESC` | what to rate; a range written in it (`0-100`, `1 to 5`) sets the output scale |
+| `--score DESC` | what to rate; a parenthesised range `(0-100)` or `from 1 to 5` in it sets the output scale (a bare `2024-2025` in prose does not) |
 | `--sep CHAR` | column separator (default tab; `\t`, `,`, `|` work) |
 | `--suffix` | put the new column last instead of first |
 | `--with-prob` | also write the label's probability, or the score's confidence |

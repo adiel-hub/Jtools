@@ -7,7 +7,7 @@
   <a href="https://pypi.org/project/jev-tools/"><img src="https://img.shields.io/pypi/v/jev-tools?color=2da44e" alt="PyPI"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="python">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="MIT"></a>
-  <img src="https://img.shields.io/badge/tests-160%20offline%20%2B%2013%20live-2da44e" alt="tests">
+  <img src="https://img.shields.io/badge/tests-178%20offline%20%2B%2013%20live-2da44e" alt="tests">
 </p>
 
 # j-tools
@@ -208,7 +208,7 @@ More in [docs/faq.md](docs/faq.md).
 ```bash
 git clone https://github.com/adiel-hub/Jtools && cd Jtools
 uv sync --all-groups
-uv run pytest -q -m "not live"         # 160 offline tests against MockJev, no key needed
+uv run pytest -q -m "not live"         # 178 offline tests against MockJev, no key needed
 uv run pytest -q -m live               # one real call per tool, with any key set
 uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy src
 ```

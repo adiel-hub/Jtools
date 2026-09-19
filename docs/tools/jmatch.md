@@ -21,7 +21,7 @@ Either file may be `-` for standard input (not both).
 | option | meaning |
 |---|---|
 | `-p P` | probability needed to count as a match (default 0.5) |
-| `--unmatched` | also print lines of FILE_A that matched nothing (empty `{b}`) |
+| `--unmatched` | also print lines of FILE_A that matched nothing (empty `{b}`, `{score}` is `-`) |
 | `--format FMT` | output template with `{a}`, `{b}`, `{score}`, `{a_line}`, `{b_line}` (default `{a}\t{b}\t{score}`) |
 | `--group K` | candidates compared per call (default 12, max 40) |
 | `--shortlist M` | only consider the M candidates sharing the most words with each A line (a free prefilter, not embeddings) |

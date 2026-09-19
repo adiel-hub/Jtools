@@ -17,7 +17,7 @@ run when the API is down is not a gate. ``--fail-open`` restores the pass-throug
 from __future__ import annotations
 
 import argparse
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import IO
 
@@ -36,11 +36,11 @@ from jevcore.cli import (
     execute,
 )
 from jevcore.errors import JevError, UsageError
-from jevcore.inputs import Record, iter_records
+from jevcore.inputs import DEFAULT_MAX_CHARS, Item, Record, iter_records
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Noul, NoulAnswer
 
-from ._shared import read_all, report_input_error, split_description
+from ._shared import read_all, report_input_error, report_pipeline_errors, split_description
 
 PROG = "jgate"
 WHOLE_MAX_CHARS = 60_000
@@ -71,7 +71,6 @@ def parser() -> Parser:
     ap.add_argument(
         "--fail-open", action="store_true", help="pass (exit 0) when Jev cannot be reached, instead of exit 4"
     )
-    ap.set_defaults(max_chars=WHOLE_MAX_CHARS)
     return ap
 
 
@@ -80,6 +79,9 @@ def prepare(args: argparse.Namespace) -> None:
     if args.fail_open and args.strict:
         raise UsageError("--fail-open and --strict contradict each other")
     args.per_line = args.each or args.all
+    if not args.per_line and args.max_chars == DEFAULT_MAX_CHARS:
+        # A whole document is the state here; the per-line default would truncate most of it.
+        args.max_chars = WHOLE_MAX_CHARS
 
 
 def question(args: argparse.Namespace) -> Noul:
@@ -128,9 +130,17 @@ async def gate_whole(r: Run) -> int:
         return EXIT_NOMATCH
     if any(rec.truncated for rec in records):
         r.warn(f"input truncated to {r.args.max_chars:,} characters per file; raise --max-chars")
-    answers = await r.jev.try_ask(text, {"fits": question(r.args)})
-    p = answers["fits"].probability if answers and isinstance(answers["fits"], NoulAnswer) else None
-    code = verdict(r, p)
+    try:
+        answers = await r.jev.try_ask(text, {"fits": question(r.args)})
+    except JevError:
+        if not r.args.fail_open:
+            raise
+        r.warn("Jev unreachable; --fail-open lets the input pass")
+        answers = None
+        code = EXIT_OK
+    else:
+        p = answers["fits"].probability if answers and isinstance(answers["fits"], NoulAnswer) else None
+        code = verdict(r, p)
     if code == EXIT_OK and r.args.passthrough:
         for rec in records:
             r.out.write(rec.shown.rstrip("\n"))
@@ -160,8 +170,6 @@ async def gate_each(r: Run) -> int:
         return a.probability if isinstance(a, NoulAnswer) else None
 
     def deliver(rec: Record, p: float | None) -> None:
-        if args.passthrough:
-            kept.append(rec)
         if rec.is_blank():
             return
         stats.judged += 1
@@ -181,10 +189,23 @@ async def gate_each(r: Run) -> int:
             stats.decided = EXIT_NOMATCH
             pipe.halt()
 
-    source = iter_records(args.files or None, max_chars=args.max_chars, stop=pipe.stop_event)
+    source: Iterable[Item]
+    if args.passthrough:
+        # -P can only echo after the verdict, so the input is read first; it is then echoed
+        # complete and in input order whatever the judging order (or outcome) was.
+        kept = await read_all(r, args.files, keep_blank=True)
+        source = kept
+    else:
+        source = iter_records(args.files or None, max_chars=args.max_chars, stop=pipe.stop_event)
     result = await pipe.run(source, judge, deliver, report_input_error(r))
     if result.fatal is not None:
+        if isinstance(result.fatal, JevError) and args.fail_open:
+            r.warn("Jev unreachable; --fail-open lets the input pass")
+            for rec in kept:
+                r.out.write(rec.shown)
+            return EXIT_OK
         raise result.fatal
+    report_pipeline_errors(r, result)
     if stats.judged == 0 and not kept:
         r.warn("empty input")
         return EXIT_NOMATCH
@@ -195,8 +216,13 @@ async def gate_each(r: Run) -> int:
     elif args.all:
         judged_ok = stats.judged - stats.failed_calls
         code = EXIT_OK if stats.passed and stats.passed == judged_ok else EXIT_NOMATCH
+    elif stats.passed:
+        code = EXIT_OK
+    elif stats.failed_calls and not args.fail_open:
+        # No judged line fits, but some lines could not be judged: "no" cannot be asserted.
+        code = verdict(r, None)
     else:
-        code = EXIT_OK if stats.passed else EXIT_NOMATCH
+        code = EXIT_NOMATCH
     if args.json:
         r.out.json(
             {

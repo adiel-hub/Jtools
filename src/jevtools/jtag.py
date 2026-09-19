@@ -25,7 +25,7 @@ from jevcore.io import fmt_p, paint, score_colour
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Answer, ChoiceAnswer, Question, ScoreAnswer
 
-from ._shared import add_levels_option, report_input_error
+from ._shared import add_levels_option, report_input_error, report_pipeline_errors, unescape
 
 PROG = "jtag"
 
@@ -66,7 +66,7 @@ def parser() -> Parser:
 
 
 def prepare(args: argparse.Namespace) -> None:
-    args.sep = args.sep.encode().decode("unicode_escape")  # allow --sep '\t' and --sep '|'
+    args.sep = unescape(args.sep)  # allow --sep '\t' as well as --sep '|'
     if args.labels:
         args.label_map = rubric.parse_labels(args.labels)
         if args.default and args.default in args.label_map:
@@ -77,7 +77,7 @@ def prepare(args: argparse.Namespace) -> None:
         if args.default:
             raise UsageError("--default applies to --labels mode only")
         args.rubric = rubric.parse_levels(args.levels) if args.levels else None
-        scale = rubric.parse_scale(args.scale) if args.scale else rubric.parse_scale(args.score)
+        scale = rubric.parse_scale(args.scale, bare=True) if args.scale else rubric.parse_scale(args.score)
         if args.scale and scale is None:
             raise UsageError('--scale must look like "LO-HI", for example 0-100')
         args.range = scale
@@ -174,6 +174,7 @@ async def run(r: Run) -> int:
     result = await pipe.run(source, judge, deliver, report_input_error(r))
     if result.fatal is not None:
         raise result.fatal
+    report_pipeline_errors(r, result)
     if stats["unjudged"]:
         r.warn(f"{stats['unjudged']:,} line(s) could not be judged and were tagged '-'")
     return partial(EXIT_OK if stats["lines"] else EXIT_NOMATCH, stats["unjudged"])

@@ -148,35 +148,37 @@ class Pipeline(Generic[R]):
                 self.halt()
 
         threading.Thread(target=feed, daemon=True, name="jev-reader").start()
-        while not self._halt.is_set():
-            getter = asyncio.ensure_future(queue.get())
-            await asyncio.wait({getter, halted}, return_when=asyncio.FIRST_COMPLETED)
-            if not getter.done():
-                getter.cancel()
-                break
-            item = getter.result()
-            if item is None:
-                break
-            if isinstance(item, InputError):
-                result.input_errors += 1
-                if on_input_error is not None:
-                    on_input_error(item)
-                continue
-            if state["first_seq"] is None:
-                state["first_seq"] = item.seq
-                state["next"] = item.seq
-            result.seen += 1
-            if item.truncated:
-                result.truncated += 1
-            await sem.acquire()
-            if self._halt.is_set():
-                sem.release()
-                break
-            task = asyncio.create_task(worker(item))
-            tasks.add(task)
-            task.add_done_callback(done)
-
-        self._stop.set()
+        try:
+            while not self._halt.is_set():
+                getter = asyncio.ensure_future(queue.get())
+                await asyncio.wait({getter, halted}, return_when=asyncio.FIRST_COMPLETED)
+                if not getter.done():
+                    getter.cancel()
+                    break
+                item = getter.result()
+                if item is None:
+                    break
+                if isinstance(item, InputError):
+                    result.input_errors += 1
+                    if on_input_error is not None:
+                        on_input_error(item)
+                    continue
+                if state["first_seq"] is None:
+                    state["first_seq"] = item.seq
+                    state["next"] = item.seq
+                result.seen += 1
+                if item.truncated:
+                    result.truncated += 1
+                await sem.acquire()
+                if self._halt.is_set():
+                    sem.release()
+                    break
+                task = asyncio.create_task(worker(item))
+                tasks.add(task)
+                task.add_done_callback(done)
+        finally:
+            # Whatever ends the loop (EOF, halt, cancellation), the reader thread must be released.
+            self._stop.set()
         pending = list(tasks)
         if pending:
             drained: asyncio.Future[Any] = asyncio.gather(*pending, return_exceptions=True)

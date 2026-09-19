@@ -12,6 +12,7 @@ one group remains; its distribution is the final ranking. For 1,000 lines that i
 from __future__ import annotations
 
 import argparse
+import asyncio
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -125,16 +126,20 @@ async def judge_group(run: Run, description: str, group: list[Record]) -> list[t
 async def tournament(
     run: Run, description: str, records: list[Record], top: int, group: int
 ) -> tuple[list[Finalist], int]:
-    """Returns (finalists, failed_calls)."""
+    """Returns (finalists, failed_calls).
+
+    Rounds run until one group is left. Non-final groups keep their top N but always drop at
+    least one candidate, so every judged round makes progress. The final group may be larger
+    than ``group`` (up to ``MAX_GROUP``) when that is what it takes to hand back N finalists.
+    """
     failed = 0
     items = list(records)
     if len(items) == 1:
         return [Finalist(items[0], None)], 0
+    final_size = min(MAX_GROUP, max(group, 2 * top))
     while True:
-        groups = chunks(items, group) if len(items) > group else [items]
-        results = []
-        for g in groups:
-            results.append(await judge_group(run, description, g))
+        groups = chunks(items, group) if len(items) > final_size else [items]
+        results = await asyncio.gather(*(judge_group(run, description, g) for g in groups))
         if len(groups) == 1:
             ranked = results[0]
             if ranked is None:
@@ -146,17 +151,17 @@ async def tournament(
                 finalists.append(Finalist(rec, p, nxt[0] if nxt else None, nxt[1] if nxt else None))
             return finalists, failed
         survivors: list[Record] = []
-        eliminated = False
+        judged_groups = 0
         for g, ranked in zip(groups, results, strict=True):
             if ranked is None:
                 failed += 1
                 survivors.extend(g)  # cannot judge: nobody from this group is dropped
             else:
-                keep = min(top, len(g))
-                survivors.extend(rec for rec, _ in ranked[:keep])
-                eliminated = eliminated or keep < len(g)
+                judged_groups += 1
+                keep = min(top, len(g) - 1)  # keep the best N, but always narrow the field
+                survivors.extend(rec for rec, _ in ranked[: max(1, keep)])
         survivors.sort(key=lambda rec: rec.seq)
-        if not eliminated:
+        if judged_groups == 0:
             # Every call failed; another round would loop forever. Fall back to input order.
             return [Finalist(rec, None) for rec in survivors[:top]], failed
         items = survivors
@@ -199,6 +204,8 @@ async def run(r: Run) -> int:
             r.out.write(text)
     if failed:
         r.warn(f"{failed:,} comparison call(s) failed; affected groups were not narrowed")
+    if len(finalists) < min(args.top, len(records)):
+        r.warn(f"only {len(finalists)} of the {args.top} requested lines could be ranked")
     return partial(EXIT_OK, failed)
 
 
