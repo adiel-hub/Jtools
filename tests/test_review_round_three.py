@@ -296,3 +296,35 @@ def test_a_path_shaped_glob_is_read_relative_to_the_directory_searched(tmp_path,
     # The working-directory spelling still works, as does a bare name.
     assert discover(["proj"], recursive=True, globs=["proj/src/*.py"])[0] == found
     assert len(discover(["proj"], recursive=True, globs=["*.py"])[0]) == 2
+
+
+def test_doctor_does_not_print_a_token_carried_in_the_endpoint(tmp_path):
+    """Doctor output is the first thing anyone pastes into a bug report."""
+    from jevcore.mock import serve
+
+    server = serve(MockJev())
+    try:
+        env = {k: v for k, v in os.environ.items() if not k.endswith("API_KEY")}
+        env.pop("vercel_api_key", None)
+        env |= {
+            "HOME": str(tmp_path),
+            "XDG_CONFIG_HOME": str(tmp_path / "config"),
+            "XDG_CACHE_HOME": str(tmp_path / "cache"),
+            "JEV_API": "gateway",
+            "JEV_GATEWAY_URL": server.url + "?token=SUPERSECRET123",
+            "JEV_GATEWAY_API_KEY": "abcdefghijklmnop",
+            "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent.parent / "src"),
+        }
+        done = subprocess.run(
+            [sys.executable, "-m", "jevtools.jtools", "doctor"],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=60,
+            check=False,
+        )
+        assert "SUPERSECRET123" not in done.stdout + done.stderr, done.stdout
+        assert "abcdefghijklmnop" not in done.stdout, "the key was printed in full"
+        assert "127.0.0.1" in done.stdout
+    finally:
+        server.shutdown()

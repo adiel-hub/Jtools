@@ -18,7 +18,7 @@ import httpx
 from jevcore import __version__
 from jevcore.auth import available, resolve
 from jevcore.backends import BACKEND_NAMES, BACKENDS, cache_dir, config_dir
-from jevcore.cli import EXIT_API, EXIT_AUTH, EXIT_OK, EXIT_USAGE, Parser, cli_entry
+from jevcore.cli import EXIT_API, EXIT_AUTH, EXIT_OK, EXIT_USAGE, Parser, cli_entry, safe_url
 from jevcore.client import Jev
 from jevcore.errors import AuthError, JevError, UsageError
 
@@ -65,7 +65,12 @@ async def _doctor(args: argparse.Namespace, out: IO[str], transport: httpx.Async
         print(f"\nno usable backend: {e}", file=out)
         return EXIT_AUTH
     jev = Jev(creds, model=args.model, transport=transport, disk_cache=False)
-    print(f"\nusing {creds.backend.name} at {creds.url} with key {creds.redacted_key}, model {jev.model}", file=out)
+    # safe_url, not creds.url: a gateway may carry its token in the query string or the userinfo,
+    # and doctor output is the first thing anyone pastes into a bug report.
+    print(
+        f"\nusing {creds.backend.name} at {safe_url(creds.url)} with key {creds.redacted_key}, model {jev.model}",
+        file=out,
+    )
     try:
         seconds, usage = await jev.ping()
     except AuthError as e:
@@ -82,6 +87,10 @@ async def _doctor(args: argparse.Namespace, out: IO[str], transport: httpx.Async
         + (f", answered by {usage.model}" if usage.model else ""),
         file=out,
     )
+    if usage.model and usage.model != jev.model:
+        # Worth saying plainly: the cache is keyed on the name you ask for, so this is the version
+        # those answers came from, and pinning it with --model makes a rerun free.
+        print(f"note: {jev.model} currently means {usage.model}; pin it with --model for exact reruns", file=out)
     return EXIT_OK
 
 
