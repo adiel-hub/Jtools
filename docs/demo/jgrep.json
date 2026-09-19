@@ -1,0 +1,16 @@
+{
+  "name": "jgrep",
+  "command": "jgrep -o 'a payment problem' examples/inbox.txt",
+  "stdout": [
+    [
+      1.5,
+      "0.980\tRe: invoice #4471 - paid twice, please refund one payment."
+    ]
+  ],
+  "stderr": [],
+  "exit": 0,
+  "seconds": 603.677,
+  "shown_seconds": 1.5,
+  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 603.677s",
+  "title": "grep by meaning"
+}

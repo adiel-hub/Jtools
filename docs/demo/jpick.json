@@ -1,0 +1,16 @@
+{
+  "name": "jpick",
+  "command": "jpick 'the most urgent thing to fix' --why examples/tickets.txt",
+  "stdout": [
+    [
+      1.5,
+      "I was charged twice for one order and nobody answers\t# p=0.50 vs 0.42 for “Login fails with error 500 since this morning”"
+    ]
+  ],
+  "stderr": [],
+  "exit": 0,
+  "seconds": 299.896,
+  "shown_seconds": 1.5,
+  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 299.896s",
+  "title": "choose one"
+}

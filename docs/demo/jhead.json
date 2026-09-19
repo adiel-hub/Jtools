@@ -1,0 +1,24 @@
+{
+  "name": "jhead",
+  "command": "jhead 3 'a decision that was made' examples/thread.txt",
+  "stdout": [
+    [
+      1.5,
+      "Dana: fine by me. Decision: launch moves to Friday the 26th"
+    ],
+    [
+      1.5,
+      "Dana: agreed, Priya owns pricing copy; Sam owns the QA blockers"
+    ],
+    [
+      1.5,
+      "Dana: keeping the free tier for now, revisit after launch"
+    ]
+  ],
+  "stderr": [],
+  "exit": 0,
+  "seconds": 300.131,
+  "shown_seconds": 1.5,
+  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 300.131s",
+  "title": "the N most relevant lines"
+}
