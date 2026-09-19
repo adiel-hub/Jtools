@@ -35,8 +35,11 @@ def save(name: str, result: dict[str, Any]) -> Path:
     return path
 
 
-def run_tool(argv: list[str], stdin: str, *, timeout: float = 1800) -> tuple[int, str, str, dict[str, Any]]:
-    """Run an installed j-tool with --json --stats --no-cache; parse the stats line."""
+def run_tool(argv: list[str], stdin: str, *, timeout: float | None = None) -> tuple[int, str, str, dict[str, Any]]:
+    """Run an installed j-tool with --json --stats --no-cache; parse the stats line.
+
+    No timeout by default: a throttled key can legitimately take an hour for a few dozen lines.
+    """
     cmd = [*argv, "--no-cache", "--stats", "--budget", "0"]
     proc = subprocess.run(cmd, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
     stats = parse_stats(proc.stderr)

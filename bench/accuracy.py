@@ -58,7 +58,10 @@ def prepare() -> None:
     zf = zipfile.ZipFile(io.BytesIO(raw))
     sentences: list[tuple[str, str]] = []
     for name in zf.namelist():
-        if name.endswith("_labelled.txt"):
+        base = name.rsplit("/", 1)[-1]
+        if name.startswith("__MACOSX/") or base.startswith("._"):
+            continue  # AppleDouble resource forks shipped inside the zip
+        if base.endswith("_labelled.txt"):
             for line in zf.read(name).decode("utf-8", "replace").splitlines():
                 if "\t" in line:
                     text, label = line.rsplit("\t", 1)
