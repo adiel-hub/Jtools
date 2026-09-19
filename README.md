@@ -84,6 +84,9 @@ uv tool install git+https://github.com/adiel-hub/Jtools   # all eleven commands,
 uv tool install jev-tools                                 # once the first release is on PyPI
 ```
 
+The suite is called j-tools; the package is **`jev-tools`**, after the model it asks. What you type
+day to day is the eleven commands above. (`jtools` on PyPI is an unrelated project.)
+
 Python 3.11+. One dependency (`httpx`). Then one key, any of these:
 
 | backend | key | get one |
