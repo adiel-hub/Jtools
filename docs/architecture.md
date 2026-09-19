@@ -58,9 +58,17 @@ model.
 - **Caches**: memory for the run; SQLite (`~/.cache/jev/answers.sqlite`, WAL) across runs and
   across the tools in one pipeline. Keyed on SHA-256(model, state, canonical question), where the
   state carries its kind, so text and the JSON object that spells it are different questions, and
-  the model is the **version that answered**, not the alias that was asked for. `jev-latest` moves;
-  a cache keyed on it would replay a retired version for ever. The first call of a run re-checks
-  what the alias means today and the rest come from disk, or pin `--model` and none are needed.
+  the model is the name the run **asked for**, not the version that answered. It has to be: a run
+  cannot know the version until a response arrives, and the tools that read their input whole
+  compute every key before making a single call, so keying on the resolved version would mean no
+  run ever found its own rows again and every rerun re-paid for the corpus.
+
+  That leaves the alias problem — `jev-latest` moves, and rows written under it would replay a
+  retired version for ever — so each row also records the version that produced it, alongside what
+  the alias currently means. The first live response of any later run that sees a different meaning
+  throws that alias's stale rows away and says so on stderr. A rerun with nothing new to ask makes
+  no call and so cannot notice; `--no-cache` and a pinned `--model` both close that gap.
+
   A cache file that is locked, full or written by another schema is dropped for the run, with one
   line on stderr; a decision is never lost to it.
 - **In-flight sharing**: identical requests already in the air share one HTTP call. Logs repeat.
