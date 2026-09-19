@@ -41,8 +41,15 @@ combined with `--fail-open`).
   A line that could not be judged fails the gate (exit 4) whenever it could change the verdict:
   always under `--all`, and under `--each` when no judged line fit. `--fail-open` turns that into
   a pass. With `-P` the input is read first, then echoed complete and in input order.
-- Whole-input mode defaults to 60,000 characters; per-line modes keep the common 8,000.
-- Exit status: 0 pass, 1 fail, 2 usage, 3 auth, 4 API or unjudged.
+- Whole-input mode defaults to 60,000 characters; per-line modes keep the common 8,000. A record
+  cut at that limit was judged on a prefix, and the run says so.
+- **A file that could not be read is exit 2, never a pass.** A gate cannot assert anything about
+  input it never opened, so `jgate --all "safe to ship" *.log && deploy` refuses rather than
+  deploying because one of the files was missing.
+- `--strict` fails closed on the first API error in every mode, whole input and per line alike.
+- The verdict survives losing stdout: `jgate --json … | head` keeps its exit status, where every
+  other tool treats a closed pipe as "the reader has what it wanted" and exits 0.
+- Exit status: 0 pass, 1 fail, 2 usage or unreadable input, 3 auth, 4 API or unjudged.
 
 ## Not a security boundary
 
