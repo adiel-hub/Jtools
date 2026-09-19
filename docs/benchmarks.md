@@ -44,15 +44,16 @@ Measured 2026-09-19 through **vercel** (`typesafe-ai/jev`), 8 sequential calls, 
 | `anthropic/claude-haiku-4.5` | chat model | $0.3260 | 25.8x | catalog price arithmetic |
 | `openai/gpt-5.5` | chat model | $1.6550 | 130.9x | catalog price arithmetic |
 
-### jgrep vs a keyword regex: UCI SMS Spam Collection (30 of 30 sampled messages judged, 2 spam)
+### jgrep vs a keyword regex: UCI SMS Spam Collection (120 of 120 sampled messages judged, 15 spam)
 
 Description: *an unsolicited spam, scam or marketing text message*
 
 | filter | precision | recall | F1 | time | cost |
 |---|---:|---:|---:|---:|---:|
-| `jgrep` at p ≥ 0.5 | 1.00 | 1.00 | **1.00** | 1789.4 s | $0.000385 |
-| `jgrep` at p ≥ 0.9 | 0.00 | 0.00 | 0.00 | | |
-| keyword regex, same sample (17 terms) | 0.20 | 0.50 | 0.29 | | free |
+| `jgrep` at p ≥ 0.5 | 0.94 | 1.00 | **0.97** | 7237.1 s | $0.0016 |
+| `jgrep` at p ≥ 0.9 | 1.00 | 0.80 | 0.89 | | |
+| keyword regex, same sample (17 terms) | 0.58 | 0.93 | 0.72 | | free |
+| the same regex over all 5,574 messages | 0.64 | 0.81 | 0.72 | 0.0761 s | free |
 
 ### jsort ranking quality: UCI Sentiment Labelled Sentences (Amazon, IMDb, Yelp) (20 of 20 sampled sentences judged, 11 positive)
 

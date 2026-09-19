@@ -137,7 +137,7 @@ results are in [`bench/`](bench/). Details and method notes: [docs/benchmarks.md
 - **Latency:** 419 ms median per decision end to end (p95 994 ms), measured through vercel; asking 16 questions about the same line costs about the same time as one.
 - **Cost:** 301 input tokens and $0.000013 per decision, $0.0126 per 1,000.
 - **vs chat models:** the same yes/no decision costs 3.8x to 130.9x more at list price (qwen3.8-flash, gpt-5.6-luna, gemini-3.8-flash, …). Their latency is not measured here; see the method notes.
-- **Accuracy, from a one-line description, with no tuning:** `jgrep` finds SMS spam with F1 1.00 (n=30), where a 17-term keyword regex scores 0.29 on the same 30 messages; `jsort` ranks review sentiment with AUC 0.76 (n=20); `jtag` labels AG News four ways with 50% accuracy (n=20).
+- **Accuracy, from a one-line description, with no tuning:** `jgrep` finds SMS spam with F1 0.97 (n=120), where a 17-term keyword regex scores 0.72 over all 5,574 messages; `jsort` ranks review sentiment with AUC 0.76 (n=20); `jtag` labels AG News four ways with 50% accuracy (n=20).
 
 <!-- END bench-summary -->
 

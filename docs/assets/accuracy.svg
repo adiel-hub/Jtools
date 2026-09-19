@@ -3,12 +3,12 @@
 <text x='20' y='30' font-size='18' font-weight='600' fill='#24292f'>Accuracy on public labelled corpora</text>
 <text x='20' y='52' font-size='12' fill='#57606a'>each row runs the installed command, uncached, at its default threshold, from the one-line description in</text>
 <text x='20' y='68' font-size='12' fill='#57606a'>docs/benchmarks.md</text>
-<text x='316' y='104' font-size='13' fill='#24292f' text-anchor='end'>jgrep finds SMS spam, F1 (n=30)</text>
-<rect x='326' y='90' width='314.0' height='20' rx='3' fill='#2da44e'/>
-<text x='648.0' y='105' font-size='12' fill='#24292f'>1.00</text>
-<text x='316' y='138' font-size='13' fill='#24292f' text-anchor='end'>a 17-term keyword regex, F1</text>
-<rect x='326' y='124' width='89.7' height='20' rx='3' fill='#cf222e'/>
-<text x='423.7' y='139' font-size='12' fill='#24292f'>0.29</text>
+<text x='316' y='104' font-size='13' fill='#24292f' text-anchor='end'>jgrep finds SMS spam, F1 (n=120)</text>
+<rect x='326' y='90' width='303.9' height='20' rx='3' fill='#2da44e'/>
+<text x='637.9' y='105' font-size='12' fill='#24292f'>0.97</text>
+<text x='316' y='138' font-size='13' fill='#24292f' text-anchor='end'>a 17-term keyword regex, F1 (n=5,574)</text>
+<rect x='326' y='124' width='225.2' height='20' rx='3' fill='#cf222e'/>
+<text x='559.2' y='139' font-size='12' fill='#24292f'>0.72</text>
 <text x='316' y='172' font-size='13' fill='#24292f' text-anchor='end'>jsort ranks review sentiment, AUC (n=20)</text>
 <rect x='326' y='158' width='237.9' height='20' rx='3' fill='#2da44e'/>
 <text x='571.9' y='173' font-size='12' fill='#24292f'>0.76</text>

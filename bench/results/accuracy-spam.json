@@ -2,45 +2,74 @@
   "backend": "vercel",
   "url": "https://ai-gateway.vercel.sh/v4/ai/evaluation-model",
   "model": "typesafe-ai/jev",
-  "when": "2026-09-19T04:32:41+00:00",
+  "when": "2026-09-19T07:24:29+00:00",
   "dataset": "UCI SMS Spam Collection",
-  "lines": 30,
-  "positives": 2,
+  "lines": 120,
+  "judged": 120,
+  "unjudged": 0,
+  "positives": 15,
   "description": "an unsolicited spam, scam or marketing text message",
   "jgrep_at_0.5": {
-    "precision": 1.0,
+    "precision": 0.9375,
     "recall": 1.0,
-    "f1": 1.0,
-    "accuracy": 1.0
+    "f1": 0.9677,
+    "accuracy": 0.9917
   },
   "jgrep_at_0.9": {
-    "precision": 0.0,
-    "recall": 0.0,
-    "f1": 0.0,
-    "accuracy": 0.9333
+    "precision": 1.0,
+    "recall": 0.8,
+    "f1": 0.8889,
+    "accuracy": 0.975
   },
   "jgrep_run": {
-    "calls": 30,
-    "tokens": 9173,
-    "dollars": 0.000385,
-    "p50_ms": 298,
-    "seconds": 1789.4,
-    "rate_limited": 149
+    "calls": 120,
+    "tokens": 37108,
+    "dollars": 0.0016,
+    "p50_ms": 330,
+    "seconds": 7237.1,
+    "rate_limited": 735
   },
   "keyword_grep": {
-    "precision": 0.2,
-    "recall": 0.5,
-    "f1": 0.2857,
-    "accuracy": 0.8333,
-    "regex": "free|win|won|prize|claim|urgent|cash|txt|text .* to|call now|reply|offer|guaranteed|£|\\$|www\\.|http",
-    "seconds": 0.0011
+    "precision": 0.5833,
+    "recall": 0.9333,
+    "f1": 0.7179,
+    "accuracy": 0.9083,
+    "regex": "free|win|won|prize|claim|urgent|cash|txt|text .* to|call now|reply|offer|guaranteed|£|\\$|www\\.|http"
+  },
+  "keyword_grep_full_corpus": {
+    "precision": 0.6446,
+    "recall": 0.8086,
+    "f1": 0.7173,
+    "accuracy": 0.9146,
+    "lines": 5574,
+    "positives": 747,
+    "seconds": 0.0761,
+    "note": "the same regex over all 5,574 messages; free, so it needs no sample"
   },
   "predictions": [
     {
       "text": "Go until jurong point, crazy.. Available only in bugis n great world la e buffet... Cine there got amore wat...",
       "spam": false,
-      "p": 0.48,
+      "p": 0.41,
       "regex": false
+    },
+    {
+      "text": "Didn't you get hep b immunisation in nigeria.",
+      "spam": false,
+      "p": 0.11,
+      "regex": false
+    },
+    {
+      "text": "Smile in Pleasure Smile in Pain Smile when trouble pours like Rain Smile when sum1 Hurts U Smile becoz SOMEONE still Loves to see u Smiling!!",
+      "spam": false,
+      "p": 0.17,
+      "regex": false
+    },
+    {
+      "text": "You'll not rcv any more msgs from the chat svc. For FREE Hardcore services text GO to: 69988 If u get nothing u must Age Verify with yr network & try again",
+      "spam": true,
+      "p": 0.97,
+      "regex": true
     },
     {
       "text": "Going on nothing great.bye",
@@ -49,15 +78,69 @@
       "regex": false
     },
     {
+      "text": "Dear we are going to our rubber place",
+      "spam": false,
+      "p": 0.12,
+      "regex": false
+    },
+    {
+      "text": "Awesome, I'll see you in a bit",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "No problem. How are you doing?",
+      "spam": false,
+      "p": 0.02,
+      "regex": false
+    },
+    {
       "text": "Hello my boytoy ... Geeee I miss you already and I just woke up. I wish you were here in bed with me, cuddling me. I love you ...",
       "spam": false,
-      "p": 0.07,
+      "p": 0.06,
       "regex": false
+    },
+    {
+      "text": "FREE entry into our £250 weekly competition just text the word WIN to 80086 NOW. 18 T&C www.txttowin.co.uk",
+      "spam": true,
+      "p": 0.97,
+      "regex": true
+    },
+    {
+      "text": "Sorry, I'll call later ok bye",
+      "spam": false,
+      "p": 0.03,
+      "regex": false
+    },
+    {
+      "text": "Your opinion about me? 1. Over 2. Jada 3. Kusruthi 4. Lovable 5. Silent 6. Spl character 7. Not matured 8. Stylish 9. Simple Pls reply..",
+      "spam": false,
+      "p": 0.1,
+      "regex": true
     },
     {
       "text": "Having lunch:)you are not in online?why?",
       "spam": false,
       "p": 0.06,
+      "regex": false
+    },
+    {
+      "text": "Speaking of does he have any cash yet?",
+      "spam": false,
+      "p": 0.06,
+      "regex": true
+    },
+    {
+      "text": "You have won ?1,000 cash or a ?2,000 prize! To claim, call09050000327. T&C: RSTM, SW7 3SS. 150ppm",
+      "spam": true,
+      "p": 0.97,
+      "regex": true
+    },
+    {
+      "text": "Good. Good job. I like entrepreneurs",
+      "spam": false,
+      "p": 0.11,
       "regex": false
     },
     {
@@ -67,9 +150,45 @@
       "regex": false
     },
     {
+      "text": "5 Free Top Polyphonic Tones call 087018728737, National Rate. Get a toppoly tune sent every week, just text SUBPOLY to 81618, £3 per pole. UnSub 08718727870.",
+      "spam": true,
+      "p": 0.96,
+      "regex": true
+    },
+    {
+      "text": "Good Morning my Dear........... Have a great &amp; successful day.",
+      "spam": false,
+      "p": 0.12,
+      "regex": false
+    },
+    {
+      "text": "see, i knew giving you a break a few times woul lead to you always wanting to miss curfew. I was gonna gibe you 'til one, but a MIDNIGHT movie is not gonna get out til after 2. You need to come home. You need to getsleep and, if anything, you need to b studdying ear training.",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
       "text": "Oh all have to come ah?",
       "spam": false,
-      "p": 0.1,
+      "p": 0.09,
+      "regex": false
+    },
+    {
+      "text": "Eh u send wrongly lar...",
+      "spam": false,
+      "p": 0.11,
+      "regex": false
+    },
+    {
+      "text": "Good afternoon on this glorious anniversary day, my sweet J !! I hope this finds you happy and content, my Prey. I think of you and send a teasing kiss from across the sea coaxing images of fond souveniers ... You Cougar-Pen",
+      "spam": false,
+      "p": 0.11,
+      "regex": false
+    },
+    {
+      "text": "Meeting u is my work. . . Tel me when shall i do my work tomorrow",
+      "spam": false,
+      "p": 0.16,
       "regex": false
     },
     {
@@ -79,16 +198,70 @@
       "regex": false
     },
     {
+      "text": "You sure your neighbors didnt pick it up",
+      "spam": false,
+      "p": 0.1,
+      "regex": false
+    },
+    {
+      "text": "As a SIM subscriber, you are selected to receive a Bonus! Get it delivered to your door, Txt the word OK to No: 88600 to claim. 150p/msg, EXP. 30Apr",
+      "spam": true,
+      "p": 0.97,
+      "regex": true
+    },
+    {
+      "text": "Mum say we wan to go then go... Then she can shun bian watch da glass exhibition...",
+      "spam": false,
+      "p": 0.02,
+      "regex": false
+    },
+    {
       "text": "Great to hear you are settling well. So what's happenin wit ola?",
       "spam": false,
       "p": 0.04,
       "regex": false
     },
     {
+      "text": "Is it ok if I stay the night here? Xavier has a sleeping bag and I'm getting tired",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "Thk shld b can... Ya, i wana go 4 lessons... Haha, can go for one whole stretch...",
+      "spam": false,
+      "p": 0.06,
+      "regex": false
+    },
+    {
+      "text": "Arms fine, how's Cardiff and uni?",
+      "spam": false,
+      "p": 0.02,
+      "regex": false
+    },
+    {
       "text": "(I should add that I don't really care and if you can't I can at least get this dude to fuck off but hey, your money if you want it)",
       "spam": false,
-      "p": 0.23,
+      "p": 0.25,
       "regex": false
+    },
+    {
+      "text": "Oh dang! I didn't mean o send that to you! Lol!",
+      "spam": false,
+      "p": 0.05,
+      "regex": false
+    },
+    {
+      "text": "How to Make a girl Happy? It's not at all difficult to make girls happy. U only need to be... 1. A friend 2. Companion 3. Lover 4. Chef . . . &lt;#&gt; . Good listener &lt;#&gt; . Organizer &lt;#&gt; . Good boyfriend &lt;#&gt; . Very clean &lt;#&gt; . Sympathetic &lt;#&gt; . Athletic &lt;#&gt; . Warm . . . &lt;#&gt; . Courageous &lt;#&gt; . Determined &lt;#&gt; . True &lt;#&gt; . Dependable &lt;#&gt; . Intelligent . . . &lt;#&gt; . Psychologist &lt;#&gt; . Pest exterminator &lt;#&gt; . Psychiatrist &lt;#&gt; . Healer . . &lt;#&gt; . Stylist &lt;#&gt; . Driver . . Aaniye pudunga venaam..",
+      "spam": false,
+      "p": 0.2,
+      "regex": false
+    },
+    {
+      "text": "500 free text msgs. Just text ok to 80488 and we'll credit your account",
+      "spam": true,
+      "p": 0.86,
+      "regex": true
     },
     {
       "text": "Glad to see your reply.",
@@ -97,9 +270,45 @@
       "regex": true
     },
     {
+      "text": "WOW! The Boys R Back. TAKE THAT 2007 UK Tour. Win VIP Tickets & pre-book with VIP Club. Txt CLUB to 81303. Trackmarque Ltd info@vipclub4u.",
+      "spam": true,
+      "p": 0.97,
+      "regex": true
+    },
+    {
+      "text": "Hi 07734396839 IBH Customer Loyalty Offer: The NEW NOKIA6600 Mobile from ONLY £10 at TXTAUCTION!Txt word:START to No:81151 & get Yours Now!4T&",
+      "spam": true,
+      "p": 0.98,
+      "regex": true
+    },
+    {
+      "text": "Now, whats your house # again ? And do you have any beer there ?",
+      "spam": false,
+      "p": 0.08,
+      "regex": false
+    },
+    {
       "text": "I hate when she does this. She turns what should be a fun shopping trip into an annoying day of how everything would look in her house.",
       "spam": false,
       "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "Free entry in 2 a weekly comp for a chance to win an ipod. Txt POD to 80182 to get entry (std txt rate) T&C's apply 08452810073 for details 18+",
+      "spam": true,
+      "p": 0.94,
+      "regex": true
+    },
+    {
+      "text": "Wait 2 min..stand at bus stop",
+      "spam": false,
+      "p": 0.07,
+      "regex": false
+    },
+    {
+      "text": "Lol boo I was hoping for a laugh",
+      "spam": false,
+      "p": 0.04,
       "regex": false
     },
     {
@@ -109,9 +318,45 @@
       "regex": false
     },
     {
+      "text": "No i'm not. I can't give you everything you want and need. You actually could do better for yourself on yor own--you've got more money than i do. I can't get work, i can't get a man, i can't pay the rent, i can't even fill my fucking gas tank. yes, i'm stressed and depressed. I didn't even call home for thanksgiving cuz i'll have to tell them i,m up to nothing.",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "Carlos took a while (again), we leave in a minute",
+      "spam": false,
+      "p": 0.02,
+      "regex": false
+    },
+    {
+      "text": "PS U no ur a grown up now right?",
+      "spam": false,
+      "p": 0.12,
+      "regex": false
+    },
+    {
       "text": "Those were my exact intentions",
       "spam": false,
       "p": 0.06,
+      "regex": false
+    },
+    {
+      "text": "Is that on the telly? No its Brdget Jones!",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "Ok...",
+      "spam": false,
+      "p": 0.07,
+      "regex": false
+    },
+    {
+      "text": "V nice! Off 2 sheffield tom 2 air my opinions on categories 2 b used 2 measure ethnicity in next census. Busy transcribing. :-)",
+      "spam": false,
+      "p": 0.05,
       "regex": false
     },
     {
@@ -121,9 +366,45 @@
       "regex": false
     },
     {
+      "text": "i cant talk to you now.i will call when i can.dont keep calling.",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "Yup...",
+      "spam": false,
+      "p": 0.1,
+      "regex": false
+    },
+    {
+      "text": "Ü give me some time to walk there.",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
       "text": "As usual..iam fine, happy &amp; doing well..:)",
       "spam": false,
       "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "Em, its olowoyey@ usc.edu have a great time in argentina. Not sad about secretary, everything is a blessing",
+      "spam": false,
+      "p": 0.09,
+      "regex": false
+    },
+    {
+      "text": "All these nice new shirts and the only thing I can wear them to is nudist themed ;_; you in mu?",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "Are you this much buzy",
+      "spam": false,
+      "p": 0.09,
       "regex": false
     },
     {
@@ -133,15 +414,69 @@
       "regex": false
     },
     {
+      "text": "Its normally hot mail. Com you see!",
+      "spam": false,
+      "p": 0.67,
+      "regex": false
+    },
+    {
+      "text": "Hey Boys. Want hot XXX pics sent direct 2 ur phone? Txt PORN to 69855, 24Hrs free and then just 50p per day. To stop text STOPBCM SF WC1N3XX",
+      "spam": true,
+      "p": 0.99,
+      "regex": true
+    },
+    {
+      "text": "Are you coming to day for class.",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
       "text": "Height of Confidence: All the Aeronautics professors wer calld &amp; they wer askd 2 sit in an aeroplane. Aftr they sat they wer told dat the plane ws made by their students. Dey all hurried out of d plane.. Bt only 1 didnt move... He said:\"if it is made by my students,this wont even start........ Datz confidence..",
       "spam": false,
       "p": 0.04,
       "regex": true
     },
     {
+      "text": "I didn't get the second half of that message",
+      "spam": false,
+      "p": 0.11,
+      "regex": false
+    },
+    {
+      "text": "Ok. How many should i buy.",
+      "spam": false,
+      "p": 0.07,
+      "regex": false
+    },
+    {
+      "text": "Short But Cute : \" Be a good person , but dont try to prove\" ..... Gud mrng...",
+      "spam": false,
+      "p": 0.05,
+      "regex": false
+    },
+    {
       "text": "Havent shopping now lor i juz arrive only",
       "spam": false,
       "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "She's good. How are you. Where r u working now",
+      "spam": false,
+      "p": 0.05,
+      "regex": false
+    },
+    {
+      "text": "Babe, I need your advice",
+      "spam": false,
+      "p": 0.03,
+      "regex": false
+    },
+    {
+      "text": "Hi there. We have now moved in2 our pub . Would be great 2 c u if u cud come up.",
+      "spam": false,
+      "p": 0.2,
       "regex": false
     },
     {
@@ -151,9 +486,45 @@
       "regex": false
     },
     {
+      "text": "O. Guess they both got screwd",
+      "spam": false,
+      "p": 0.06,
+      "regex": false
+    },
+    {
+      "text": "If india win or level series means this is record:)",
+      "spam": false,
+      "p": 0.05,
+      "regex": true
+    },
+    {
+      "text": "Do you want a NEW video phone750 anytime any network mins 150 text for only five pounds per week call 08000776320 now or reply for delivery tomorrow",
+      "spam": true,
+      "p": 0.98,
+      "regex": true
+    },
+    {
       "text": "Xmas & New Years Eve tickets are now on sale from the club, during the day from 10am till 8pm, and on Thurs, Fri & Sat night this week. They're selling fast!",
       "spam": true,
       "p": 0.73,
+      "regex": false
+    },
+    {
+      "text": "And do you have any one that can teach me how to ship cars.",
+      "spam": false,
+      "p": 0.1,
+      "regex": false
+    },
+    {
+      "text": "Goin to workout lor... Muz lose e fats...",
+      "spam": false,
+      "p": 0.03,
+      "regex": false
+    },
+    {
+      "text": "Thanks for loving me so. You rock",
+      "spam": false,
+      "p": 0.03,
       "regex": false
     },
     {
@@ -163,9 +534,45 @@
       "regex": false
     },
     {
+      "text": "Was just about to ask. Will keep this one. Maybe that's why you didn't get all the messages we sent you on glo",
+      "spam": false,
+      "p": 0.16,
+      "regex": false
+    },
+    {
+      "text": "Pls dont restrict her from eating anythin she likes for the next two days.",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "oh ya... Got hip hop open. Haha i was thinking can go for jazz then zoom to cine... Actually tonight i'm free leh... And there's a kb lesson tonight",
+      "spam": false,
+      "p": 0.02,
+      "regex": true
+    },
+    {
       "text": "Okie",
       "spam": false,
       "p": 0.12,
+      "regex": false
+    },
+    {
+      "text": "Sorry, went to bed early, nightnight",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "Nimbomsons. Yep phone knows that one. Obviously, cos thats a real word",
+      "spam": false,
+      "p": 0.2,
+      "regex": false
+    },
+    {
+      "text": "I'm at home n ready...",
+      "spam": false,
+      "p": 0.09,
       "regex": false
     },
     {
@@ -175,9 +582,45 @@
       "regex": false
     },
     {
+      "text": "FreeMsg Today's the day if you are ready! I'm horny & live in your town. I love sex fun & games! Netcollex Ltd 08700621170150p per msg reply Stop to end",
+      "spam": true,
+      "p": 0.99,
+      "regex": true
+    },
+    {
+      "text": "Can ü send me a copy of da report?",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "\"The world suffers a lot... Not because of the violence of bad people. But because of the silence of good people!\", Gud night....",
+      "spam": false,
+      "p": 0.05,
+      "regex": false
+    },
+    {
       "text": "Where to get those?",
       "spam": false,
-      "p": 0.14,
+      "p": 0.13,
+      "regex": false
+    },
+    {
+      "text": "S...i will take mokka players only:)",
+      "spam": false,
+      "p": 0.2,
+      "regex": false
+    },
+    {
+      "text": "Ujhhhhhhh computer shipped out with address to sandiago and parantella lane. Wtf. Poop.",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "Ya but it cant display internal subs so i gotta extract them",
+      "spam": false,
+      "p": 0.03,
       "regex": false
     },
     {
@@ -187,16 +630,70 @@
       "regex": false
     },
     {
+      "text": "She told to hr that he want posting in chennai:)because i'm working here:)",
+      "spam": false,
+      "p": 0.06,
+      "regex": false
+    },
+    {
+      "text": "Great. Have a safe trip. Dont panic surrender all.",
+      "spam": false,
+      "p": 0.16,
+      "regex": false
+    },
+    {
+      "text": "Full heat pa:-) i have applyed oil pa.",
+      "spam": false,
+      "p": 0.15,
+      "regex": false
+    },
+    {
       "text": "Did u got that persons story",
       "spam": false,
-      "p": 0.11,
+      "p": 0.1,
+      "regex": false
+    },
+    {
+      "text": "Ok no prob",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "Not for possession, especially not first offense",
+      "spam": false,
+      "p": 0.2,
+      "regex": false
+    },
+    {
+      "text": "Especially since i talk about boston all up in my personal statement, lol! I woulda changed that if i had realized it said nyc! It says boston now.",
+      "spam": false,
+      "p": 0.02,
       "regex": false
     },
     {
       "text": "How long before you get reply, just defer admission til next semester",
       "spam": false,
-      "p": 0.15,
+      "p": 0.14,
       "regex": true
+    },
+    {
+      "text": "lyricalladie(21/F) is inviting you to be her friend. Reply YES-910 or NO-910. See her: www.SMS.ac/u/hmmross STOP? Send STOP FRND to 62468",
+      "spam": true,
+      "p": 0.94,
+      "regex": true
+    },
+    {
+      "text": "Hi Dear Call me its urgnt. I don't know whats your problem. You don't want to work or if you have any other problem at least tell me. Wating for your reply.",
+      "spam": false,
+      "p": 0.08,
+      "regex": true
+    },
+    {
+      "text": "I will cme i want to go to hos 2morow. After that i wil cme. This what i got from her dear what to do. She didnt say any time",
+      "spam": false,
+      "p": 0.05,
+      "regex": false
     },
     {
       "text": "I think the other two still need to get cash but we can def be ready by 9",
@@ -205,15 +702,69 @@
       "regex": true
     },
     {
+      "text": "Havent stuck at orchard in my dad's car. Going 4 dinner now. U leh? So r they free tonight?",
+      "spam": false,
+      "p": 0.03,
+      "regex": true
+    },
+    {
+      "text": "I REALLY NEED 2 KISS U I MISS U MY BABY FROM UR BABY 4EVA",
+      "spam": false,
+      "p": 0.06,
+      "regex": false
+    },
+    {
+      "text": "Haven't left yet so probably gonna be here til dinner",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
       "text": "Call Germany for only 1 pence per minute! Call from a fixed line via access number 0844 861 85 85. No prepayment. Direct access! www.telediscount.co.uk",
       "spam": true,
-      "p": 0.8,
+      "p": 0.82,
       "regex": true
+    },
+    {
+      "text": "Haven't eaten all day. I'm sitting here staring at this juicy pizza and I can't eat it. These meds are ruining my life.",
+      "spam": false,
+      "p": 0.01,
+      "regex": false
+    },
+    {
+      "text": "I donno its in your genes or something",
+      "spam": false,
+      "p": 0.04,
+      "regex": false
+    },
+    {
+      "text": "You'd like that wouldn't you? Jerk!",
+      "spam": false,
+      "p": 0.07,
+      "regex": false
     },
     {
       "text": "I'm at work. Please call",
       "spam": false,
       "p": 0.07,
+      "regex": false
+    },
+    {
+      "text": "Thanx a lot 4 ur help!",
+      "spam": false,
+      "p": 0.02,
+      "regex": false
+    },
+    {
+      "text": "Really do hope the work doesnt get stressful. Have a gr8 day.",
+      "spam": false,
+      "p": 0.05,
+      "regex": false
+    },
+    {
+      "text": "I want to tell you how bad I feel that basically the only times I text you lately are when I need drugs",
+      "spam": false,
+      "p": 0.01,
       "regex": false
     }
   ]
