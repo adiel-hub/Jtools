@@ -2,10 +2,11 @@
 # Install: source this file from ~/.bashrc, or drop it in /etc/bash_completion.d/.
 
 _jtools_complete() {
-    local cur prev tool flags
+    local cur prev tool flags subs
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     tool="${COMP_WORDS[0]##*/}"
+    subs=""
     case "$tool" in
     jgrep)
         flags="--all --api --budget --color --concurrency --context --count --csv --dry-run --exclude --field --files-with-matches --glob --help --hidden --invert-match --json --jsonl --line-number --max-chars --max-count --model --no-cache --no-filename --no-stats --para --prob --quiet --recursive --stats --strict --threshold --timeout --unordered --verbose --version --whole --with-filename -C -H -c -e -h -j -l -m -n -o -p -q -r -v" ;;
@@ -28,16 +29,20 @@ _jtools_complete() {
     jmatch)
         flags="--api --budget --color --concurrency --dry-run --format --group --help --json --max-chars --model --no-cache --no-stats --quiet --shortlist --stats --strict --threshold --timeout --unmatched --verbose --version -h -j -p -q -v" ;;
     jtools)
-        flags="--help --version -h" ;;
+        flags="--help --version -h"
+        subs="list doctor version" ;;
     *) flags="" ;;
     esac
     case "$prev" in
         --api) COMPREPLY=( $(compgen -W "typesafe openrouter vercel gateway" -- "$cur") ); return ;;
         --color) COMPREPLY=( $(compgen -W "auto always never" -- "$cur") ); return ;;
-        --out-dir|-o|--input|-i) COMPREPLY=( $(compgen -d -- "$cur") ); return ;;
+        --out-dir|-o) COMPREPLY=( $(compgen -d -- "$cur") ); return ;;
+        --input|-i) COMPREPLY=( $(compgen -f -- "$cur") ); return ;;
     esac
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $(compgen -W "$flags" -- "$cur") )
+    elif [[ -n "$subs" && "$COMP_CWORD" -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "$subs" -- "$cur") )
     else
         COMPREPLY=( $(compgen -f -- "$cur") )
     fi
