@@ -33,8 +33,11 @@ Two dialects exist and only this module knows either:
 | score | `criteria: [levels]` → `score`, `probabilities`, `legend`, `confidence` | same, no legend |
 | usage | `input_tokens` (OpenRouter adds `cost`) | `inputTokens`, dollars under `providerMetadata.gateway.cost` |
 
-Answers are validated strictly (a probability outside 0..1, a choice that is not an option, a
-score outside the scale) and rejected as `JevError` before anything is cached.
+Answers are validated strictly and rejected as `JevError` before anything is cached: a
+probability outside 0..1, a choice that is not one of the options, a distribution carrying an
+option that was never offered, a score outside the scale, a rung index outside the rubric. Token
+counts are the exception: they are metering, not a decision, so an odd one costs the run a
+statistic rather than the answer it just paid for.
 
 ## Backends and keys (`backends.py`, `auth.py`)
 
@@ -51,18 +54,31 @@ model.
 - **Concurrency**: a semaphore bounds requests in flight (default 20). The pipeline also bounds
   how far the reader runs ahead, so `tail -f` never buffers.
 - **Caches**: memory for the run; SQLite (`~/.cache/jev/answers.sqlite`, WAL) across runs and
-  across the tools in one pipeline. Keyed on SHA-256(model, state, canonical question).
+  across the tools in one pipeline. Keyed on SHA-256(model, state, canonical question), where the
+  state carries its kind, so text and the JSON object that spells it are different questions, and
+  the model is the **version that answered**, not the alias that was asked for. `jev-latest` moves;
+  a cache keyed on it would replay a retired version for ever. The first call of a run re-checks
+  what the alias means today and the rest come from disk, or pin `--model` and none are needed.
+  A cache file that is locked, full or written by another schema is dropped for the run, with one
+  line on stderr; a decision is never lost to it.
 - **In-flight sharing**: identical requests already in the air share one HTTP call. Logs repeat.
 - **Retries**: transient statuses (408/409/425/429/5xx/529) and transport errors retry with jitter
   inside one total deadline (`--timeout`, default 15 s), so a dribbling response body cannot hang
-  a line forever.
+  a line forever. The deadline starts when the request does, not when it joins the queue: waiting
+  for a `-j` slot is not the backend being slow, and charging it to the request made a wide run
+  time out against a healthy endpoint.
 - **Rate-limit brake**: a 429/529 sets a client-wide "send nothing before T" timestamp
   (`Retry-After` when present, else 1, 2, 4, 8, 15 s) and switches the client into a trickle mode
   for two minutes, in which requests are sent one at a time. One rate limit does not fan out into
   twenty, and releasing the brake does not earn twenty more. Rate-limit waits do not count as retry
-  attempts; only `--timeout` bounds them.
+  attempts; only `--timeout` bounds them. When the backend asks for longer than `--timeout`, the
+  request says so at once, naming the wait, instead of sleeping out its whole deadline and
+  reporting that no attempt was made.
 - **Budget**: `--budget` (default $1, `JEV_BUDGET`) stops a run that is about to cost more than
-  you meant. Cached answers stay free.
+  you meant. A call's estimated cost is reserved when it starts rather than billed when it ends,
+  because checking the spend alone let every request in flight clear the last dollar between them.
+  With a budget set, one call runs alone first to establish the real price; it costs one round trip
+  once per run. Cached answers stay free.
 - **Fail-open**: `try_ask` returns `None` on a per-request error and reports it at most once a
   minute. Tools pass unjudged lines through and exit 5. `--strict` turns the first error into
   exit 4. `jgate` fails closed by default because a gate that opens during an outage is not a gate.
@@ -71,8 +87,10 @@ model.
 
 `iter_records` yields `Record`s from lines, paragraphs, whole files, JSONL fields or CSV columns,
 as they arrive (it uses `readline`, which does not read ahead). `Pipeline.run` reads in a thread,
-feeds a bounded queue, judges concurrently and delivers in input order; `halt()` stops the reader
-and cancels outstanding requests. Tools whose nature needs the whole input (jsort, jpick, jhead,
+feeds a bounded queue, judges concurrently and delivers in input order. Order is the order records
+arrived, not their `Record.seq`: a blank line, or a tool that filters before the pipeline, leaves a
+hole in `seq`, and ordering on it stalled delivery at the hole and threw away everything judged
+after it. `halt()` stops the reader and cancels outstanding requests. Tools whose nature needs the whole input (jsort, jpick, jhead,
 juniq, jmatch) use `collect` and then `asyncio.gather` over the client, which still bounds
 concurrency.
 
