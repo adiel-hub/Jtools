@@ -28,16 +28,10 @@ SCENES: list[tuple[str, list[str], str | None, str]] = [
     (
         "jroute",
         [
-            "jroute",
-            "sales:a sales lead",
-            "support:a support request",
-            "spam:junk or a scam",
-            "-i",
-            "examples/inbox.txt",
-            "-o",
-            "/tmp/sorted",
-            "--truncate",
-            "--json",
+            "sh",
+            "-c",
+            'jroute "sales:a sales lead" "support:a support request" "spam:junk or a scam" '
+            "-i examples/inbox.txt -o /tmp/sorted --truncate && head -n 3 /tmp/sorted/*.txt",
         ],
         None,
         "split a stream into buckets",
@@ -99,7 +93,10 @@ def run_scene(name: str, argv: list[str], stdin_file: str | None) -> dict[str, o
     seconds = round(time.perf_counter() - t0, 3)
     if stdin_file:
         stdin.close()  # type: ignore[union-attr]
-    shown = " ".join(shlex.quote(a) if " " in a or '"' in a else a for a in argv)
+    if argv[:2] == ["sh", "-c"]:
+        shown = argv[2]  # a shell pipeline: show what the user would type, not the sh wrapper
+    else:
+        shown = " ".join(shlex.quote(a) if " " in a or '"' in a else a for a in argv)
     if stdin_file:
         shown = f"cat {stdin_file} | {shown}"
     return {

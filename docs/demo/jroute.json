@@ -1,0 +1,54 @@
+{
+  "name": "jroute",
+  "command": "jroute 'sales:a sales lead' 'support:a support request' 'spam:junk or a scam' -i examples/inbox.txt -o /tmp/sorted --truncate --json",
+  "stdout": [
+    [
+      1.5,
+      "{\"bucket\": \"sales\", \"line\": \"Can we get a quote for 50 enterprise seats? We'd like to start next quarter.\", \"probability\": 1.0, \"probabilities\": {\"spam\": 0.0, \"sales\": 1.0, \"support\": 0.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 1}"
+    ],
+    [
+      1.5,
+      "{\"bucket\": \"support\", \"line\": \"My password reset link is not working, please help.\", \"probability\": 1.0, \"probabilities\": {\"support\": 1.0, \"sales\": 0.0, \"spam\": 0.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 2}"
+    ],
+    [
+      1.5,
+      "{\"bucket\": \"spam\", \"line\": \"CONGRATULATIONS you have been selected for a FREE cruise, click here now!!!\", \"probability\": 1.0, \"probabilities\": {\"sales\": 0.0, \"support\": 0.0, \"spam\": 1.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 3}"
+    ],
+    [
+      1.5,
+      "{\"bucket\": \"sales\", \"line\": \"Pricing for the team plan? We're comparing you with two competitors.\", \"probability\": 1.0, \"probabilities\": {\"sales\": 1.0, \"spam\": 0.0, \"support\": 0.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 4}"
+    ],
+    [
+      1.841,
+      "{\"bucket\": \"support\", \"line\": \"The export button crashes the app on Safari.\", \"probability\": 1.0, \"probabilities\": {\"support\": 1.0, \"sales\": 0.0, \"spam\": 0.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 5}"
+    ],
+    [
+      3.341,
+      "{\"bucket\": \"support\", \"line\": \"Re: invoice #4471 - paid twice, please refund one payment.\", \"probability\": 1.0, \"probabilities\": {\"support\": 1.0, \"sales\": 0.0, \"spam\": 0.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 6}"
+    ],
+    [
+      3.722,
+      "{\"bucket\": \"spam\", \"line\": \"URGENT: your account will be suspended unless you verify at http://totally-not-a-scam.example\", \"probability\": 1.0, \"probabilities\": {\"sales\": 0.0, \"spam\": 1.0, \"support\": 0.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 7}"
+    ],
+    [
+      4.152,
+      "{\"bucket\": \"sales\", \"line\": \"Interested in a demo for our 200-person sales org.\", \"probability\": 1.0, \"probabilities\": {\"sales\": 1.0, \"spam\": 0.0, \"support\": 0.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 8}"
+    ],
+    [
+      4.152,
+      "{\"bucket\": \"support\", \"line\": \"How do I add a second admin to my workspace?\", \"probability\": 1.0, \"probabilities\": {\"support\": 1.0, \"sales\": 0.0, \"spam\": 0.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 9}"
+    ],
+    [
+      4.53,
+      "{\"bucket\": \"spam\", \"line\": \"Make money fast working from home $$$\", \"probability\": 1.0, \"probabilities\": {\"sales\": 0.0, \"support\": 0.0, \"spam\": 1.0}, \"source\": \"examples/inbox.txt\", \"lineno\": 10}"
+    ]
+  ],
+  "stderr": [
+    "jroute: 10 lines routed (support: 4, sales: 3, spam: 3) -> /tmp/sorted"
+  ],
+  "exit": 0,
+  "seconds": 413.35,
+  "shown_seconds": 4.53,
+  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 413.35s",
+  "title": "split a stream into buckets"
+}
