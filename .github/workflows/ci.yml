@@ -50,6 +50,16 @@ jobs:
         run: uv build
       - name: Every command runs from an empty virtualenv, with no key and no network
         run: uv run --no-project python scripts/check_wheel.py
+      - name: The offline suite passes from the source distribution alone
+        # The tests run the generators in scripts/, so an sdist that ships only src/ and tests/
+        # cannot run its own suite. Unpacking it here is the only thing that notices.
+        run: |
+          mkdir -p /tmp/sdist
+          tar -xzf dist/*.tar.gz -C /tmp/sdist --strip-components=1
+          cd /tmp/sdist
+          uv venv .venv
+          uv pip install --python .venv/bin/python -e . pytest pytest-asyncio pytest-timeout
+          .venv/bin/python -m pytest -q -m "not live" --timeout 180
 
   live:
     name: live smoke (needs a key)
