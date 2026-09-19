@@ -16,8 +16,10 @@ applies*, with a calibrated probability. "Angriest customer first" is not a simi
 **How much does it cost?** About <!--num:tokens_per_call_round-->300<!--/num--> tokens per line, or
 <!--num:dollars_per_call-->$0.000013<!--/num--> at TypeSafe's list price of $0.042 per million input
 tokens (output is free). A million lines is about <!--num:dollars_per_million-->$13<!--/num-->. Every tool
-stops at `--budget` (default $1) and prints `--stats` on request. Reruns are free: answers are
-cached in `~/.cache/jev/answers.sqlite`.
+stops at `--budget` (default $1) and prints `--stats` on request. A rerun costs one call:
+answers live in `~/.cache/jev/answers.sqlite` under the model version that produced them, and
+that one call establishes what `jev-latest` means today. Pin `--model jev-1.13.0` and a rerun
+costs nothing.
 
 **Why did the same command give a slightly different probability?** Jev is near-deterministic,
 not exactly deterministic; probabilities can move by a few hundredths between uncached runs and

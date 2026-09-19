@@ -41,8 +41,29 @@ First public release: ten tools and the `jevcore` library.
   trickle mode that sends one request at a time for two minutes after a rate limit, a dollar budget
   (default $1, `JEV_BUDGET`), and error reports throttled to one per minute.
 - Common CLI surface on every tool: `--json`, `--dry-run`, `-p`, `--model`, `--api`, `-j`,
-  `--timeout`, `--budget`, `--max-chars`, `--no-cache`, `--strict`, `--color`, `--stats`.
-- Exit codes: 0 ok, 1 no match, 2 usage, 3 auth, 4 API/budget, 5 partial (some lines unjudged).
+  `--timeout`, `--budget`, `--max-chars`, `--no-cache`, `--strict`, `--color`, `--stats`, plus
+  `-q` (no end-of-run notes; errors still shown) and `-v` (one line per decision).
+- Exit codes: 0 ok, 1 no match, 2 usage or unreadable file, 3 auth, 4 API/budget, 5 partial.
+
+### Guarantees worth stating
+
+These are the behaviours the test suite pins, because each one was wrong at some point during
+development and the tests exist so it cannot go wrong again:
+
+- `--budget` reserves a call's cost when the call starts, so requests in flight cannot all clear
+  the last dollar between them.
+- `--timeout` starts when a request starts, not when it joins the `-j` queue, so a healthy backend
+  cannot time out because the run is wide.
+- A rate limit the backend asks to outlast longer than `--timeout` is reported at once, naming the
+  wait, instead of sleeping out the deadline and reporting nothing.
+- Ordered output is ordered by arrival, so a blank line or an upstream filter cannot stall
+  delivery and silently drop everything judged after it.
+- Answers are cached under the model version that produced them, never under a moving alias.
+- A text state and the JSON object that spells it are different cache keys.
+- Nothing a backend sends can make an answer name an option that was never offered or a rung
+  outside its rubric.
+- In `--json` mode every output line is a JSON object, blank input lines included.
+- An unreadable input file is exit 2 in every tool, never "nothing matched".
 - Records that could not be judged pass through rather than disappear; only `jgate` fails closed.
 
 ### Repository
