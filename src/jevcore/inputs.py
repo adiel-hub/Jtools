@@ -307,6 +307,9 @@ def discover(
         everything under it.
         """
         spellings = {os.path.basename(path), os.path.relpath(path, root)}
+        # Also the path as spelled from just above the root, so `--exclude '*/tests/*'` sees the
+        # root's own name and works whether the root was given as `proj` or as `/srv/proj`.
+        spellings.add(os.path.relpath(path, os.path.dirname(os.path.abspath(root))))
         return spellings if os.path.isabs(root) else spellings | {os.path.relpath(path)}
 
     def matches(path: str, root: str, patterns: Sequence[str]) -> bool:

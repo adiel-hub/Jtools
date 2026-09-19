@@ -98,39 +98,68 @@ def prepare(args: argparse.Namespace) -> None:
 
 
 def prepare_exec(command: str) -> str:
-    """Turn ``{}`` into the shell parameter that carries the line, and refuse an unsafe spelling.
+    """Turn ``{}`` into the shell parameter that carries the line, and refuse a spelling it breaks.
 
     What jwatch guarantees: the line is handed to ``/bin/sh`` as a positional parameter, so it is
     never parsed as shell syntax. No amount of ``$(…)``, backticks or ``;`` in a log line can run.
 
-    What it cannot guarantee is where you put the placeholder, any more than a shell script can.
-    So two spellings are refused rather than quietly accepted:
+    What it cannot guarantee is *where* you put the placeholder, any more than a shell script can
+    guarantee what you do with ``$1``. Put it where a command word goes and the line is run; that
+    is your command, not jwatch's. What is refused is the narrower set of spellings where the
+    substitution itself would misbehave:
 
-    - a command that is nothing but the placeholder, which would make the watched line the program
-      that runs rather than an argument to one;
-    - a placeholder inside quotes of your own, which expands to ``""$1""``, where ``$1`` is no
-      longer quoted and the line is split on whitespace and matched against the filesystem.
+    - an empty command, or one that is nothing but the placeholder, where the line would become
+      the program by default rather than by choice;
+    - a placeholder inside quotes of your own, which expands to ``""$1""``: ``$1`` is no longer
+      quoted there, and the line is split on whitespace and matched against the filesystem;
+    - an escaped placeholder, ``\\{}``, which would substitute into ``\\"$1"`` and leave the shell
+      with an unterminated string;
+    - a command that ends inside an open quote, which is not a command at all.
 
-    Writing ``$1`` yourself is the escape hatch for putting the line inside a longer string, and
-    carries the same responsibility it would in any script.
+    Writing ``$1`` yourself is the escape hatch for putting the line inside a longer string.
     """
     if not command.strip():
         raise UsageError("--exec needs a command; an empty one would run the watched line itself")
     if "{}" not in command and "$1" not in command:
         command += " {}"
-    for i, quoted in quote_state(command):
-        if command[i : i + 2] == "{}" and quoted:
+    states = list(quote_state(command))
+    if states and states[-1][1] and not _closes(command):
+        raise UsageError("--exec: the command ends inside an unclosed quote")
+    for i, quoted, escaped in states:
+        if command[i : i + 2] != "{}":
+            continue
+        if escaped:
+            raise UsageError("--exec: \\{} would substitute into an unterminated string; write {} or $1")
+        if quoted:
             raise UsageError(
                 "--exec: {} is already quoted for you, so do not put quotes around it. "
                 "To put the line inside a longer string, use $1: --exec 'notify-send \"api: $1\"'"
             )
     if command.strip().split()[0] in ("{}", '"$1"', "$1"):
-        raise UsageError("--exec: the command cannot be the line itself; put {} where an argument goes")
+        raise UsageError("--exec: the command cannot be only the line; put {} where an argument goes")
     return command.replace("{}", '"$1"')
 
 
-def quote_state(command: str) -> Iterator[tuple[int, bool]]:
-    """``(index, inside a quoted string)`` for every character, the way a shell reads it.
+def _closes(command: str) -> bool:
+    """Does every quote the command opens get closed?"""
+    quote = ""
+    escaped = False
+    for char in command:
+        if escaped:
+            escaped = False
+        elif quote == "'":
+            quote = "" if char == "'" else quote
+        elif char == "\\":
+            escaped = True
+        elif quote == '"':
+            quote = "" if char == '"' else quote
+        elif char in "\"'":
+            quote = char
+    return not quote
+
+
+def quote_state(command: str) -> Iterator[tuple[int, bool, bool]]:
+    """``(index, inside a quoted string, escaped by a backslash)``, the way a shell reads it.
 
     Looking only at the characters either side of ``{}`` cannot tell ``'api: {}'`` from
     ``'api: {} '``, and ignoring backslashes cannot tell ``"\\"{}\\""`` (inside the quotes, and
@@ -142,27 +171,27 @@ def quote_state(command: str) -> Iterator[tuple[int, bool]]:
     for i, char in enumerate(command):
         if escaped:
             escaped = False
-            yield i, bool(quote)
+            yield i, bool(quote), True
             continue
         if quote == "'":  # nothing is special inside single quotes, not even a backslash
-            yield i, True
+            yield i, True, False
             if char == "'":
                 quote = ""
             continue
         if char == "\\":  # escapes the next character, in double quotes and outside them alike
             escaped = True
-            yield i, bool(quote)
+            yield i, bool(quote), False
             continue
         if quote == '"':
-            yield i, True
+            yield i, True, False
             if char == '"':
                 quote = ""
             continue
         if char in "\"'":
             quote = char
-            yield i, True
+            yield i, True, False
             continue
-        yield i, False
+        yield i, False, False
 
 
 def question(args: argparse.Namespace) -> Noul:

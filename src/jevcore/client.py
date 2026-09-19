@@ -63,7 +63,11 @@ def env_number(name: str, default: float, cast: Callable[[str], Any] = float, *,
         value = cast(raw)
     except ValueError:
         raise UsageError(f"{name}={raw!r} is not a number") from None
-    if not math.isfinite(value) or value < low:
+    try:
+        usable = math.isfinite(value) and value >= low
+    except OverflowError:  # an integer too large to be a float is still one this cannot use
+        usable = False
+    if not usable:
         raise UsageError(f"{name}={raw!r} must be a finite number of at least {low:g}")
     return value
 
@@ -217,12 +221,13 @@ class Jev:
         self._alias_checked = False  # whether this run has compared the alias against its meaning
         # None means "whatever the environment says", so a client built outside the CLI (jtools
         # doctor, a library caller) honours JEV_TIMEOUT and JEV_CONCURRENCY like a tool does.
-        # Only asked for when it is needed: a caller passing both should not be stopped by a
-        # variable it is not using.
-        env_concurrency, env_timeout = env_defaults() if timeout is None or concurrency is None else (0, 0.0)
-        self.timeout = env_timeout if timeout is None else timeout
+        # Each is read only when its own argument was left out: a caller that supplies one should
+        # not be refused over the variable it is not using.
+        self.timeout = env_number("JEV_TIMEOUT", DEFAULT_TIMEOUT, low=1e-3) if timeout is None else timeout
         self.attempts = max(1, attempts)
-        self.concurrency = max(1, env_concurrency if concurrency is None else concurrency)
+        if concurrency is None:
+            concurrency = env_number("JEV_CONCURRENCY", DEFAULT_CONCURRENCY, int, low=1)
+        self.concurrency = max(1, concurrency)
         self.budget = max(0.0, budget)
         self.meter = Meter(price_per_mtok=price_per_mtok())
         self.report: Callable[[str], None] = on_error or ErrorReporter(prefix=prefix)

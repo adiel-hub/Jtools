@@ -590,3 +590,79 @@ def test_an_absolute_pattern_matches_an_absolute_path_and_nothing_above_the_root
     found, _ = discover([str(root)], recursive=True, globs=[f"{root}/src/*.py"])
     assert [os.path.basename(f) for f in found] == ["a.py"], "an absolute pattern matched nothing"
     assert discover([str(root)], recursive=True, globs=["src/*.py"])[0] == found
+
+
+# --------------------------------------------------------------- the sixth review
+
+
+def test_a_socket_argument_is_still_caught_by_the_gate(invoke, tmp_path):
+    """Skipping the open for a FIFO must not skip it for everything that is not a regular file."""
+    import socket
+
+    good = write(tmp_path, "a.log", "an error happened here\n")
+    sock = socket.socket(socket.AF_UNIX)
+    sock.bind(str(tmp_path / "b.sock"))
+    try:
+        res = invoke(jgate, ["an error", "--each", good, str(tmp_path / "b.sock")])
+        assert res.code == 2, f"exited {res.code} for an argument it cannot read"
+        assert "b.sock" in res.err
+    finally:
+        sock.close()
+
+
+@pytest.mark.parametrize("pattern,kind", [("*/tests/*", "exclude"), ("*/src/*.py", "glob")])
+def test_a_pattern_with_a_path_in_it_works_however_the_root_is_spelled(tmp_path, monkeypatch, pattern, kind):
+    """The same command must not depend on whether the directory was named relatively."""
+    from jevcore.inputs import discover
+
+    (tmp_path / "proj" / "tests").mkdir(parents=True)
+    (tmp_path / "proj" / "src").mkdir()
+    (tmp_path / "proj" / "tests" / "t.py").write_text("secret\n")
+    (tmp_path / "proj" / "src" / "a.py").write_text("source\n")
+    monkeypatch.chdir(tmp_path)
+
+    kwargs = {"excludes": [pattern]} if kind == "exclude" else {"globs": [pattern]}
+    relative, _ = discover(["proj"], recursive=True, **kwargs)
+    absolute, _ = discover([str(tmp_path / "proj")], recursive=True, **kwargs)
+    assert [os.path.basename(f) for f in relative] == ["a.py"]
+    assert [os.path.basename(f) for f in absolute] == ["a.py"], "the absolute spelling behaved differently"
+
+
+def test_help_survives_a_number_too_large_to_be_a_float(tmp_path):
+    """--help reads the environment now, so every unusable value has to fall back, not raise."""
+    env = {k: v for k, v in os.environ.items() if not k.endswith("API_KEY")}
+    env.pop("vercel_api_key", None)
+    env |= {
+        "HOME": str(tmp_path),
+        "TYPESAFE_API_KEY": "k",
+        "JEV_CONCURRENCY": "1" + "0" * 400,
+        "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent.parent / "src"),
+    }
+    done = subprocess.run(
+        [sys.executable, "-m", "jevtools.jgrep", "--help"], capture_output=True, text=True, env=env, timeout=60
+    )
+    assert done.returncode == 0, done.stderr[-400:]
+    assert "Traceback" not in done.stderr
+    assert "requests in flight" in done.stdout
+
+
+def test_each_environment_variable_is_read_only_for_the_value_it_sets(monkeypatch, creds):
+    """Supplying one value must exempt that variable, not require supplying the other as well."""
+    from jevcore.client import Jev
+
+    monkeypatch.setenv("JEV_TIMEOUT", "bogus")
+    assert Jev(creds, timeout=30.0, disk_cache=False).timeout == 30.0
+    monkeypatch.delenv("JEV_TIMEOUT")
+    monkeypatch.setenv("JEV_CONCURRENCY", "bogus")
+    assert Jev(creds, concurrency=4, disk_cache=False).concurrency == 4
+
+
+@pytest.mark.parametrize(
+    "command,reason",
+    [(r"echo \{}", "unterminated"), ("notify 'hi", "unclosed quote"), ('notify "hi', "unclosed quote")],
+)
+def test_a_command_the_substitution_would_break_is_named_for_what_is_wrong(command, reason):
+    """An unterminated quote used to be reported as a quoted placeholder the user never wrote."""
+    with pytest.raises(UsageError) as caught:
+        prepare_exec(command)
+    assert reason in str(caught.value), str(caught.value)

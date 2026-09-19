@@ -136,15 +136,15 @@ def check_files(r: Run) -> bool:
             continue
         if stat.S_ISDIR(mode):
             bad.append(f"{path}: is a directory")
-        elif stat.S_ISREG(mode):
-            try:  # a regular file can be opened and closed again for nothing
+        elif not stat.S_ISFIFO(mode):
+            try:  # anything else can be opened and closed again for nothing
                 with open(path, "rb"):
                     pass
             except OSError as e:
                 bad.append(f"{path}: {e.strerror or e}")
-        # A pipe, socket or device is left alone: opening one blocks until a writer appears and
-        # then closing it kills that writer, so the check would destroy the input it came to
-        # verify. Existing is as much as can be established without reading it.
+        # A pipe is the one thing that cannot be checked this way: opening it blocks until a
+        # writer appears and then closing it kills that writer, so the check would destroy the
+        # input it came to verify. Existing is as much as can be established without reading it.
     for message in bad:
         r.warn(message)
     return not bad
