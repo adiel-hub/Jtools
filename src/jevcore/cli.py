@@ -429,7 +429,10 @@ def execute(
         eprint(prog, str(e), err_stream)
         code = EXIT_USAGE
     except OSError as e:  # an output directory that cannot be created, a file that vanished
-        eprint(prog, f"{e.strerror or e}: {e.filename}" if getattr(e, "filename", None) else str(e), err_stream)
+        # strerror alone when there is no file to name: "No space left on device" reads better
+        # than "[Errno 28] No space left on device", and says exactly as much.
+        name = getattr(e, "filename", None)
+        eprint(prog, f"{e.strerror or e}: {name}" if name else (e.strerror or str(e)), err_stream)
         code = EXIT_USAGE
     except BrokenOutput:
         code = EXIT_OK
@@ -455,8 +458,15 @@ def cli_entry(main: Callable[[], int]) -> None:
     try:
         sys.stdout.flush()
     except (BrokenPipeError, ValueError):
+        # The reader went away. Point the descriptor at /dev/null so nothing later complains.
         with contextlib.suppress(OSError):
             os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
-    with contextlib.suppress(BrokenPipeError, ValueError):
+    except OSError as e:
+        # A full disk or a mount that went away: the last buffered lines never landed. Saying so
+        # and failing is the only honest answer -- a traceback here would report the same thing
+        # in the ugliest available way, and exit 0 would report incomplete output as a success.
+        eprint(os.path.basename(sys.argv[0]) or "jev", f"could not write output: {e.strerror or e}")
+        code = EXIT_USAGE
+    with contextlib.suppress(BrokenPipeError, ValueError, OSError):
         sys.stderr.flush()
     os._exit(code)

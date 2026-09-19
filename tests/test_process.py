@@ -262,3 +262,26 @@ def test_the_tools_compose_in_a_real_pipeline(tmp_path):
         assert sum(int(line.split()[0]) for line in done.stdout.splitlines()) == 4, done.stdout
     finally:
         server.shutdown()
+
+
+@pytest.mark.skipif(not os.path.exists("/dev/full"), reason="needs /dev/full")
+def test_a_filesystem_with_no_room_left_is_an_error_not_a_traceback(tmp_path):
+    """`jtag … > file` on a full disk must say so and fail, not exit 0 on truncated output."""
+    server = serve(MockJev())
+    try:
+        text = "".join(f"line {i}: the system reported a condition\n" for i in range(50))
+        done = subprocess.run(
+            f"{sys.executable} -m jevtools.jtag --labels bug,feature > /dev/full",
+            shell=True,
+            input=text,
+            capture_output=True,
+            text=True,
+            env=env_for(server.url, tmp_path),
+            timeout=180,
+        )
+    finally:
+        server.shutdown()
+    assert done.returncode == 2, f"exited {done.returncode} after losing its output: {done.stderr[-300:]}"
+    assert "No space left on device" in done.stderr
+    assert "Traceback" not in done.stderr
+    assert "Errno" not in done.stderr, "the message quotes an errno number at the user"
