@@ -65,6 +65,7 @@ def build_parser(
     threshold: float | None = 0.5,
     files: bool = True,
     short_verbose: bool = True,
+    quiet_help: str | None = None,
 ) -> Parser:
     epilog = "examples:\n" + "".join(f"  {e}\n" for e in examples) + "\n" + KEY_HELP
     ap = Parser(
@@ -75,12 +76,20 @@ def build_parser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         add_help=True,
     )
-    add_common(ap, threshold=threshold, files=files, short_verbose=short_verbose)
+    add_common(ap, threshold=threshold, files=files, short_verbose=short_verbose, quiet_help=quiet_help)
     return ap
 
 
+QUIET_HELP = "no end-of-run notes on stderr (errors still show)"
+
+
 def add_common(
-    ap: argparse.ArgumentParser, *, threshold: float | None = 0.5, files: bool = True, short_verbose: bool = True
+    ap: argparse.ArgumentParser,
+    *,
+    threshold: float | None = 0.5,
+    files: bool = True,
+    short_verbose: bool = True,
+    quiet_help: str | None = None,
 ) -> None:
     g = ap.add_argument_group("common options (every j-tool)")
     if threshold is not None:
@@ -148,7 +157,9 @@ def add_common(
         default=None,
         help="print calls, tokens, cost and latency to stderr (default: when stderr is a terminal)",
     )
-    g.add_argument("-q", "--quiet", action="store_true", help="no end-of-run notes on stderr (errors still show)")
+    # jgrep keeps grep's -q (say nothing, stop at the first match); everywhere else it means
+    # "no end-of-run notes", so the tool that differs says so in its own --help.
+    g.add_argument("-q", "--quiet", action="store_true", help=quiet_help or QUIET_HELP)
     verbose_flags = ("-v", "--verbose") if short_verbose else ("--verbose",)
     g.add_argument(*verbose_flags, action="store_true", help="one line on stderr per decision, as it is made")
     g.add_argument("--version", action="version", version=f"%(prog)s {__version__} (jev-tools)")

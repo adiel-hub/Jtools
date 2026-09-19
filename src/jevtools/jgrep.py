@@ -71,6 +71,7 @@ def parser() -> Parser:
         ],
         usage="jgrep [options] DESCRIPTION [FILE ...]",
         short_verbose=False,  # -v is grep's invert-match
+        quiet_help="as in grep: print nothing and stop at the first match; the exit status is the answer",
     )
     ap.add_argument(
         "-e",

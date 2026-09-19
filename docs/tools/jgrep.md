@@ -26,6 +26,10 @@ jgrep [options] DESCRIPTION [FILE ...]
 | `-v` | print lines that do **not** match |
 | `-o` | put the probability in a first, tab-separated column |
 | `-n`, `-H`, `--no-filename`, `-c`, `-l`, `-m NUM`, `-q` | as in grep |
+
+`-q` keeps grep's meaning here: print nothing, stop at the first match, and let the exit status
+be the answer. In every other j-tool `-q` only silences the end-of-run notes on stderr.
+
 | `-r`, `--glob PAT`, `--exclude PAT`, `--hidden` | recursive search; skips VCS/dependency dirs and binaries |
 | `--para`, `--whole` | judge paragraphs or whole files |
 | `-C N` | show Jev the N records either side; still one decision per record, and only that record prints |

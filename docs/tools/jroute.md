@@ -30,6 +30,7 @@ jroute [options] "NAME:DESCRIPTION" "NAME:DESCRIPTION" ... [-i FILE]
 | `--no-files` | write no files (use with `--json` or `--stdout`) |
 | `--json` | `{"bucket", "line", "probability", "probabilities", "source", "lineno"}` per line |
 | `-q` | no summary line on stderr |
+| `-v` | one line per routed line: the bucket, the probability, the text |
 
 Bucket names may use letters, digits, `.`, `-` and `_`.
 
