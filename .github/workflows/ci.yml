@@ -64,5 +64,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --all-groups
-      - name: One real call per tool (skips cleanly when no secret is set)
+      # A fork, or a repository whose owner has not added a key, has no secret to run these with.
+      # pytest exits 5 when a marker selects nothing, which would fail the job for no reason, so
+      # the step is skipped outright and says so. (The secrets context is not available to a
+      # job-level `if`, which is why this is a step rather than a condition on the job.)
+      - name: Is an API key configured?
+        id: key
+        run: |
+          if [ -n "${TYPESAFE_API_KEY}${OPENROUTER_API_KEY}${AI_GATEWAY_API_KEY}" ]; then
+            echo "present=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=no" >> "$GITHUB_OUTPUT"
+            echo "::notice::No API key secret is set, so the live smoke tests did not run."
+          fi
+      - name: One real call per tool
+        if: steps.key.outputs.present == 'yes'
         run: uv run pytest -q -m live --timeout 300 -s
