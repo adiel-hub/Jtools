@@ -123,12 +123,13 @@ def accuracy_table() -> str:
         rows = "\n".join(
             f"| {name} | {v['precision']:.2f} | {v['recall']:.2f} | {v['f1']:.2f} |" for name, v in per.items()
         )
+        # One --label per class is a list; the older runs recorded a single --labels string.
+        spec = news["labels"]
+        labels = ", ".join(f"`{one}`" for one in spec) if isinstance(spec, list) else f"`{spec}`"
         parts.append(
             f"### jtag four-way classification: {news['dataset']} "
             f"({judged(news)} of {news['lines']} sampled articles judged)\n\n"
-            "Labels: " + ", ".join(f"`{one}`" for one in news["labels"]) + "\n\n"
-            if isinstance(news["labels"], list)
-            else f"Labels: `{news['labels']}`\n\n"
+            f"Labels: {labels}\n\n"
             f"Accuracy **{news['accuracy']:.2f}**, macro F1 {news['macro_f1']:.2f}, "
             f"{run.get('seconds', '?')} s, {money(run_dollars(run))}.\n\n"
             "| label | precision | recall | F1 |\n|---|---:|---:|---:|\n" + rows + "\n"

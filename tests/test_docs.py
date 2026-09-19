@@ -86,6 +86,44 @@ def test_generated_benchmark_blocks_are_present():
         assert text.index(f"<!-- BEGIN {name}") < text.index(f"<!-- END {name} -->")
 
 
+@pytest.mark.parametrize(
+    "labels",
+    [
+        ["world:world affairs", "sports:sport", "business:markets, money", "scitech:science"],
+        "world:world affairs,sports:sport,business:markets,scitech:science",
+    ],
+    ids=["one --label per class", "a single --labels string"],
+)
+def test_the_news_table_is_whole_for_either_label_shape(labels, monkeypatch):
+    """A run recorded either way must still produce a heading, the accuracy line and the table."""
+    import importlib.util
+    import sys as _sys
+
+    spec = importlib.util.spec_from_file_location("render_tables", ROOT / "scripts" / "render_tables.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    _sys.modules["render_tables"] = module
+    spec.loader.exec_module(module)
+
+    result = {
+        "dataset": "AG News test split",
+        "lines": 80,
+        "judged": 78,
+        "labels": labels,
+        "accuracy": 0.83,
+        "macro_f1": 0.81,
+        "per_class": {"world": {"precision": 0.8, "recall": 0.9, "f1": 0.85}},
+        "jtag_run": {"seconds": 12.5, "tokens": 1000},
+    }
+    monkeypatch.setattr(module, "load", lambda name: result if name == "accuracy-news" else None)
+    table = module.accuracy_table()
+    assert "### jtag four-way classification: AG News test split (78 of 80 sampled articles judged)" in table
+    assert "Accuracy **0.83**, macro F1 0.81" in table
+    assert "| label | precision | recall | F1 |" in table
+    assert "| world | 0.80 | 0.90 | 0.85 |" in table
+    assert "world affairs" in table
+
+
 def test_contributing_states_the_hard_rule():
     text = (ROOT / "CONTRIBUTING.md").read_text()
     assert "Hard Rule" in text

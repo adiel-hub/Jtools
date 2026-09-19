@@ -1,4 +1,4 @@
-{"version": 2, "width": 100, "height": 24, "timestamp": 1789790517, "title": "j-tools: split a stream into buckets", "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}}
+{"version": 2, "width": 100, "height": 24, "timestamp": 1789795427, "title": "j-tools: split a stream into buckets", "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}}
 [0.0, "o", "\u001b[1;32m$\u001b[0m "]
 [0.03, "o", "j"]
 [0.06, "o", "r"]
@@ -173,5 +173,4 @@
 [6.58, "o", "Re: invoice #4471 - paid twice, please refund one payment.\r\n"]
 [6.58, "o", "\r\n"]
 [6.58, "o", "==> /tmp/sorted/unrouted.txt <==\r\n"]
-[6.58, "o", "Can we get a quote for 50 enterprise seats? We'd like to start next quarter.\r\n"]
 [6.63, "o", "\u001b[2mjroute: 10 lines routed (support: 4, sales: 3, spam: 3) -> /tmp/sorted\u001b[0m\r\n"]

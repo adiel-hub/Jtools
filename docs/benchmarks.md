@@ -36,13 +36,13 @@ Measured 2026-09-19 through **vercel** (`typesafe-ai/jev`), 8 sequential calls, 
 
 | model | kind | $ per 1,000 decisions | vs Jev | source |
 |---|---|---:|---:|---|
-| `typesafe-ai/jev` | decision model | $0.0126 | 1x | measured tokens (bench/results/latency.json) x list price |
-| `alibaba/qwen3.8-flash` | chat model | $0.0475 | 3.8x | list price arithmetic |
-| `openai/gpt-5.6-luna` | chat model | $0.0662 | 5.2x | list price arithmetic |
-| `google/gemini-3.8-flash` | chat model | $0.2445 | 19.3x | list price arithmetic |
-| `openai/gpt-5.4-mini` | chat model | $0.2482 | 19.6x | list price arithmetic |
-| `anthropic/claude-haiku-4.5` | chat model | $0.3260 | 25.8x | list price arithmetic |
-| `openai/gpt-5.5` | chat model | $1.6550 | 130.9x | list price arithmetic |
+| `typesafe-ai/jev` | decision model | $0.0126 | 1x | measured tokens (bench/results/latency.json) x catalog price |
+| `alibaba/qwen3.8-flash` | chat model | $0.0475 | 3.8x | catalog price arithmetic |
+| `openai/gpt-5.6-luna` | chat model | $0.0662 | 5.2x | catalog price arithmetic |
+| `google/gemini-3.8-flash` | chat model | $0.2445 | 19.3x | catalog price arithmetic |
+| `openai/gpt-5.4-mini` | chat model | $0.2482 | 19.6x | catalog price arithmetic |
+| `anthropic/claude-haiku-4.5` | chat model | $0.3260 | 25.8x | catalog price arithmetic |
+| `openai/gpt-5.5` | chat model | $1.6550 | 130.9x | catalog price arithmetic |
 
 ### jgrep vs a keyword regex: UCI SMS Spam Collection (30 of 30 sampled messages judged, 2 spam)
 
@@ -69,7 +69,7 @@ Description: *most positive, happiest customer*
 
 Labels: `world:news about world affairs, politics or conflict,sports:news about sports,business:news about business, markets or the economy,scitech:news about science or technology`
 
-Accuracy **0.50**, macro F1 0.59, 969.0 s, $0.000364.
+Accuracy **0.50**, macro F1 0.59, 919.9 s, $0.000364.
 
 | label | precision | recall | F1 |
 |---|---:|---:|---:|
