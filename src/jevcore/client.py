@@ -35,7 +35,7 @@ from . import __version__
 from .auth import Credentials
 from .backends import Backend
 from .cache import DiskCache, LayeredCache, cache_key
-from .errors import AuthError, BudgetExceeded, JevError, JevFatal
+from .errors import AuthError, BudgetExceeded, JevError, JevFatal, UsageError
 from .questions import Answer, Question, State
 from .wire import Usage
 
@@ -49,35 +49,40 @@ ERROR_REPORT_INTERVAL = 60.0
 TYPICAL_TOKENS = 300  # what one line costs, before any call has measured it
 
 
-ENV_PROBLEMS: list[str] = []
-"""Environment defaults that could not be used, reported by ``validate_common`` as a usage error.
+def env_number(name: str, default: float, cast: Callable[[str], Any] = float, *, low: float = 0.0) -> Any:
+    """An environment default, or a :class:`UsageError` naming the variable and its value.
 
-They are read at import, and raising there would stop ``--help`` from printing the very flag the
-user got wrong. Collecting them instead keeps ``--help`` working and still refuses to run with a
-setting nobody can act on: silently clamping ``JEV_TIMEOUT=-5`` to something workable would judge
-nothing and never mention the variable.
-"""
-
-
-def _env_number(name: str, default: float, cast: Callable[[str], Any] = float, *, low: float = 0.0) -> Any:
+    Read per run rather than remembered from import time, so a process that fixes the variable and
+    tries again is not still told about the old value, and one bad setting cannot outlive itself.
+    Silently clamping instead would judge nothing and never mention the variable at all.
+    """
     raw = (os.environ.get(name) or "").strip()
     if not raw:
         return default
     try:
         value = cast(raw)
     except ValueError:
-        ENV_PROBLEMS.append(f"{name}={raw!r} is not a number")
-        return default
+        raise UsageError(f"{name}={raw!r} is not a number") from None
     if not math.isfinite(value) or value < low:
-        ENV_PROBLEMS.append(f"{name}={raw!r} must be a finite number of at least {low:g}")
-        return default
+        raise UsageError(f"{name}={raw!r} must be a finite number of at least {low:g}")
     return value
 
 
-DEFAULT_CONCURRENCY: int = _env_number("JEV_CONCURRENCY", 20, int, low=1)
-# TypeSafe reports tokens, not dollars. Its list price is $0.042 per million input tokens.
-PRICE_PER_MTOK: float = _env_number("JEV_PRICE_PER_MTOK", 0.042)
-DEFAULT_TIMEOUT: float = _env_number("JEV_TIMEOUT", 15.0, low=1e-3)
+def env_defaults() -> tuple[int, float]:
+    """``(-j, --timeout)`` from the environment. Raises :class:`UsageError` on an unusable value."""
+    return env_number("JEV_CONCURRENCY", 20, int, low=1), env_number("JEV_TIMEOUT", 15.0, low=1e-3)
+
+
+# Shown in --help. The value a run actually uses comes from env_defaults(), so that --help still
+# prints the flag that explains a variable the user got wrong.
+DEFAULT_CONCURRENCY = 20
+DEFAULT_TIMEOUT = 15.0
+LIST_PRICE_PER_MTOK = 0.042  # TypeSafe's list price, in dollars per million input tokens
+
+
+def price_per_mtok() -> float:
+    """What to price a token at when the backend reports no cost. Validated like the rest."""
+    return float(env_number("JEV_PRICE_PER_MTOK", LIST_PRICE_PER_MTOK))
 
 
 @dataclass
@@ -94,6 +99,7 @@ class Meter:
     output_tokens: int = 0
     cost: float = 0.0
     model: str = ""
+    price_per_mtok: float = LIST_PRICE_PER_MTOK
     latencies: list[float] = field(default_factory=list)
     started: float = field(default_factory=time.perf_counter)
 
@@ -102,7 +108,7 @@ class Meter:
         self.input_tokens += usage.input_tokens
         self.output_tokens += usage.output_tokens
         # A gateway that reports no cost (or a free tier that reports $0) is priced at TypeSafe's list price.
-        self.cost += usage.cost if usage.cost else usage.input_tokens * PRICE_PER_MTOK / 1e6
+        self.cost += usage.cost if usage.cost else usage.input_tokens * self.price_per_mtok / 1e6
         self.latencies.append(seconds)
         self.model = usage.model or fallback_model
 
@@ -213,7 +219,7 @@ class Jev:
         self.attempts = max(1, attempts)
         self.concurrency = max(1, concurrency)
         self.budget = max(0.0, budget)
-        self.meter = Meter()
+        self.meter = Meter(price_per_mtok=price_per_mtok())
         self.report: Callable[[str], None] = on_error or ErrorReporter(prefix=prefix)
         self._sem = asyncio.Semaphore(self.concurrency)
         self._brake_until = 0.0  # monotonic time before which nothing is sent (after a 429/529)
@@ -361,7 +367,7 @@ class Jev:
         """What the next call will probably cost: what the last ones did, or a typical line."""
         if self.meter.calls:
             return self.meter.cost / self.meter.calls
-        return TYPICAL_TOKENS * PRICE_PER_MTOK / 1e6
+        return TYPICAL_TOKENS * self.meter.price_per_mtok / 1e6
 
     def _check_budget(self) -> None:
         """Dollars already spent plus dollars promised to calls in flight.

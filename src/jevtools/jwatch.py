@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import time
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import IO
 
@@ -101,24 +101,45 @@ def prepare_exec(command: str) -> str:
     """Turn ``{}`` into the shell parameter that carries the line, and refuse an unsafe spelling.
 
     The line comes from the stream being watched, so it must never be part of the command text.
-    ``{}`` becomes ``"$1"`` and the line is passed to ``/bin/sh`` as that parameter. A ``{}`` the
-    user has quoted themselves would expand to ``""$1""``, where ``$1`` is no longer quoted and
-    the line is split on whitespace, so that spelling is rejected rather than quietly mangled.
-    Anyone who wants the line inside a larger string can write ``$1`` directly.
+    ``{}`` becomes ``"$1"`` and the line is passed to ``/bin/sh`` as that parameter.
+
+    Two spellings are refused rather than quietly accepted. An empty command would become just
+    ``"$1"``, which makes the watched line the program that runs. A ``{}`` the user has quoted
+    themselves would expand to ``""$1""``, where ``$1`` is no longer quoted and the line is split
+    on whitespace. Anyone who wants the line inside a larger string can write ``$1`` directly.
     """
+    if not command.strip():
+        raise UsageError("--exec needs a command; an empty one would run the watched line itself")
     if "{}" not in command and "$1" not in command:
         command += " {}"
-    for i in range(len(command) - 1):
-        if command[i : i + 2] != "{}":
-            continue
-        before = command[i - 1] if i else ""
-        after = command[i + 2] if i + 2 < len(command) else ""
-        if (before and before in "\"'") or (after and after in "\"'"):
+    for i, quoted in quote_state(command):
+        if command[i : i + 2] == "{}" and quoted:
             raise UsageError(
                 "--exec: {} is already quoted for you, so do not put quotes around it. "
                 "To put the line inside a longer string, use $1: --exec 'notify-send \"api: $1\"'"
             )
     return command.replace("{}", '"$1"')
+
+
+def quote_state(command: str) -> Iterator[tuple[int, bool]]:
+    """``(index, inside a quoted string)`` for every character, the way a shell would read it.
+
+    Looking only at the characters either side of ``{}`` cannot tell ``'api: {}'`` from
+    ``'api: {} '``: one is inside the quotes and one looks bare. A shell decides by tracking the
+    quote it opened, so this does too.
+    """
+    quote = ""
+    for i, char in enumerate(command):
+        if quote:
+            yield i, True
+            if char == quote:
+                quote = ""
+            continue
+        if char in "\"'":
+            quote = char
+            yield i, True
+            continue
+        yield i, False
 
 
 def question(args: argparse.Namespace) -> Noul:
@@ -162,7 +183,14 @@ async def run(r: Run) -> int:
         the shell never parses it.
         """
         assert args.command is not None
-        proc = await asyncio.create_subprocess_exec("/bin/sh", "-c", args.command, PROG, line)
+        # A NUL cannot be passed through exec at all, and a binary log will contain them. Losing
+        # the byte is better than losing the alert, which is what the raw ValueError did.
+        safe = line.replace("\0", "")
+        try:
+            proc = await asyncio.create_subprocess_exec("/bin/sh", "-c", args.command, PROG, safe)
+        except (OSError, ValueError) as e:
+            r.warn(f"--exec could not start: {e}")
+            return
         code = await proc.wait()
         if code:
             r.verbose(f"--exec exited {code}: {args.command[:120]}")

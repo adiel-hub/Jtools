@@ -25,7 +25,7 @@ import httpx
 from . import __version__
 from .auth import Credentials, resolve
 from .backends import BACKEND_NAMES, config_dir
-from .client import DEFAULT_CONCURRENCY, DEFAULT_TIMEOUT, ENV_PROBLEMS, ErrorReporter, Jev
+from .client import DEFAULT_CONCURRENCY, DEFAULT_TIMEOUT, ErrorReporter, Jev, env_defaults, price_per_mtok
 from .errors import AuthError, BudgetExceeded, JevError, JevFatal, UsageError
 from .inputs import DEFAULT_MAX_CHARS
 from .io import BrokenOutput, Output, eprint, redact
@@ -114,14 +114,14 @@ def add_common(
         "-j",
         "--concurrency",
         type=int,
-        default=DEFAULT_CONCURRENCY,
+        default=None,
         metavar="N",
         help=f"requests in flight (default {DEFAULT_CONCURRENCY}, or $JEV_CONCURRENCY)",
     )
     g.add_argument(
         "--timeout",
         type=float,
-        default=DEFAULT_TIMEOUT,
+        default=None,
         metavar="SECONDS",
         help=f"give up on one request after this long, retries and rate-limit waits included "
         f"(default {DEFAULT_TIMEOUT:g}, or $JEV_TIMEOUT)",
@@ -169,10 +169,15 @@ def add_common(
 
 
 def validate_common(args: argparse.Namespace) -> None:
-    if ENV_PROBLEMS:
-        # Read at import so --help still works; refused here so nothing runs on a setting that
-        # cannot be honoured, which would otherwise look like the backend misbehaving.
-        raise UsageError("; ".join(ENV_PROBLEMS))
+    # The environment is read here, once per run, rather than at import: --help still prints the
+    # flag that explains a variable the user got wrong, and a value fixed between two runs in one
+    # process is honoured rather than remembered.
+    concurrency, timeout = env_defaults()
+    price_per_mtok()  # validated for its own sake; the meter reads it when it starts
+    if args.concurrency is None:
+        args.concurrency = concurrency
+    if args.timeout is None:
+        args.timeout = timeout
     if getattr(args, "threshold", None) is not None and not (
         math.isfinite(args.threshold) and 0.0 <= args.threshold <= 1.0
     ):

@@ -80,6 +80,10 @@ def prepare(args: argparse.Namespace) -> None:
         raise UsageError("--ext must be a plain file extension, for example .txt")
     if args.stdout and args.stdout not in args.bucket_map and args.stdout != args.default_bucket:
         raise UsageError(f"--stdout {args.stdout!r} is not a bucket")
+    if args.no_files and args.stdout and args.json:
+        # --stdout picks one bucket, --no-files writes none: together under --json every other
+        # record would exist nowhere at all. Either is fine on its own.
+        raise UsageError("--stdout with --json and --no-files would discard every other record")
     if args.threshold != DEFAULT_THRESHOLD and not args.default_bucket:
         # Without a bucket to put them in, a low-confidence line has nowhere to go but its best
         # bucket, so -p would silently do nothing at all.

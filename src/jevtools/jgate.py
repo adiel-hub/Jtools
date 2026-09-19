@@ -116,6 +116,27 @@ def unreadable(r: Run) -> int:
     return EXIT_USAGE
 
 
+def check_files(r: Run) -> bool:
+    """Open every named file before judging anything. True when they can all be read.
+
+    The reader would report an unreadable file on its own, but `--each` stops at the first line
+    that settles the verdict, and a file after that one is never opened at all. A gate has to know
+    what it is being asked about before it answers, so the arguments are checked up front.
+    """
+    bad = []
+    for path in r.args.files:
+        if path == "-":
+            continue
+        try:
+            with open(path, "rb"):
+                pass
+        except OSError as e:
+            bad.append(f"{path}: {e.strerror or e}")
+    for message in bad:
+        r.warn(message)
+    return not bad
+
+
 def verdict(r: Run, p: float | None, *, extra: dict[str, object] | None = None) -> int:
     args = r.args
     if p is None:
@@ -140,6 +161,8 @@ def verdict(r: Run, p: float | None, *, extra: dict[str, object] | None = None) 
 
 
 async def gate_whole(r: Run) -> int:
+    if not check_files(r):
+        return unreadable(r)
     records = await read_all(r, r.args.files, keep_blank=True, mode="whole")
     if r.input_errors:
         return unreadable(r)
@@ -179,6 +202,8 @@ class _EachStats:
 
 async def gate_each(r: Run) -> int:
     args = r.args
+    if not check_files(r):
+        return unreadable(r)
     q = question(args)
     kept: list[Record] = []
     stats = _EachStats()

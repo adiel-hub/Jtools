@@ -4,8 +4,10 @@ import asyncio
 import time
 
 import httpx
+import pytest
 
 from jevcore.client import Jev
+from jevcore.errors import UsageError
 from jevcore.mock import MockJev
 from jevcore.questions import Noul
 
@@ -37,15 +39,26 @@ async def test_trickle_respects_the_deadline(creds):
     assert results == [None, None, None, None] and jev.meter.errors == 4
 
 
-def test_concurrency_default_reads_the_environment(monkeypatch):
-    import importlib
-
-    from jevcore import client as client_module
+def test_the_environment_defaults_are_read_per_run(monkeypatch):
+    """Not at import: a process that fixes a variable and tries again must be believed."""
+    from jevcore.client import env_defaults
 
     monkeypatch.setenv("JEV_CONCURRENCY", "3")
-    reloaded = importlib.reload(client_module)
-    try:
-        assert reloaded.DEFAULT_CONCURRENCY == 3
-    finally:
-        monkeypatch.delenv("JEV_CONCURRENCY")
-        importlib.reload(client_module)
+    monkeypatch.setenv("JEV_TIMEOUT", "45")
+    assert env_defaults() == (3, 45.0)
+
+    monkeypatch.setenv("JEV_TIMEOUT", "45s")
+    with pytest.raises(UsageError, match="JEV_TIMEOUT"):
+        env_defaults()
+
+    monkeypatch.setenv("JEV_TIMEOUT", "45")  # fixed, and believed straight away
+    assert env_defaults() == (3, 45.0)
+
+
+@pytest.mark.parametrize("value", ["-5", "inf", "nan", "0"])
+def test_an_unusable_timeout_names_the_variable(monkeypatch, value):
+    from jevcore.client import env_defaults
+
+    monkeypatch.setenv("JEV_TIMEOUT", value)
+    with pytest.raises(UsageError, match=f"JEV_TIMEOUT={value!r}"):
+        env_defaults()

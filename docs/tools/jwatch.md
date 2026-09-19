@@ -40,8 +40,9 @@ jwatch [options] DESCRIPTION [FILE ...]
   is passed to `/bin/sh` as that parameter, so a log line containing `$(…)`, backticks or `;` is
   text, not code. Do not put your own quotes around `{}`: it is quoted already, and
   `"{}"` would expand to `""$1""`, where the line is unquoted again and splits on whitespace.
-  jwatch refuses that spelling. To put the line inside a longer string, write `$1` yourself:
-  `--exec 'notify-send "api: $1"'`.
+  jwatch refuses that spelling, wherever the quotes sit. To put the line inside a longer
+  string, write `$1` yourself: `--exec 'notify-send "api: $1"'`. An empty `--exec` is
+  refused too: it would leave the line as the command word.
 - Fail-open: a line that could not be judged is skipped (never alerts) and the exit status
   becomes 5; a dead endpoint is reported once a minute, not once a line.
 - Exit status: 0 at least one alert, 1 none, 2 usage, 3 auth, 4 API (`--strict`), 5 partial.

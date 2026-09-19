@@ -159,10 +159,15 @@ def test_jroute_refuses_a_threshold_it_could_not_act_on(invoke, tmp_path):
 
 
 def test_stdout_selects_what_reaches_stdout_under_json_as_well(invoke, tmp_path):
-    """--stdout was an elif after --json, so --json printed every bucket regardless."""
+    """--stdout was an elif after --json, so --json printed every bucket regardless.
+
+    The files still hold every record, which is what makes selecting on stdout safe here.
+    """
     inbox = "Can we get a quote for 50 seats?\nFREE PRIZE click here\n"
-    res = invoke(jroute, ["sales:a sales lead", "spam:junk", "--no-files", "--json", "--stdout", "sales"], inbox)
+    out = tmp_path / "buckets"
+    res = invoke(jroute, ["sales:a sales lead", "spam:junk", "-o", str(out), "--json", "--stdout", "sales"], inbox)
     assert res.lines and all('"bucket": "sales"' in line for line in res.lines)
+    assert sum(len(p.read_text().splitlines()) for p in out.glob("*.txt")) == 2, "a record went nowhere"
 
 
 # --------------------------------------------------------------------- inputs
@@ -328,3 +333,123 @@ def test_doctor_does_not_print_a_token_carried_in_the_endpoint(tmp_path):
         assert "127.0.0.1" in done.stdout
     finally:
         server.shutdown()
+
+
+# --------------------------------------------------------------- the fourth review
+
+
+@pytest.mark.parametrize("command", ["", "   "])
+def test_an_empty_exec_is_refused(command):
+    """An empty command becomes just `"$1"`, which makes the watched line the program that runs."""
+    with pytest.raises(UsageError, match="empty one would run"):
+        prepare_exec(command)
+
+
+@pytest.mark.parametrize("command", ["printf '%s' 'api: {} ' >> f", "printf '%s' 'api: {}' >> f", 'echo "x {} y"'])
+def test_a_placeholder_inside_quotes_is_refused_however_it_is_spaced(command):
+    """Looking at the neighbouring characters cannot tell `'{} '` from `'{}'`; a quote scan can."""
+    with pytest.raises(UsageError, match="already quoted"):
+        prepare_exec(command)
+
+
+def test_a_gate_checks_its_files_before_it_stops_early(invoke, tmp_path):
+    """--each stops at the first fitting line, so a later missing file was never even opened."""
+    big = write(tmp_path, "big.log", "ERROR payment service failed\n" * 500)
+    res = invoke(jgate, ["an error", "--each", big, str(tmp_path / "typo.log")])
+    assert res.code == 2, f"exited {res.code} having never opened a file it was given"
+    assert "typo.log" in res.err
+
+
+def test_a_nul_byte_in_a_line_does_not_lose_the_alert(tmp_path, monkeypatch):
+    """create_subprocess_exec rejects a NUL; that must not silently drop the alert."""
+    monkeypatch.chdir(tmp_path)
+    seen = tmp_path / "seen.txt"
+    monkeypatch.setattr(sys, "stdin", io.StringIO("an error \x00 happened\nan error again\n"))
+    code = jwatch(
+        ["an error", "--exec", f"printf '%s\\n' {{}} >> {seen}", "--max", "2"],
+        transport=httpx.MockTransport(MockJev()),
+        out=io.StringIO(),
+        err=io.StringIO(),
+    )
+    time.sleep(0.6)
+    assert code in (0, 1, 5)
+    written = seen.read_text().splitlines() if seen.exists() else []
+    assert len(written) == 2, f"an alert was lost: {written}"
+
+
+def test_a_cache_written_by_an_earlier_version_is_not_kept_and_claimed(tmp_path):
+    """Its rows carry no record of which model produced them, so they can never be reconciled."""
+    import sqlite3
+
+    from jevcore.cache import DiskCache, cache_key
+    from jevcore.questions import Noul
+
+    path = tmp_path / "answers.sqlite"
+    db = sqlite3.connect(path, isolation_level=None)
+    db.execute("CREATE TABLE answers (key TEXT PRIMARY KEY, answer TEXT NOT NULL, at REAL NOT NULL) WITHOUT ROWID")
+    key = cache_key("jev-latest", "a line", Noul("a question"))
+    db.execute("INSERT INTO answers VALUES (?, ?, 0)", (key, '{"type": "noul", "p": 0.9}'))
+    db.close()
+
+    cache = DiskCache(path)
+    try:
+        assert cache.get(key) is None, "a row with no provenance survived the upgrade"
+    finally:
+        cache.close()
+
+
+def test_a_moved_alias_keeps_the_answers_the_new_version_gave(tmp_path):
+    """Under -j 20 a sibling call may already have stored an answer from the new version."""
+    from jevcore.cache import DiskCache
+    from jevcore.questions import NoulAnswer
+
+    cache = DiskCache(tmp_path / "answers.sqlite")
+    try:
+        cache.reconcile("jev-latest", "jev-1.0")
+        cache.put("old", NoulAnswer(0.9), "jev-latest", "jev-1.0")
+        cache.put("new", NoulAnswer(0.9), "jev-latest", "jev-2.0")
+        assert cache.reconcile("jev-latest", "jev-2.0") == "jev-1.0"
+        assert cache.get("old") is None, "the retired version's answer was kept"
+        assert cache.get("new") is not None, "an answer from the new version was thrown away"
+    finally:
+        cache.close()
+
+
+def test_a_byte_order_mark_is_stripped_from_standard_input_too(tmp_path):
+    """A pipe is the commonest way in, and it is where the spreadsheet case actually shows up."""
+    csv_text = "﻿id,text\n1,alpha\n"
+    done = subprocess.run(
+        [sys.executable, "-m", "jevtools.jgrep", "--csv", "--field", "id", "--dry-run", "anything", "-"],
+        input=csv_text,
+        capture_output=True,
+        text=True,
+        env={
+            **{k: v for k, v in os.environ.items() if not k.endswith("API_KEY")},
+            "HOME": str(tmp_path),
+            "TYPESAFE_API_KEY": "k",
+            "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent.parent / "src"),
+        },
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr[-400:]
+    assert "no column" not in done.stderr, done.stderr
+
+
+def test_a_pattern_does_not_match_above_the_directory_being_searched(tmp_path, monkeypatch):
+    """An absolute argument used to expose its parent directories to --exclude and --glob."""
+    from jevcore.inputs import discover
+
+    root = tmp_path / "fixture-tree" / "proj"
+    root.mkdir(parents=True)
+    (root / "keep.py").write_text("code\n")
+    monkeypatch.chdir(root)
+    relative, _ = discover(["."], recursive=True, excludes=["*fixture*"])
+    absolute, _ = discover([str(root)], recursive=True, excludes=["*fixture*"])
+    assert [os.path.basename(f) for f in relative] == ["keep.py"]
+    assert [os.path.basename(f) for f in absolute] == ["keep.py"], "the path above the root was matched"
+
+
+def test_jroute_refuses_a_combination_that_would_discard_records(invoke, tmp_path):
+    """--stdout picks one bucket and --no-files writes none; under --json the rest exist nowhere."""
+    res = invoke(jroute, ["a:one thing", "b:another", "--no-files", "--json", "--stdout", "a"], "x\n")
+    assert res.code == 2 and "discard" in res.err

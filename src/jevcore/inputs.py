@@ -6,6 +6,7 @@ Everything is a generator so ``tail -f`` works: a line is yielded the moment it 
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import fnmatch
 import io
@@ -78,6 +79,10 @@ def open_text(path: str, *, newline: str = "\n") -> TextIO:
     ``newline=""`` instead, because it has to see the terminators inside quoted fields itself.
     """
     if path == "-":
+        # A pipe is the commonest way in, so it needs the same treatment a file gets. Not every
+        # stream can be reconfigured (a test may hand us a StringIO), and that is fine.
+        with contextlib.suppress(AttributeError, ValueError, OSError):
+            sys.stdin.reconfigure(encoding="utf-8-sig", errors="replace", newline=newline)  # type: ignore[union-attr]
         return sys.stdin
     return open(path, encoding="utf-8-sig", errors="replace", newline=newline)  # the caller closes it
 
@@ -298,7 +303,7 @@ def discover(
         pattern is matched against the path relative to the directory being searched as well as
         against the path relative to the working directory and the bare file name.
         """
-        return {os.path.basename(path), path, os.path.relpath(path), os.path.relpath(path, root)}
+        return {os.path.basename(path), os.path.relpath(path), os.path.relpath(path, root)}
 
     def matches(path: str, root: str, patterns: Sequence[str]) -> bool:
         return any(fnmatch.fnmatchcase(name, p) for name in names(path, root) for p in patterns)

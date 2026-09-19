@@ -122,8 +122,14 @@ class DiskCache:
             "CREATE TABLE IF NOT EXISTS resolutions (asked TEXT PRIMARY KEY, answered TEXT NOT NULL, at REAL NOT NULL)"
         )
         for column in ("asked", "answered"):  # a file written by an earlier version has neither
-            with contextlib.suppress(sqlite3.OperationalError):
+            try:
                 self._db.execute(f"ALTER TABLE answers ADD COLUMN {column} TEXT")
+            except sqlite3.OperationalError:
+                continue  # already there: this file was written by this version
+            # The column was just added, so every existing row predates it and carries no record
+            # of which model produced it. Such a row can never be reconciled against a moved
+            # alias, and claiming later that it was discarded would be a lie, so it goes now.
+            self._db.execute("DELETE FROM answers WHERE asked IS NULL")
 
     def get(self, key: str) -> Answer | None:
         with self._lock:
@@ -157,7 +163,11 @@ class DiskCache:
             self._db.execute("INSERT OR REPLACE INTO resolutions VALUES (?, ?, ?)", (asked, answered, time.time()))
             if previous is None:
                 return None
-            self._db.execute("DELETE FROM answers WHERE asked = ?", (asked,))
+            # Only the answers the old version produced. Under -j 20 a sibling call may already
+            # have stored an answer from the new one, and that is exactly what we want to keep.
+            self._db.execute(
+                "DELETE FROM answers WHERE asked = ? AND (answered IS NULL OR answered != ?)", (asked, answered)
+            )
         return str(previous)
 
     def __len__(self) -> int:
