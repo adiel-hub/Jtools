@@ -22,20 +22,25 @@ jgrep [options] DESCRIPTION [FILE ...]
 | option | meaning |
 |---|---|
 | `-e DESC` | another description; all go in **one call** per line. A line matches if any fits, or all with `--all` |
-| `-p P` | match when the probability is at least P (default 0.5) |
-| `-v` | print lines that do **not** match |
+| `-p P`, `--prob P` | match when the probability is at least P (default 0.5) |
+| `-v`, `--invert-match` | print lines that do **not** match |
 | `-o` | put the probability in a first, tab-separated column |
-| `-n`, `-H`, `--no-filename`, `-c`, `-l`, `-m NUM`, `-q` | as in grep |
-
-`-q` keeps grep's meaning here: print nothing, stop at the first match, and let the exit status
-be the answer. In every other j-tool `-q` only silences the end-of-run notes on stderr.
-
-| `-r`, `--glob PAT`, `--exclude PAT`, `--hidden` | recursive search; skips VCS/dependency dirs and binaries |
+| `-n`, `--line-number` | prefix each line with its line number |
+| `-H`, `--with-filename`, `--no-filename` | show or hide the file name |
+| `-c`, `--count` | print how many lines matched, not the lines |
+| `-l`, `--files-with-matches` | print the names of files with a match |
+| `-m NUM`, `--max-count NUM` | stop after NUM matches per file |
+| `-q`, `--quiet` | print nothing, stop at the first match, let the exit status answer |
+| `-r`, `--recursive`, `--glob PAT`, `--exclude PAT`, `--hidden` | recursive search; skips VCS/dependency dirs and binaries |
 | `--para`, `--whole` | judge paragraphs or whole files |
-| `-C N` | show Jev the N records either side; still one decision per record, and only that record prints |
+| `-C N`, `--context N` | show Jev the N records either side; still one decision per record, and only that record prints |
 | `--jsonl --field NAME`, `--csv --field NAME` | judge one field, print the full record (dotted JSON paths work) |
 | `--json` | one JSON object per match: `{"file", "line", "p", "text", ["ps"], ["record", "field"]}` |
 | `--unordered` | print as answers arrive instead of in input order |
+
+The flags above that grep also has mean what they mean in grep, `-q` included: it prints nothing,
+stops at the first match and lets the exit status be the answer. In every other j-tool `-q` only
+silences the end-of-run notes on stderr.
 
 Plus the [common options](../../README.md#common-options) every tool has.
 

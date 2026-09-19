@@ -164,3 +164,42 @@ def test_shell_completions_match_the_parsers():
         check=False,
     )
     assert proc.returncode == 0, proc.stderr or proc.stdout
+
+
+def tool_specific_flags(tool: str) -> set[str]:
+    """The long flags a tool adds beyond the ones every j-tool shares."""
+    import argparse
+    import importlib
+
+    shared = argparse.ArgumentParser()
+    from jevcore.cli import add_common
+
+    add_common(shared)
+    common = {flag for action in shared._actions for flag in action.option_strings}
+    parser = importlib.import_module(f"jevtools.{tool}").parser()
+    own = {flag for action in parser._actions for flag in action.option_strings}
+    return {flag for flag in own - common if flag.startswith("--")}
+
+
+@pytest.mark.parametrize("tool", sorted(TOOLS))
+def test_every_flag_a_tool_adds_is_on_its_page(tool):
+    """A flag nobody documented is a flag nobody can find. Shared flags live in the README."""
+    page = (DOCS / "tools" / f"{tool}.md").read_text()
+    missing = sorted(flag for flag in tool_specific_flags(tool) if flag not in page)
+    assert not missing, f"docs/tools/{tool}.md does not mention {', '.join(missing)}"
+
+
+def test_the_common_flags_are_listed_in_one_place():
+    """Every shared flag appears in the README's common-options block, so no page repeats them."""
+    import argparse
+
+    from jevcore.cli import add_common
+
+    shared = argparse.ArgumentParser()
+    add_common(shared)
+    readme = (ROOT / "README.md").read_text()
+    block = readme.split("## Common options", 1)[1].split("Exit codes", 1)[0]
+    skip = {"--help", "--version", "--threshold", "--concurrency", "--no-stats", "--verbose", "--quiet"}
+    flags = {f for a in shared._actions for f in a.option_strings if f.startswith("--")} - skip
+    missing = sorted(f for f in flags if f not in block)
+    assert not missing, f"the README's common options do not list {', '.join(missing)}"

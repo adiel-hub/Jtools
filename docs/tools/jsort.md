@@ -22,7 +22,7 @@ jsort [options] DESCRIPTION [FILE ...]
 | option | meaning |
 |---|---|
 | `--asc` | worst fit first |
-| `-n N` | print only the first N lines of the sorted output |
+| `-n N`, `--limit N` | print only the first N lines of the sorted output |
 | `-s`, `--with-score` | prefix each line with its 0..1 score |
 | `--levels CSV` | your own ordered rubric, lowest first (default: a five-rung "fits the description …" scale) |
 | `--json` | `{"rank", "line", "score", "level", "confidence", "source", "lineno"}` per line |
