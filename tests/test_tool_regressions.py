@@ -6,8 +6,11 @@ things that were wrong, and the behaviour that replaced them.
 
 from __future__ import annotations
 
+import io
 import json
+import sys
 
+import httpx
 import pytest
 
 from jevcore.mock import POISON, MockJev
@@ -144,3 +147,42 @@ def test_quiet_silences_the_end_of_run_notes_and_verbose_explains_each_decision(
     assert "could not be" not in quiet.err, f"-q left a run note on stderr: {quiet.err!r}"
     chatty = invoke(tool, [*argv, "--verbose"], text)
     assert "a furious customer writes" in chatty.err, "--verbose explained nothing"
+
+
+class ClosesAfter(io.StringIO):
+    """A stdout that goes away mid-write, the way `| head -1` does."""
+
+    def __init__(self, lines: int) -> None:
+        super().__init__()
+        self.left = lines
+
+    def write(self, text: str) -> int:
+        if self.left <= 0:
+            raise BrokenPipeError(32, "Broken pipe")
+        if text.strip():
+            self.left -= 1
+        return super().write(text)
+
+
+@pytest.mark.parametrize(
+    "tool,argv",
+    [
+        (jsort, ["most urgent"]),
+        (jhead, ["2", "most urgent"]),
+        (juniq, ["the same request"]),
+        (jtag, ["--labels", "bug,feature"]),
+        (jpick, ["the clearest one"]),
+    ],
+)
+@pytest.mark.parametrize("mode", [[], ["--dry-run"]])
+def test_a_closed_pipe_ends_the_run_quietly_in_every_mode(tool, argv, mode, monkeypatch):
+    """`… | head -1` must exit 0 with no traceback, in a real run and in a dry run alike.
+
+    The subprocess version of this races on whether head closes the pipe before anything is
+    written; this one closes it deliberately after the first line, so it fails every time.
+    """
+    monkeypatch.setattr(sys, "stdin", io.StringIO(TICKETS))
+    out, err = ClosesAfter(1), io.StringIO()
+    code = tool([*argv, *mode], transport=httpx.MockTransport(MockJev()), out=out, err=err)
+    assert code == 0, f"exited {code}: {err.getvalue()[-400:]}"
+    assert "Traceback" not in err.getvalue()

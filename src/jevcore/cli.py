@@ -350,6 +350,9 @@ def execute(
         except UsageError as e:
             eprint(prog, str(e), err_stream)
             return EXIT_USAGE
+        except BrokenOutput:
+            # `--dry-run | head` closed the pipe. A real run ends quietly here; so does this.
+            return EXIT_OK
 
     try:
         jev, reporter = make_jev(prog, args, err_stream, transport)

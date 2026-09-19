@@ -68,10 +68,15 @@ build-backend = "hatchling.build"
 packages = ["src/jevcore", "src/jevtools"]
 
 [tool.hatch.build.targets.sdist]
+# The suite must pass from an unpacked sdist, and it runs scripts/ (the completions and the docs
+# blocks are checked by tests), so the generators ship too, as does bench/ for reproducing the
+# published numbers. The corpora bench downloads are not shipped; bench/accuracy.py fetches them.
 include = [
-    "/src", "/tests", "/completions", "/examples", "/docs",
-    "/README.md", "/LICENSE", "/CHANGELOG.md", "/CONTRIBUTING.md", "/SECURITY.md", "/pyproject.toml",
+    "/src", "/tests", "/scripts", "/bench", "/completions", "/examples", "/docs",
+    "/README.md", "/LICENSE", "/CHANGELOG.md", "/CONTRIBUTING.md", "/SECURITY.md",
+    "/Makefile", "/pyproject.toml",
 ]
+exclude = ["/bench/out"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
