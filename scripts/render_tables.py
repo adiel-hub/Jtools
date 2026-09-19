@@ -63,8 +63,10 @@ def latency_table() -> str:
         lps = t.get("lines_per_second")
         if not t.get("rate_limited"):
             rows.append(f"| jgrep -j {t['jobs']}, {t['lines']} lines | {t.get('seconds')} s ({lps} lines/s) |")
+    build = f", jev-tools {d['build']}" if d.get("build") else ""
     head = (
-        f"Measured {d['when'][:10]} through **{d['backend']}** (`{d['model']}`), {s['n']} sequential calls, uncached."
+        f"Measured {d['when'][:10]} through **{d['backend']}** (`{d['model']}`{build}), "
+        f"{s['n']} sequential calls, uncached."
     )
     return f"### Latency and cost per decision\n\n{head}\n\n" + "\n".join(rows) + "\n"
 
