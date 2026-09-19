@@ -25,29 +25,21 @@ import pytest
 from jevcore.mock import MockJev, serve
 from jevtools import TOOLS
 
-FEEDBACK = """WHY does it log me out every five minutes
-Cancel my subscription, worst support ever
-Love the new dashboard, thanks team
-Please add CSV export
-"""
-FILES = {
-    "feedback.txt": FEEDBACK,
-    "inbox.txt": FEEDBACK,
-    "tickets.txt": FEEDBACK,
-    "requests.txt": FEEDBACK,
-    "leads.txt": FEEDBACK,
-    "reviews.txt": FEEDBACK,
-    "canary.log": FEEDBACK,
-    "app.log": FEEDBACK,
-    "data.txt": FEEDBACK,
-    "kernel.log": FEEDBACK,
-    "diff.txt": FEEDBACK,
-    "commits.txt": FEEDBACK,
-    "invoices.txt": "invoice 001 acme march\ninvoice 002 globex april\n",
-    "payments.txt": "payment from acme for march\npayment from globex, april\n",
-    "papers.csv": "id,abstract\n1,uses a natural experiment on wages\n2,a theory paper\n",
-    "events.jsonl": '{"message":"a payment failed for order 1"}\n{"message":"all good"}\n',
-    "customers.csv": "customer,note\na,about to leave\nb,very happy\n",
+EXAMPLES = pathlib.Path(__file__).resolve().parent.parent / "examples"
+
+# The names a recipe reads that examples/ does not already ship. Everything else is copied from
+# there, so the sample data the README hands people is what these pipelines actually run on.
+INVENTED = {
+    "leads.txt": "examples/feedback.txt",
+    "reviews.txt": "examples/feedback.txt",
+    "canary.log": "examples/app.log",
+    "data.txt": "examples/feedback.txt",
+    "kernel.log": "examples/app.log",
+    "diff.txt": "examples/feedback.txt",
+    "commits.txt": "examples/feedback.txt",
+    "papers.csv": "id,abstract\n1,uses a natural experiment on wages\n2,a theory paper about wages\n",
+    "events.jsonl": '{"message":"a payment failed for order 88213"}\n{"message":"checkout completed"}\n',
+    "customers.csv": "customer,note\na,asked twice about cancelling\nb,renewed early and said thanks\n",
 }
 
 # (name, pipeline). Everything after the first tool is exactly what docs/recipes.md prints.
@@ -115,7 +107,11 @@ BROKEN = ("Traceback", "unrecognized arguments", "invalid choice", "command not 
 def workspace(tmp_path_factory):
     """A directory with every file the recipes name, and shims so `jsort` is on PATH."""
     root = tmp_path_factory.mktemp("recipes")
-    for name, text in FILES.items():
+    for sample in EXAMPLES.glob("*"):
+        if sample.is_file() and sample.name != "README.md":
+            shutil.copy(sample, root / sample.name)
+    for name, source in INVENTED.items():
+        text = (EXAMPLES / pathlib.Path(source).name).read_text() if source.startswith("examples/") else source
         (root / name).write_text(text)
     (root / "src").mkdir()
     (root / "src" / "a.py").write_text("# TODO: this drops the last retry\nprint('hi')\n")
