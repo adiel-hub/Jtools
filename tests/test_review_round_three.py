@@ -352,6 +352,20 @@ def test_a_placeholder_inside_quotes_is_refused_however_it_is_spaced(command):
         prepare_exec(command)
 
 
+@pytest.mark.parametrize(
+    "argument,expected",
+    [("stdin", (0, 1)), ("dash", (0, 1)), ("a readable file", (0, 1)), ("a directory", (2,))],
+    ids=["no files", "-", "a readable file", "a directory"],
+)
+def test_the_gates_up_front_file_check_takes_the_awkward_arguments(invoke, tmp_path, argument, expected):
+    """Opening every file first must not break the ordinary ways of naming one, or not naming any."""
+    good = write(tmp_path, "ok.log", "an error happened here\n")
+    (tmp_path / "adir").mkdir()
+    files = {"stdin": [], "dash": ["-"], "a readable file": [good], "a directory": [str(tmp_path / "adir")]}
+    res = invoke(jgate, ["an error", *files[argument]], "an error happened here\n")
+    assert res.code in expected, f"{argument} exited {res.code}: {res.err!r}"
+
+
 def test_a_gate_checks_its_files_before_it_stops_early(invoke, tmp_path):
     """--each stops at the first fitting line, so a later missing file was never even opened."""
     big = write(tmp_path, "big.log", "ERROR payment service failed\n" * 500)
