@@ -101,7 +101,8 @@ def cost_chart() -> None:
     (ASSETS / "cost-per-1000.svg").write_text(svg)
 
 
-def latency_chart() -> None:
+def latency_chart() -> bool:
+    """The per-decision latency chart. Returns whether a throughput chart was drawn too."""
     data = json.loads((RESULTS / "latency.json").read_text())
     s = data["single"]
     rows = [
@@ -121,8 +122,13 @@ def latency_chart() -> None:
         "milliseconds for the HTTP exchange, network included",
     )
     (ASSETS / "latency.svg").write_text(svg)
+    return throughput_chart(data)
+
+
+def throughput_chart(data: dict[str, Any]) -> bool:
+    """Lines per second at -j 1 and -j 8. A throttled key measures the quota, not the tool."""
     t = [r for r in (data.get("throughput") or []) if not r.get("rate_limited")]
-    if t:  # a throttled key measures the quota, not the tool
+    if t:
         rows = [
             (
                 f"jgrep -j {r['jobs']}",
@@ -139,6 +145,7 @@ def latency_chart() -> None:
             "lines per second",
         )
         (ASSETS / "throughput.svg").write_text(svg)
+    return bool(t)
 
 
 def judged(d: dict[str, Any]) -> int:
@@ -159,7 +166,8 @@ def accuracy_chart() -> None:
             )
         )
         full = d.get("keyword_grep_full_corpus")
-        label = f"a 17-term keyword regex, F1 (n={full['lines']:,})" if full else "a 17-term keyword regex, F1"
+        terms = d["keyword_grep"]["regex"].count("|") + 1  # the baseline's size, not a remembered number
+        label = f"a {terms}-term keyword regex, F1" + (f" (n={full['lines']:,})" if full else "")
         k = full or d["keyword_grep"]
         rows.append((label, k["f1"], ACCENT4, f"{k['f1']:.2f}"))
     sent = RESULTS / "accuracy-sentiment.json"
@@ -195,8 +203,7 @@ def main() -> None:
         cost_chart()
         made.append("cost-per-1000.svg")
     if (RESULTS / "latency.json").exists():
-        latency_chart()
-        made.append("latency.svg (+throughput.svg)")
+        made.append("latency.svg (+throughput.svg)" if latency_chart() else "latency.svg")
     accuracy_chart()
     made.append("accuracy.svg")
     print("rendered:", ", ".join(made), file=sys.stderr)
