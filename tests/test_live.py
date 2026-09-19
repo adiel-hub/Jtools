@@ -183,3 +183,22 @@ def test_vercel_wire_when_that_backend_is_configured():
             timeout=30,
         )
     assert r.status_code == 200 and r.json()["answers"]["q"]["type"] == "boolean"
+
+
+async def test_the_real_response_still_carries_what_the_mock_promises():
+    """MockJev is what 2,400 offline tests believe a Jev response looks like.
+
+    The offline suite can only be as true as the mock, and the mock is generous: it always reports
+    tokens, a cost and the version that answered. If a real backend stopped sending one of those,
+    every offline test would go on passing while the meter quietly reported zeros. So this asks a
+    real endpoint for one answer and checks the same fields, naming the one that went missing.
+    """
+    creds = resolve()
+    async with Jev(creds, disk_cache=False, timeout=900) as jev:
+        seconds, usage = await jev.ping()
+    assert seconds > 0
+    assert usage.input_tokens > 0, "the backend reported no input tokens; --stats and the cost estimate need them"
+    assert usage.model, "the backend named no model; a moving alias could not be reconciled without it"
+    if creds.backend.name in ("vercel", "openrouter"):
+        assert usage.cost is not None, f"{creds.backend.name} reported no cost; pricing would fall back to list price"
+    print(f"\n[{creds.backend.name}] ping {seconds * 1000:.0f} ms {usage}", file=sys.stderr)
