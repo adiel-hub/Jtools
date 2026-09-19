@@ -176,10 +176,12 @@ def sentiment(n: int, jobs: int) -> None:
 
 def news(n: int, jobs: int) -> None:
     lines, labels = load("news", n)
-    spec = ",".join(f"{name}:{desc}" for name, desc in NEWS_LABELS.values())
-    code, out, err, stats = run_tool(
-        ["jtag", "--json", "-j", str(jobs), "--labels", spec], "".join(t + "\n" for t in lines)
-    )
+    # One --label per class: the descriptions contain commas, and this leaves no room for doubt.
+    spec = [f"{name}:{desc}" for name, desc in NEWS_LABELS.values()]
+    argv = ["jtag", "--json", "-j", str(jobs)]
+    for one in spec:
+        argv += ["--label", one]
+    code, out, err, stats = run_tool(argv, "".join(t + "\n" for t in lines))
     if code not in (0, 1, 5):
         sys.exit(f"jtag failed: {err[-400:]}")
     rows = [json.loads(x) for x in out.splitlines()]
@@ -199,6 +201,7 @@ def news(n: int, jobs: int) -> None:
         "judged": len(pairs),
         "unjudged": len(rows) - len(pairs),
         "labels": spec,
+        "label_count": len(spec),
         "accuracy": round(sum(p == t for p, t in pairs) / max(len(pairs), 1), 4),
         "macro_f1": round(sum(v["f1"] for v in per_class.values()) / len(per_class), 4),
         "per_class": per_class,

@@ -126,7 +126,9 @@ def accuracy_table() -> str:
         parts.append(
             f"### jtag four-way classification: {news['dataset']} "
             f"({judged(news)} of {news['lines']} sampled articles judged)\n\n"
-            f"Labels: `{news['labels']}`\n\n"
+            "Labels: " + ", ".join(f"`{one}`" for one in news["labels"]) + "\n\n"
+            if isinstance(news["labels"], list)
+            else f"Labels: `{news['labels']}`\n\n"
             f"Accuracy **{news['accuracy']:.2f}**, macro F1 {news['macro_f1']:.2f}, "
             f"{run.get('seconds', '?')} s, {money(run_dollars(run))}.\n\n"
             "| label | precision | recall | F1 |\n|---|---:|---:|---:|\n" + rows + "\n"
