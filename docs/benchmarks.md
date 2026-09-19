@@ -55,16 +55,16 @@ Description: *an unsolicited spam, scam or marketing text message*
 | keyword regex, same sample (17 terms) | 0.58 | 0.93 | 0.72 | | free |
 | the same regex over all 5,574 messages | 0.64 | 0.81 | 0.72 | 0.0761 s | free |
 
-### jsort ranking quality: UCI Sentiment Labelled Sentences (Amazon, IMDb, Yelp) (20 of 20 sampled sentences judged, 11 positive)
+### jsort ranking quality: UCI Sentiment Labelled Sentences (Amazon, IMDb, Yelp) (80 of 80 sampled sentences judged, 44 positive)
 
-Description: *most positive, happiest customer*
+Description: *the writer liked what they are reviewing*
 
 | measure | value |
 |---|---:|
-| AUC (a random positive ranks above a random negative) | **0.76** |
+| AUC (a random positive ranks above a random negative) | **1.00** |
 | precision in the top half of the ranking | 1.00 |
-| accuracy of a 0.5 score cut | 0.80 |
-| time / cost | 1200.1 s / $0.000223 |
+| accuracy of a 0.5 score cut | 0.96 |
+| time / cost | 4872.6 s / $0.0012 |
 
 ### jtag four-way classification: AG News test split (20 of 20 sampled articles judged)
 
