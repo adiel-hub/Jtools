@@ -19,11 +19,13 @@ the decision is made by [Jev](https://docs.typesafe.ai), TypeSafe's decision mod
 <!--num:latency_p50_round-->240 ms<!--/num--> for about a thousandth of a cent.
 
 ```console
-$ jsort "the most important ticket to deal with right now" --with-score tickets.txt
-0.848	Login fails with error 500 since this morning
-0.733	I was charged twice for one order and nobody answers
-0.588	Your support is a joke, three days without a reply
-0.147	Could you add a dark theme?
+$ jsort "the most important ticket to deal with right now" --with-score --stats tickets.txt
+0.838	Login fails with error 500 since this morning
+0.738	I was charged twice for one order and nobody answers
+0.593	Your support is a joke, three days without a reply
+0.140	Could you add a dark theme?
+…
+jsort: 8 calls; 0 cached; 2,789 tokens; $0.000117; p50 599 ms; 1.5s
 
 $ tail -f app.log | jwatch "something a human should look at right now" --cooldown 300
 2026-09-18T10:00:05Z ERROR api    payment-svc unreachable, 3 retries exhausted, order 88213 not charged

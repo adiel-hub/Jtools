@@ -31,6 +31,13 @@ TITLE_BG = "#1a1f26"
 SPEED = 2.0  # recorded seconds per GIF second
 
 _SCORE = re.compile(r"^(\d\.\d{3}|-)(?:\t|  )")  # a score column, after wrap() turned the tab into spaces
+_STATS = re.compile(r"^\w+: [\d,]+ calls?;")
+"""``jsort: 8 calls; 0 cached; 2,789 tokens; $0.000117; p50 638 ms; 1.5s`` -- the run's own receipt.
+
+It arrives on stderr like any other end-of-run note, and drawing it in the same grey buries the
+two numbers a reader came for.
+"""
+
 _JSON_LINE = re.compile(r'^\{"')
 
 
@@ -73,7 +80,8 @@ def draw_terminal(lines: list[tuple[str, str]], rows: int, title: str) -> Image.
             else:
                 d.text((x + 2 * CHAR_W, y), text.lstrip(), fill=FG, font=font(True))
         elif kind == "err":
-            d.text((x, y), text, fill=DIM, font=font())
+            stats = bool(_STATS.match(text))
+            d.text((x, y), text, fill=GREEN if stats else DIM, font=font(stats))
         elif kind == "out":
             m = _SCORE.match(text)
             if m:
@@ -146,12 +154,18 @@ def render_svg(scene: dict, path: Path) -> None:
     for kind, text in body:
         if kind == "cmd":
             if not text.startswith("    "):
-                parts.append(f'<text x="{PAD}" y="{y}" fill="{PROMPT}" font-weight="bold">$</text>')
+                parts.append(f'<text x="{PAD}" y="{y}" fill="{PROMPT}" font-weight="bold" class="cmd">$</text>')
             parts.append(
-                f'<text x="{PAD + 2 * CHAR_W}" y="{y}" fill="{FG}" font-weight="bold" xml:space="preserve">{esc(text.lstrip())}</text>'
+                f'<text x="{PAD + 2 * CHAR_W}" y="{y}" fill="{FG}" font-weight="bold" class="cmd" '
+                f'xml:space="preserve">{esc(text.lstrip())}</text>'
             )
         elif kind == "err":
-            parts.append(f'<text x="{PAD}" y="{y}" fill="{DIM}" xml:space="preserve">{esc(text)}</text>')
+            stats = bool(_STATS.match(text))
+            weight = ' font-weight="bold"' if stats else ""
+            parts.append(
+                f'<text x="{PAD}" y="{y}" fill="{GREEN if stats else DIM}"{weight} '
+                f'xml:space="preserve">{esc(text)}</text>'
+            )
         else:
             m = _SCORE.match(text)
             if m:

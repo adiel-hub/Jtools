@@ -29,7 +29,13 @@ SCENES: list[tuple[str, list[str], str | None, str]] = [
     # the difference between judging a ticket and scoring its sentiment.
     (
         "jsort",
-        ["jsort", "the most important ticket to deal with right now", "--with-score", "examples/tickets.txt"],
+        [
+            "jsort",
+            "the most important ticket to deal with right now",
+            "--with-score",
+            "--stats",
+            "examples/tickets.txt",
+        ],
         None,
         "sort by meaning",
     ),

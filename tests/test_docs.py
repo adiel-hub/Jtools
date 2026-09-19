@@ -92,7 +92,7 @@ def test_every_recorded_cast_has_rendered_assets(cast: Path):
     drawn = "".join(
         unescape(text)
         for tag, text in re.findall(r'(<text[^>]*xml:space="preserve"[^>]*>)([^<]*)</text>', svg)
-        if 'font-weight="bold"' not in tag  # the command line, drawn bold above the output
+        if 'class="cmd"' not in tag  # the command line, drawn above the output
     )
     squeeze = re.compile(r"\s+")
     assert squeeze.sub(" ", drawn).strip() == squeeze.sub(" ", expected).strip(), (

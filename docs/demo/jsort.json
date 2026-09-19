@@ -1,44 +1,46 @@
 {
   "name": "jsort",
-  "command": "jsort 'the most important ticket to deal with right now' --with-score examples/tickets.txt",
+  "command": "jsort 'the most important ticket to deal with right now' --with-score --stats examples/tickets.txt",
   "stdout": [
     [
-      0.211,
-      "0.848\tLogin fails with error 500 since this morning"
+      1.5,
+      "0.838\tLogin fails with error 500 since this morning"
     ],
     [
-      0.211,
-      "0.733\tI was charged twice for one order and nobody answers"
+      1.5,
+      "0.738\tI was charged twice for one order and nobody answers"
     ],
     [
-      0.211,
-      "0.640\tThe app crashes when I open settings"
+      1.5,
+      "0.632\tThe app crashes when I open settings"
     ],
     [
-      0.211,
-      "0.588\tYour support is a joke, three days without a reply"
+      1.5,
+      "0.593\tYour support is a joke, three days without a reply"
     ],
     [
-      0.211,
-      "0.477\tExport to CSV would save me hours every week"
+      1.5,
+      "0.465\tExport to CSV would save me hours every week"
     ],
     [
-      0.211,
-      "0.320\tHow do I reset my password?"
+      1.5,
+      "0.347\tHow do I reset my password?"
     ],
     [
-      0.211,
-      "0.147\tCould you add a dark theme?"
+      1.5,
+      "0.140\tCould you add a dark theme?"
     ],
     [
-      0.211,
-      "0.070\tIs there an API for this?"
+      1.5,
+      "0.068\tIs there an API for this?"
     ]
   ],
-  "stderr": [],
+  "stderr": [
+    "jsort: 8 calls; 0 cached; 2,789 tokens; $0.000117; p50 599 ms; 1.5s"
+  ],
   "exit": 0,
-  "seconds": 0.239,
-  "shown_seconds": 0.211,
-  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 0.239s",
+  "seconds": 1.605,
+  "shown_seconds": 1.5,
+  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 1.605s",
   "title": "sort by meaning"
 }

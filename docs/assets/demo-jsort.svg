@@ -1,24 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="264" viewBox="0 0 1034 264" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
-<rect width="1034" height="264" rx="10" fill="#0f1419"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="286" viewBox="0 0 1034 286" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
+<rect width="1034" height="286" rx="10" fill="#0f1419"/>
 <rect width="1034" height="30" fill="#1a1f26"/>
 <circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
 <text x="80" y="20" fill="#8a8f98">sort by meaning</text>
-<text x="18" y="63" fill="#7aa2f7" font-weight="bold">$</text>
-<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">jsort 'the most important ticket to deal with right now' --with-score examples/tickets.txt</text>
-<text x="18" y="85" fill="#6fd08c" font-weight="bold">0.848</text>
+<text x="18" y="63" fill="#7aa2f7" font-weight="bold" class="cmd">$</text>
+<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" class="cmd" xml:space="preserve">jsort 'the most important ticket to deal with right now' --with-score --stats examples/tickets.txt</text>
+<text x="18" y="85" fill="#6fd08c" font-weight="bold">0.838</text>
 <text x="85.2" y="85" fill="#e6e6e6" xml:space="preserve">Login fails with error 500 since this morning</text>
-<text x="18" y="107" fill="#e5c07b" font-weight="bold">0.733</text>
+<text x="18" y="107" fill="#e5c07b" font-weight="bold">0.738</text>
 <text x="85.2" y="107" fill="#e6e6e6" xml:space="preserve">I was charged twice for one order and nobody answers</text>
-<text x="18" y="129" fill="#e5c07b" font-weight="bold">0.640</text>
+<text x="18" y="129" fill="#e5c07b" font-weight="bold">0.632</text>
 <text x="85.2" y="129" fill="#e6e6e6" xml:space="preserve">The app crashes when I open settings</text>
-<text x="18" y="151" fill="#e5c07b" font-weight="bold">0.588</text>
+<text x="18" y="151" fill="#e5c07b" font-weight="bold">0.593</text>
 <text x="85.2" y="151" fill="#e6e6e6" xml:space="preserve">Your support is a joke, three days without a reply</text>
-<text x="18" y="173" fill="#e5c07b" font-weight="bold">0.477</text>
+<text x="18" y="173" fill="#e5c07b" font-weight="bold">0.465</text>
 <text x="85.2" y="173" fill="#e6e6e6" xml:space="preserve">Export to CSV would save me hours every week</text>
-<text x="18" y="195" fill="#e06c75" font-weight="bold">0.320</text>
+<text x="18" y="195" fill="#e06c75" font-weight="bold">0.347</text>
 <text x="85.2" y="195" fill="#e6e6e6" xml:space="preserve">How do I reset my password?</text>
-<text x="18" y="217" fill="#e06c75" font-weight="bold">0.147</text>
+<text x="18" y="217" fill="#e06c75" font-weight="bold">0.140</text>
 <text x="85.2" y="217" fill="#e6e6e6" xml:space="preserve">Could you add a dark theme?</text>
-<text x="18" y="239" fill="#e06c75" font-weight="bold">0.070</text>
+<text x="18" y="239" fill="#e06c75" font-weight="bold">0.068</text>
 <text x="85.2" y="239" fill="#e6e6e6" xml:space="preserve">Is there an API for this?</text>
+<text x="18" y="261" fill="#6fd08c" font-weight="bold" xml:space="preserve">jsort: 8 calls; 0 cached; 2,789 tokens; $0.000117; p50 599 ms; 1.5s</text>
 </svg>
