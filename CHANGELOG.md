@@ -58,7 +58,9 @@ development and the tests exist so it cannot go wrong again:
   wait, instead of sleeping out the deadline and reporting nothing.
 - Ordered output is ordered by arrival, so a blank line or an upstream filter cannot stall
   delivery and silently drop everything judged after it.
-- Answers are cached under the model version that produced them, never under a moving alias.
+- Answers are cached under the model name the run asked for, so a rerun costs nothing, and each
+  row records the version that produced it: when a moving alias like `jev-latest` comes to mean
+  something else, the first real call to notice discards the old version's answers.
 - A text state and the JSON object that spells it are different cache keys.
 - Nothing a backend sends can make an answer name an option that was never offered or a rung
   outside its rubric.
@@ -66,7 +68,8 @@ development and the tests exist so it cannot go wrong again:
 - An unreadable input file is exit 2 in every tool, never "nothing matched", and a gate refuses
   to answer at all for input it could not read.
 - `jwatch --exec` receives the alert line as an argument, never as command text, so a log line
-  is data and not code.
+  is data and not code. A spelling that would undo that, an empty command or a `{}` the user has
+  quoted, is refused rather than accepted.
 - `jroute --truncate` empties nothing until a line is actually routed, so a run that reads
   nothing cannot destroy the previous run's buckets.
 - Only a newline ends a line. A bare carriage return, which progress bars and some container logs
@@ -87,8 +90,13 @@ development and the tests exist so it cannot go wrong again:
 - The README's terminal screenshots are recorded runs: `scripts/record_demos.py` saves each one as
   a cast in `docs/demo/` (asciinema v2 included) and `scripts/render_demo.py` renders the GIFs
   and SVGs.
-- Offline test suite of 200+ tests against `MockJev`, including subprocess tests for streaming,
-  broken pipes, dead endpoints, ordering under latency and bounded concurrency, plus documentation
-  tests (links, tool pages, casts, generated blocks). Live smoke tests run one real call per tool.
+- Offline test suite of 2,300+ tests against `MockJev`, including subprocess tests for streaming,
+  broken pipes, dead endpoints, ordering under latency, bounded concurrency and a real shell
+  pipeline; a matrix running every tool under every flag combination against ten awkward inputs;
+  and documentation tests (links, tool pages, casts, generated blocks, every flag documented,
+  every command line in the docs and every recorded demo parsed by its own tool). Live smoke
+  tests run one real call per tool.
 - CI on Python 3.11, 3.12 and 3.13: ruff, ruff format, mypy --strict, the offline suite, and the
-  checks that the generated docs and completions are in step.
+  checks that the generated docs and completions are in step. A separate job builds the package
+  and drives all eleven commands from an empty virtualenv with no key and no network, then runs
+  the whole offline suite from the unpacked source distribution.
