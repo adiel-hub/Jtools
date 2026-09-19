@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from html import unescape
 from pathlib import Path
 
 import pytest
@@ -77,6 +78,27 @@ def test_every_recorded_cast_has_rendered_assets(cast: Path):
         head = body[:24]
         if head and not any(c in head for c in "<>&"):
             assert head in svg, f"demo-{scene['name']}.svg does not show the recorded line {head!r}"
+
+    # And the whole of it, in order. Checking the opening lines was not enough: a render left over
+    # from an older take of the same demo matched at the top and then drew an output line the
+    # command had stopped producing -- a line that did appear elsewhere in the cast, so "is this
+    # text somewhere in the recording" passed too. What has to hold is that the rows the SVG draws
+    # ARE the rows the cast recorded, in sequence.
+    score = re.compile(r"^(?:\d\.\d{3}|-)(?:\t|  )")  # drawn as its own element, so not in the row
+    expected = "".join(
+        (score.sub("", line.replace("\t", "  ")) if score.match(line.replace("\t", "  ")) else line.replace("\t", "  "))
+        for _at, line in scene["stdout"]
+    ) + "".join(scene["stderr"])
+    drawn = "".join(
+        unescape(text)
+        for tag, text in re.findall(r'(<text[^>]*xml:space="preserve"[^>]*>)([^<]*)</text>', svg)
+        if 'font-weight="bold"' not in tag  # the command line, drawn bold above the output
+    )
+    squeeze = re.compile(r"\s+")
+    assert squeeze.sub(" ", drawn).strip() == squeeze.sub(" ", expected).strip(), (
+        f"demo-{scene['name']}.svg does not draw what demo/{scene['name']}.json recorded. "
+        "Re-render the demos (uv run python scripts/render_demo.py)."
+    )
 
 
 def test_generated_benchmark_blocks_are_present():
@@ -203,3 +225,36 @@ def test_the_common_flags_are_listed_in_one_place():
     flags = {f for a in shared._actions for f in a.option_strings if f.startswith("--")} - skip
     missing = sorted(f for f in flags if f not in block)
     assert not missing, f"the README's common options do not list {', '.join(missing)}"
+
+
+def chart_module():
+    import importlib.util
+    import sys as _sys
+
+    spec = importlib.util.spec_from_file_location("render_charts", ROOT / "scripts" / "render_charts.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    _sys.modules["render_charts"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_a_long_annotation_widens_the_chart_instead_of_being_clipped():
+    """The bar and its label share the canvas, so the label's column has to be reserved for it.
+
+    It was not: the space to the right of a bar was a fixed 120px, and "115 lines/s (5s for 600)"
+    needs more, so the longest bar pushed its own label past the right edge, where it was simply
+    cut off. Nothing failed -- an SVG with text outside its viewBox is still valid -- and the
+    throughput chart shipped reading "(5s for 600". The geometry is checked here rather than the
+    pixels: whatever the font does, the bar must end before the annotation column starts.
+    """
+    module = chart_module()
+    rows = [("jgrep -j 1", 4.0, "#1f6feb", "4 lines/s (148s for 600)"), ("jgrep -j 32", 115.0, "#2da44e", "x" * 60)]
+    svg = module.hbar_chart("t", "s", rows, "lines per second")
+    canvas = int(re.search(r"width='(\d+)'", svg).group(1))
+    for x, body in re.findall(r"<text x='([\d.]+)'(?![^>]*text-anchor='end')[^>]*>([^<]*)</text>", svg):
+        assert float(x) < canvas, f"an annotation starts at {x} on a {canvas}px canvas: {body!r}"
+    longest = max(float(x) for x, _ in re.findall(r"<rect x='(\d+)' y='[\d.]+' width='([\d.]+)'", svg) or [(0, 0)])
+    assert longest < canvas, "a bar starts outside the canvas"
+    # 60 characters cannot fit in the 120px the old layout reserved, so the canvas had to grow.
+    assert canvas > 760, f"a 60-character annotation left the canvas at {canvas}px"

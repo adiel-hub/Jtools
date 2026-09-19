@@ -1,19 +1,19 @@
 <svg xmlns='http://www.w3.org/2000/svg' width='760' height='260' viewBox='0 0 760 260' font-family='-apple-system, Segoe UI, Helvetica, Arial, sans-serif'>
 <rect width='760' height='260' fill='white' rx='8'/>
 <text x='20' y='30' font-size='18' font-weight='600' fill='#24292f'>How long one decision takes</text>
-<text x='20' y='52' font-size='12' fill='#57606a'>8 sequential calls through vercel (typesafe-ai/jev) on 2026-09-19, uncached. Asking more questions about the</text>
+<text x='20' y='52' font-size='12' fill='#57606a'>60 sequential calls through vercel (typesafe-ai/jev) on 2026-09-19, uncached. Asking more questions about the</text>
 <text x='20' y='68' font-size='12' fill='#57606a'>same line costs tokens, not time.</text>
 <text x='268' y='104' font-size='13' fill='#24292f' text-anchor='end'>one yes/no question, median</text>
-<rect x='278' y='90' width='152.6' height='20' rx='3' fill='#2da44e'/>
-<text x='438.6' y='105' font-size='12' fill='#24292f'>419 ms</text>
+<rect x='278' y='90' width='274.5' height='20' rx='3' fill='#2da44e'/>
+<text x='560.5' y='105' font-size='12' fill='#24292f'>251 ms</text>
 <text x='268' y='138' font-size='13' fill='#24292f' text-anchor='end'>one yes/no question, 95th percentile</text>
 <rect x='278' y='124' width='362.0' height='20' rx='3' fill='#bf8700'/>
-<text x='648.0' y='139' font-size='12' fill='#24292f'>994 ms</text>
+<text x='648.0' y='139' font-size='12' fill='#24292f'>331 ms</text>
 <text x='268' y='172' font-size='13' fill='#24292f' text-anchor='end'>4 questions about one line, median</text>
-<rect x='278' y='158' width='171.5' height='20' rx='3' fill='#0969da'/>
-<text x='457.5' y='173' font-size='12' fill='#24292f'>471 ms</text>
+<rect x='278' y='158' width='275.6' height='20' rx='3' fill='#0969da'/>
+<text x='561.6' y='173' font-size='12' fill='#24292f'>252 ms</text>
 <text x='268' y='206' font-size='13' fill='#24292f' text-anchor='end'>16 questions about one line, median</text>
-<rect x='278' y='192' width='108.2' height='20' rx='3' fill='#0969da'/>
-<text x='394.2' y='207' font-size='12' fill='#24292f'>297 ms</text>
+<rect x='278' y='192' width='262.5' height='20' rx='3' fill='#0969da'/>
+<text x='548.5' y='207' font-size='12' fill='#24292f'>240 ms</text>
 <text x='740' y='246' font-size='11' fill='#57606a' text-anchor='end'>milliseconds for the HTTP exchange, network included</text>
 </svg>

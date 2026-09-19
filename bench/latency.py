@@ -95,7 +95,10 @@ async def batching(repeats: int) -> list[dict[str, object]]:
 def throughput(n: int) -> list[dict[str, object]]:
     lines = "".join(f"{LINE} #{i}\n" for i in range(n))
     out = []
-    for jobs in (1, 8):
+    # 1 shows what one decision costs in wall time; 8 and 32 show that the tools are bound by the
+    # backend's concurrency, not by anything in the pipeline. A throttled key flattens all three,
+    # which is why this run is skippable.
+    for jobs in (1, 8, 32):
         code, _stdout, stderr, stats = run_tool(["jgrep", "-p", "0", "-j", str(jobs), DESCRIPTIONS[0]], lines)
         if code not in (0, 1):
             raise SystemExit(f"jgrep failed ({code}): {stderr[-400:]}")

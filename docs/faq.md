@@ -15,7 +15,7 @@ bug worth an issue — `jtools doctor` output is the whole report.
 **Is this an LLM wrapper?** No. Jev is a decision model: it never writes text. Every tool asks a
 typed question (yes/no, choice, score) and gets a probability back. That is why one decision is
 a single short round trip rather than a wait on generated tokens, why the same yes/no costs
-<!--num:cost_ratio_range-->3.8-130.9x the cost<!--/num--> at a chat model's list price, and why the
+<!--num:cost_ratio_range-->19.3-257.9x the cost<!--/num--> at a chat model's list price, and why the
 tools compose like coreutils. The measurements, and what they do and do not cover, are in
 [benchmarks.md](benchmarks.md).
 

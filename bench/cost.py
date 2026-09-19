@@ -28,16 +28,17 @@ from _common import RESULTS, save
 CATALOG_URL = "https://ai-gateway.vercel.sh/v1/models"
 JEV_MODEL = "typesafe-ai/jev"
 
-# A spread, not a shortlist: the cheapest small model in the catalog, the mid-tier models people
-# actually reach for, and one frontier model, so the ratio is a range rather than one flattering
-# comparison. Anything the catalog no longer lists is dropped and reported.
+# Two models from each of the three labs whose names a reader already knows, spanning their
+# current flagship down to their fast tier. Naming the frontier models matters: a comparison
+# against something cheap and obscure proves nothing about what a reader would actually reach for
+# to judge a line. Anything the catalog no longer lists is dropped and reported.
 CHAT_MODELS = [
-    "alibaba/qwen3.8-flash",
-    "openai/gpt-5.6-luna",
-    "google/gemini-3.8-flash",
-    "openai/gpt-5.4-mini",
-    "anthropic/claude-haiku-4.5",
+    "anthropic/claude-fable-5.1",
+    "openai/gpt-6-astra",
+    "anthropic/claude-opus-5",
     "openai/gpt-5.5",
+    "google/gemini-3.5-flash",
+    "google/gemini-3.8-flash",
 ]
 ANSWER_TOKENS = 5  # "yes" or "no" plus a stop token; a reasoning model would spend far more
 FALLBACK_JEV_INPUT = 0.042 / 1e6  # TypeSafe's list price, used only when the catalog is unreachable

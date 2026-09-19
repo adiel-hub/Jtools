@@ -6,11 +6,16 @@ the backend, the model, the build that made the calls and the timestamp. The cha
 `docs/assets/` are rendered from those files by `scripts/render_charts.py`. Reproduce with any key:
 
 ```bash
-uv run python bench/latency.py
-uv run python bench/accuracy.py prepare && uv run python bench/accuracy.py spam --n 200
-uv run python bench/accuracy.py sentiment --n 120 && uv run python bench/accuracy.py news --n 120
-uv run python bench/cost.py && uv run python scripts/render_charts.py
+uv run python bench/latency.py --n 60 --batch-repeats 5 --throughput-lines 600
+uv run python bench/accuracy.py prepare          # downloads the three corpora into bench/out/
+uv run python bench/accuracy.py spam --n 0 --jobs 32       # --n 0 is the whole corpus
+uv run python bench/accuracy.py sentiment --n 0 --jobs 32
+uv run python bench/accuracy.py news --n 0 --jobs 32
+uv run python bench/cost.py && uv run python scripts/render_charts.py && uv run python scripts/update_docs.py
 ```
+
+The three full runs are about 16,000 decisions, roughly $0.24 at list price and five minutes on an
+unthrottled key. Pass `--n 200` instead of `--n 0` for a cheaper look.
 
 ## Results
 
@@ -18,44 +23,45 @@ uv run python bench/cost.py && uv run python scripts/render_charts.py
 
 ### Latency and cost per decision
 
-Measured 2026-09-19 through **vercel** (`typesafe-ai/jev`), 8 sequential calls, uncached.
+Measured 2026-09-19 through **vercel** (`typesafe-ai/jev`, jev-tools 0.1.0+f6af022), 60 sequential calls, uncached.
 
 | measurement | value |
 |---|---:|
-| single yes/no call, p50 | 419 ms |
-| single yes/no call, p95 | 994 ms |
-| the same, wall time incl. rate-limit waits (p50 / p95) | 419 / 298804 ms |
-| input tokens per call | 301 |
+| single yes/no call, p50 | 251 ms |
+| single yes/no call, p95 | 331 ms |
+| input tokens per call | 302 |
 | dollars per call | $0.000013 |
-| dollars per 1,000 decisions | $0.0126 |
-| 1 question(s) in one call, p50 | 267 ms (305 tokens, $0.000013) |
-| 4 question(s) in one call, p50 | 471 ms (363 tokens, $0.000015) |
-| 16 question(s) in one call, p50 | 297 ms (589 tokens, $0.000025) |
+| dollars per 1,000 decisions | $0.0127 |
+| 1 question in one call, p50 | 240 ms (305 tokens, $0.000013) |
+| 4 questions in one call, p50 | 252 ms (363 tokens, $0.000015) |
+| 16 questions in one call, p50 | 240 ms (589 tokens, $0.000025) |
+| jgrep -j 1, 600 lines | 148.2 s (4 lines/s) |
+| jgrep -j 8, 600 lines | 19.0 s (32 lines/s) |
+| jgrep -j 32, 600 lines | 5.2 s (115 lines/s) |
 
 ### Dollars per 1,000 yes/no decisions
 
 | model | kind | $ per 1,000 decisions | vs Jev | source |
 |---|---|---:|---:|---|
-| `typesafe-ai/jev` | decision model | $0.0126 | 1x | measured tokens (bench/results/latency.json) x catalog price |
-| `alibaba/qwen3.8-flash` | chat model | $0.0475 | 3.8x | catalog price arithmetic |
-| `openai/gpt-5.6-luna` | chat model | $0.0662 | 5.2x | catalog price arithmetic |
-| `google/gemini-3.8-flash` | chat model | $0.2445 | 19.3x | catalog price arithmetic |
-| `openai/gpt-5.4-mini` | chat model | $0.2482 | 19.6x | catalog price arithmetic |
-| `anthropic/claude-haiku-4.5` | chat model | $0.3260 | 25.8x | catalog price arithmetic |
-| `openai/gpt-5.5` | chat model | $1.6550 | 130.9x | catalog price arithmetic |
+| `typesafe-ai/jev` | decision model | $0.0127 | 1x | measured tokens (bench/results/latency.json) x catalog price |
+| `google/gemini-3.8-flash` | chat model | $0.2452 | 19.3x | catalog price arithmetic |
+| `google/gemini-3.5-flash` | chat model | $0.4980 | 39.3x | catalog price arithmetic |
+| `anthropic/claude-opus-5` | chat model | $1.6350 | 128.9x | catalog price arithmetic |
+| `openai/gpt-5.5` | chat model | $1.6600 | 130.9x | catalog price arithmetic |
+| `anthropic/claude-fable-5.1` | chat model | $3.2700 | 257.9x | catalog price arithmetic |
+| `openai/gpt-6-astra` | chat model | $3.2700 | 257.9x | catalog price arithmetic |
 
-### jgrep vs a keyword regex: UCI SMS Spam Collection (120 of 120 sampled messages judged, 15 spam)
+### jgrep vs a keyword regex: UCI SMS Spam Collection (all 5,574 messages, 747 spam)
 
 Description: *an unsolicited spam, scam or marketing text message*
 
 | filter | precision | recall | F1 | time | cost |
 |---|---:|---:|---:|---:|---:|
-| `jgrep` at p ≥ 0.5 | 0.94 | 1.00 | **0.97** | 7237.1 s | $0.0016 |
-| `jgrep` at p ≥ 0.9 | 1.00 | 0.80 | 0.89 | | |
-| keyword regex, same sample (17 terms) | 0.58 | 0.93 | 0.72 | | free |
-| the same regex over all 5,574 messages | 0.64 | 0.81 | 0.72 | 0.0761 s | free |
+| `jgrep` at p ≥ 0.5 | 0.87 | 0.96 | **0.91** | 40.6 s | $0.0667 |
+| `jgrep` at p ≥ 0.9 | 0.99 | 0.84 | 0.91 | | |
+| the same 17-term keyword regex | 0.64 | 0.81 | 0.72 | | free |
 
-### jsort ranking quality: UCI Sentiment Labelled Sentences (Amazon, IMDb, Yelp) (80 of 80 sampled sentences judged, 44 positive)
+### jsort ranking quality: UCI Sentiment Labelled Sentences (Amazon, IMDb, Yelp) (all 3,000 sentences, 1,500 positive)
 
 Description: *the writer liked what they are reviewing*
 
@@ -63,21 +69,21 @@ Description: *the writer liked what they are reviewing*
 |---|---:|
 | AUC (a random positive ranks above a random negative) | **1.00** |
 | precision in the top half of the ranking | 1.00 |
-| accuracy of a 0.5 score cut | 0.96 |
-| time / cost | 4872.6 s / $0.0012 |
+| accuracy of a 0.5 score cut | 0.95 |
+| time / cost | 23.6 s / $0.0442 |
 
-### jtag four-way classification: AG News test split (20 of 20 sampled articles judged)
+### jtag four-way classification: AG News test split (all 7,600 articles)
 
-Labels: `world:news about world affairs, politics or conflict,sports:news about sports,business:news about business, markets or the economy,scitech:news about science or technology`
+Labels: `world:news about world affairs, politics or conflict`, `sports:news about sports`, `business:news about business, markets or the economy`, `scitech:news about science or technology`
 
-Accuracy **0.50**, macro F1 0.59, 919.9 s, $0.000364.
+Accuracy **0.87**, macro F1 0.86, 59.2 s, $0.1298.
 
 | label | precision | recall | F1 |
 |---|---:|---:|---:|
-| world | 0.00 | 0.00 | 0.00 |
-| sports | 1.00 | 1.00 | 1.00 |
-| business | 0.75 | 0.50 | 0.60 |
-| scitech | 0.83 | 0.71 | 0.77 |
+| world | 0.89 | 0.89 | 0.89 |
+| sports | 0.97 | 0.98 | 0.97 |
+| business | 0.73 | 0.92 | 0.81 |
+| scitech | 0.92 | 0.67 | 0.77 |
 
 <!-- END bench-tables -->
 
@@ -94,9 +100,11 @@ Accuracy **0.50**, macro F1 0.59, 919.9 s, $0.000364.
   [jgrep's published benchmark](https://github.com/keltokhy/jgrep#how-well-does-it-work) measured
   800-1000 ms median per yes/no decision for GPT-class chat models through OpenRouter against
   about 210 ms for Jev, on the same messages.
-- **Accuracy** samples are evenly spaced through each corpus (fixed indices), judged at the default
-  threshold of 0.5, with no prompt tuning beyond the one-line description shown.
-- The key used for the recorded runs was a **free-tier** Vercel AI Gateway key, which is throttled
-  to a handful of requests per few minutes. That caps sample sizes and inflates wall-clock times
-  and p95 latencies (a throttled call waits, then succeeds). Per-call p50 latency and per-token
-  cost are unaffected; throughput figures are not representative of a paid key.
+- **Accuracy runs cover each corpus in full** -- every one of the 5,574 SMS messages, 3,000
+  sentences and 7,600 news articles -- judged at the default threshold of 0.5, with no prompt
+  tuning beyond the one-line description shown. `--n` samples a corpus instead (evenly spaced,
+  fixed indices) when you want a cheaper rerun.
+- **Every figure comes from one uncached pass** on a paid Vercel AI Gateway key, so nothing here
+  is inflated by rate-limit waits. On a free-tier key -- throttled to a handful of requests per
+  few minutes -- per-call p50 latency and per-token cost come out the same, but wall-clock times,
+  p95 latency and the throughput rows do not: a throttled call waits, then succeeds.

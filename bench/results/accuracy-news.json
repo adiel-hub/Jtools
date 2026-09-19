@@ -2,46 +2,55 @@
   "backend": "vercel",
   "url": "https://ai-gateway.vercel.sh/v4/ai/evaluation-model",
   "model": "typesafe-ai/jev",
-  "when": "2026-09-19T05:08:29+00:00",
+  "build": "0.1.0+f6af022",
+  "when": "2026-09-19T10:18:26+00:00",
   "dataset": "AG News test split",
-  "lines": 20,
-  "labels": "world:news about world affairs, politics or conflict,sports:news about sports,business:news about business, markets or the economy,scitech:news about science or technology",
-  "accuracy": 0.5,
-  "macro_f1": 0.5923,
+  "lines": 7600,
+  "judged": 7600,
+  "unjudged": 0,
+  "labels": [
+    "world:news about world affairs, politics or conflict",
+    "sports:news about sports",
+    "business:news about business, markets or the economy",
+    "scitech:news about science or technology"
+  ],
+  "label_count": 4,
+  "accuracy": 0.8654,
+  "macro_f1": 0.8636,
   "per_class": {
     "world": {
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1": 0.0,
-      "accuracy": 0.75
+      "precision": 0.8935,
+      "recall": 0.8921,
+      "f1": 0.8928,
+      "accuracy": 0.9464
     },
     "sports": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "accuracy": 1.0
+      "precision": 0.9659,
+      "recall": 0.9837,
+      "f1": 0.9747,
+      "accuracy": 0.9872
     },
     "business": {
-      "precision": 0.75,
-      "recall": 0.5,
-      "f1": 0.6,
-      "accuracy": 0.8
+      "precision": 0.7313,
+      "recall": 0.9184,
+      "f1": 0.8143,
+      "accuracy": 0.8953
     },
     "scitech": {
-      "precision": 0.8333,
-      "recall": 0.7143,
-      "f1": 0.7692,
-      "accuracy": 0.85
+      "precision": 0.9175,
+      "recall": 0.6674,
+      "f1": 0.7727,
+      "accuracy": 0.9018
     }
   },
   "jtag_run": {
-    "calls": 20,
-    "tokens": 8665,
-    "dollars": 0.000364,
-    "p50_ms": 313,
-    "seconds": 919.9,
-    "rate_limited": 78
+    "calls": 7600,
+    "tokens": 3089696,
+    "dollars": 0.1298,
+    "p50_ms": 236,
+    "seconds": 59.2
   },
+  "predictions_sampled_from": 7600,
   "predictions": [
     {
       "text": "Fears for T N pension after talks. Unions representing workers at Turner Newall say they are 'disappointed' after talks with stricken parent firm Federal Mogul.",
@@ -51,9 +60,18 @@
         "world": 0.0,
         "business": 1.0,
         "scitech": 0.0,
+        "sports": 0.0
+      }
+    },
+    {
+      "text": "HP moves network scanning software into beta. CHICAGO - Hewlett-Packard(HP) has moved its Active Counter Measures network security software into beta tests with a select group of European and North Am",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "business": 0.07,
         "sports": 0.0,
-        "politics or conflict": 0.0,
-        "markets or the economy": 0.0
+        "scitech": 0.93,
+        "world": 0.0
       }
     },
     {
@@ -61,25 +79,43 @@
       "truth": "sports",
       "predicted": "sports",
       "probabilities": {
-        "scitech": 0.0,
-        "politics or conflict": 0.0,
         "sports": 1.0,
-        "markets or the economy": 0.0,
         "business": 0.0,
+        "scitech": 0.0,
         "world": 0.0
+      }
+    },
+    {
+      "text": "Is Google the Next Netscape?. Is Google the Next Netscape?  To draw a parallel between Netscape #038; Google in their fight against Microsoft, it is necessary to examine the various similarities betwe",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "scitech": 0.72,
+        "world": 0.0,
+        "sports": 0.0,
+        "business": 0.28
       }
     },
     {
       "text": "UK growth at fastest pace in nearly 4 years. Britain #39;s economy accelerated to the fastest annual pace in nearly four years in the second quarter as manufacturing emerged from a slump and consumers",
       "truth": "business",
-      "predicted": "markets or the economy",
+      "predicted": "business",
       "probabilities": {
-        "sports": 0.0,
-        "markets or the economy": 1.0,
-        "world": 0.0,
         "scitech": 0.0,
-        "politics or conflict": 0.0,
-        "business": 0.0
+        "sports": 0.0,
+        "world": 0.0,
+        "business": 1.0
+      }
+    },
+    {
+      "text": "Starting today, funds' stances on proxies are matter of record. Every year, public companies put a number of questions before their stockholders for a vote. Investors weigh in on whether to reelect co",
+      "truth": "business",
+      "predicted": "business",
+      "probabilities": {
+        "world": 0.0,
+        "sports": 0.0,
+        "business": 1.0,
+        "scitech": 0.0
       }
     },
     {
@@ -87,12 +123,21 @@
       "truth": "scitech",
       "predicted": "business",
       "probabilities": {
-        "sports": 0.18,
-        "politics or conflict": 0.0,
-        "scitech": 0.01,
-        "markets or the economy": 0.02,
         "world": 0.0,
-        "business": 0.79
+        "scitech": 0.02,
+        "business": 0.7,
+        "sports": 0.28
+      }
+    },
+    {
+      "text": "US Stocks Rise; Oil, Gold Fall. A decline in the price of oil helped lift US stocks to their highest level in two-months on Tuesday. The dollar declined against its major rivals as investors took prof",
+      "truth": "business",
+      "predicted": "business",
+      "probabilities": {
+        "scitech": 0.0,
+        "sports": 0.0,
+        "business": 1.0,
+        "world": 0.0
       }
     },
     {
@@ -100,49 +145,85 @@
       "truth": "scitech",
       "predicted": "scitech",
       "probabilities": {
-        "politics or conflict": 0.0,
+        "sports": 0.0,
         "business": 0.0,
-        "markets or the economy": 0.0,
-        "world": 0.0,
         "scitech": 1.0,
-        "sports": 0.0
+        "world": 0.0
+      }
+    },
+    {
+      "text": "Sony goes OLED with Japanese CLIE PEG-VZ90. Despite pulling out of the US and European markets, Sony #39;s CLIE line is still kicking in Japan, and is now kicking with an OLED display.",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "world": 0.0,
+        "sports": 0.0,
+        "business": 0.0,
+        "scitech": 1.0
       }
     },
     {
       "text": "After the Bell-Texas instruments up after sets share buyback. Shares of Texas Instruments Inc. (TXN.N: Quote, Profile, Research) rose after the market close on Thursday, after the chip maker said it p",
       "truth": "business",
-      "predicted": "markets or the economy",
+      "predicted": "business",
       "probabilities": {
-        "markets or the economy": 0.7,
-        "business": 0.3,
+        "sports": 0.0,
+        "scitech": 0.0,
+        "business": 1.0,
+        "world": 0.0
+      }
+    },
+    {
+      "text": "Han earns a hand with playoff triumph. Hee-Won Han made a 4-foot birdie putt on the first playoff hole to beat Lorie Kane and win the Safeway Classic on Sunday at Portland, Ore.",
+      "truth": "sports",
+      "predicted": "sports",
+      "probabilities": {
+        "sports": 1.0,
         "world": 0.0,
         "scitech": 0.0,
-        "politics or conflict": 0.0,
-        "sports": 0.0
+        "business": 0.0
       }
     },
     {
       "text": "Iraq promises to release one of two high-profile women prisoners. BAGHDAD Iraq promised Wednesday to release one of two high-profile women prisoners, but officials denied the decision was linked to de",
       "truth": "world",
-      "predicted": "politics or conflict",
+      "predicted": "world",
       "probabilities": {
+        "world": 1.0,
         "business": 0.0,
-        "sports": 0.0,
-        "world": 0.06,
         "scitech": 0.0,
-        "markets or the economy": 0.0,
-        "politics or conflict": 0.94
+        "sports": 0.0
+      }
+    },
+    {
+      "text": "Fannie Mae mess worries investors. The fallout from allegations of serious accounting problems at Fannie Mae has rattled investors and could even bump up mortgage rates down the road.",
+      "truth": "business",
+      "predicted": "business",
+      "probabilities": {
+        "sports": 0.0,
+        "scitech": 0.0,
+        "business": 1.0,
+        "world": 0.0
       }
     },
     {
       "text": "Gas prices up 5 cents after Hurricane Ivan. CAMARILLO, Calif. - Gas prices jumped more than 5 cents a gallon in the past two weeks, largely because of supply problems related to Hurricane Ivan, an ind",
       "truth": "scitech",
-      "predicted": "markets or the economy",
+      "predicted": "business",
       "probabilities": {
-        "scitech": 0.0,
-        "markets or the economy": 0.86,
-        "business": 0.14,
-        "politics or conflict": 0.0,
+        "sports": 0.0,
+        "world": 0.0,
+        "business": 1.0,
+        "scitech": 0.0
+      }
+    },
+    {
+      "text": "Net firms: Don't tax VoIP. The Spanish-American War is over and a \"temporary\" tax created to pay for it should not be extended to Internet phone calls, industry groups tell the IRS",
+      "truth": "scitech",
+      "predicted": "business",
+      "probabilities": {
+        "scitech": 0.15,
+        "business": 0.85,
         "world": 0.0,
         "sports": 0.0
       }
@@ -150,14 +231,23 @@
     {
       "text": "King's Widow Turns Focus on Voting Rights (AP). AP - The widow of Martin Luther King Jr. said the right to vote should be open to everyone in a democracy, including those who have been convicted of cr",
       "truth": "world",
-      "predicted": "politics or conflict",
+      "predicted": "world",
       "probabilities": {
-        "politics or conflict": 1.0,
+        "world": 1.0,
         "sports": 0.0,
-        "scitech": 0.0,
         "business": 0.0,
+        "scitech": 0.0
+      }
+    },
+    {
+      "text": "Tigers exercise Trammell #39;s option. The Tigers face plenty of decisions on players from here on out. Their option on the manager was a quick one. Two days after Alan Trammell completed his second s",
+      "truth": "sports",
+      "predicted": "sports",
+      "probabilities": {
         "world": 0.0,
-        "markets or the economy": 0.0
+        "sports": 1.0,
+        "business": 0.0,
+        "scitech": 0.0
       }
     },
     {
@@ -165,12 +255,21 @@
       "truth": "scitech",
       "predicted": "scitech",
       "probabilities": {
-        "scitech": 0.79,
-        "world": 0.0,
-        "politics or conflict": 0.01,
         "sports": 0.0,
-        "business": 0.2,
-        "markets or the economy": 0.0
+        "world": 0.0,
+        "scitech": 0.81,
+        "business": 0.19
+      }
+    },
+    {
+      "text": "Dell recalls four million power adaptors. About 4.4 million AC adapters sold worldwide with Dell notebooks between September 1998 and February 2002 were recalled on Friday because of a risk of overhea",
+      "truth": "scitech",
+      "predicted": "business",
+      "probabilities": {
+        "sports": 0.0,
+        "business": 0.67,
+        "scitech": 0.33,
+        "world": 0.0
       }
     },
     {
@@ -179,11 +278,20 @@
       "predicted": "scitech",
       "probabilities": {
         "scitech": 0.72,
-        "politics or conflict": 0.0,
+        "business": 0.28,
         "world": 0.0,
-        "markets or the economy": 0.0,
+        "sports": 0.0
+      }
+    },
+    {
+      "text": "UPDATE 1-Star Gas suspends payout, may seek bankruptcy. Star Gas Partners LP (SGH.N: Quote, Profile, Research) (SGU.N: Quote, Profile, Research) on Monday said it has suspended distributions on its co",
+      "truth": "business",
+      "predicted": "business",
+      "probabilities": {
+        "world": 0.0,
         "sports": 0.0,
-        "business": 0.28
+        "business": 1.0,
+        "scitech": 0.0
       }
     },
     {
@@ -192,11 +300,20 @@
       "predicted": "sports",
       "probabilities": {
         "sports": 1.0,
-        "markets or the economy": 0.0,
         "world": 0.0,
+        "business": 0.0,
+        "scitech": 0.0
+      }
+    },
+    {
+      "text": "Schumacher escapes high-speed practice crash. SAO PAULO, Oct 23 (AFP) - World champion Michael Schumacher was involved in a high-speed crash in Saturday #39;s practice for the Brazilian Grand Prix.",
+      "truth": "sports",
+      "predicted": "sports",
+      "probabilities": {
+        "sports": 1.0,
+        "business": 0.0,
         "scitech": 0.0,
-        "politics or conflict": 0.0,
-        "business": 0.0
+        "world": 0.0
       }
     },
     {
@@ -204,12 +321,21 @@
       "truth": "business",
       "predicted": "business",
       "probabilities": {
-        "markets or the economy": 0.0,
         "sports": 0.0,
-        "world": 0.0,
-        "business": 1.0,
         "scitech": 0.0,
-        "politics or conflict": 0.0
+        "world": 0.0,
+        "business": 1.0
+      }
+    },
+    {
+      "text": "ATA Files for Bankruptcy Protection. ATA Holdings Corp. (ATAH), parent of struggling low-cost carrier ATA Airlines, on Tuesday filed for Chapter 11 bankruptcy protection as falling fares and soaring f",
+      "truth": "business",
+      "predicted": "business",
+      "probabilities": {
+        "scitech": 0.0,
+        "sports": 0.0,
+        "business": 1.0,
+        "world": 0.0
       }
     },
     {
@@ -217,38 +343,65 @@
       "truth": "business",
       "predicted": "scitech",
       "probabilities": {
+        "world": 0.01,
         "sports": 0.0,
-        "business": 0.28,
-        "politics or conflict": 0.01,
-        "world": 0.0,
-        "scitech": 0.7,
-        "markets or the economy": 0.01
+        "scitech": 0.63,
+        "business": 0.36
+      }
+    },
+    {
+      "text": "'Money woes' foiled Beagle 2 shot. A report into the loss of British Mars probe Beagle 2 blames the UK government's failure to commit funds early.",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "sports": 0.0,
+        "world": 0.01,
+        "business": 0.01,
+        "scitech": 0.98
       }
     },
     {
       "text": "Ivorian unrest poses new test for France. Two years after French forces arrived to restore order in turmoil-torn Ivory Coast, a peace agreement between Ivorian rebels and the government of President L",
       "truth": "world",
-      "predicted": "politics or conflict",
+      "predicted": "world",
       "probabilities": {
         "scitech": 0.0,
-        "markets or the economy": 0.0,
-        "business": 0.0,
+        "world": 1.0,
         "sports": 0.0,
-        "politics or conflict": 0.94,
-        "world": 0.06
+        "business": 0.0
+      }
+    },
+    {
+      "text": "Sub flees after navy chase. The fragile relations between Tokyo and Beijing were further weakened yesterday when a suspected Chinese nuclear submarine was chased out of Japanese territorial waters.",
+      "truth": "world",
+      "predicted": "world",
+      "probabilities": {
+        "scitech": 0.0,
+        "business": 0.0,
+        "world": 1.0,
+        "sports": 0.0
       }
     },
     {
       "text": "Northern Irish Protestant group pledges to end violence. Northern Ireland #39;s main pro-British paramilitary group, The Ulster Defence Association (UDA), has pledged to end all violence and work towa",
       "truth": "world",
-      "predicted": "politics or conflict",
+      "predicted": "world",
       "probabilities": {
-        "scitech": 0.0,
+        "world": 1.0,
         "business": 0.0,
-        "world": 0.0,
-        "markets or the economy": 0.0,
-        "politics or conflict": 1.0,
-        "sports": 0.0
+        "sports": 0.0,
+        "scitech": 0.0
+      }
+    },
+    {
+      "text": "14 Nations to Participate in Plan to Reduce Methane. Thirteen countries agreed yesterday to join a global plan proposed by the Bush administration to curb methane emissions by capturing the greenhouse",
+      "truth": "scitech",
+      "predicted": "world",
+      "probabilities": {
+        "scitech": 0.04,
+        "sports": 0.0,
+        "business": 0.0,
+        "world": 0.96
       }
     },
     {
@@ -257,11 +410,20 @@
       "predicted": "scitech",
       "probabilities": {
         "sports": 0.0,
+        "world": 0.48,
         "business": 0.0,
-        "markets or the economy": 0.0,
-        "politics or conflict": 0.4,
-        "scitech": 0.41,
-        "world": 0.19
+        "scitech": 0.52
+      }
+    },
+    {
+      "text": "CU Athletic Director Dick Tharp Resigns (AP). AP - Colorado athletic director Dick Tharp resigned Monday, ending a nine-year tenure sullied by accusations of recruiting violations and fiscal mismanage",
+      "truth": "sports",
+      "predicted": "sports",
+      "probabilities": {
+        "world": 0.0,
+        "sports": 1.0,
+        "business": 0.0,
+        "scitech": 0.0
       }
     },
     {
@@ -272,9 +434,18 @@
         "scitech": 0.0,
         "sports": 0.0,
         "business": 1.0,
-        "markets or the economy": 0.0,
-        "politics or conflict": 0.0,
         "world": 0.0
+      }
+    },
+    {
+      "text": "Princess Di's Ex-Bodyguard Disputes Claim (AP). AP - A former bodyguard of Princess Diana on Tuesday dismissed her claim that one of her lovers was \"bumped off.\"",
+      "truth": "world",
+      "predicted": "world",
+      "probabilities": {
+        "scitech": 0.0,
+        "sports": 0.0,
+        "world": 1.0,
+        "business": 0.0
       }
     },
     {
@@ -284,23 +455,41 @@
       "probabilities": {
         "sports": 0.0,
         "scitech": 0.97,
-        "markets or the economy": 0.0,
-        "politics or conflict": 0.0,
         "business": 0.03,
         "world": 0.0
       }
     },
     {
+      "text": "Without Batting An Eyelash : A very French welcome for a new &lt;b&gt;...&lt;/b&gt;. THAT night, it seemed as if three or four parties were going on at once in Cosmo Manille. Wrong, palanggas. Actuall",
+      "truth": "business",
+      "predicted": "business",
+      "probabilities": {
+        "sports": 0.0,
+        "business": 0.71,
+        "world": 0.27,
+        "scitech": 0.02
+      }
+    },
+    {
       "text": "Homeless families total 100,000. The figure for homeless families in England has topped 100,000 for the first time.",
       "truth": "world",
-      "predicted": "politics or conflict",
+      "predicted": "world",
       "probabilities": {
-        "business": 0.0,
         "sports": 0.0,
+        "business": 0.01,
         "scitech": 0.0,
-        "world": 0.25,
-        "markets or the economy": 0.07,
-        "politics or conflict": 0.68
+        "world": 0.99
+      }
+    },
+    {
+      "text": "Google takes the competition to school. While rivals scramble to catch up on the desktop, Google plans to digitize famous libraries. Its official. Google is the most dangerous media company on the pla",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "world": 0.0,
+        "sports": 0.0,
+        "business": 0.3,
+        "scitech": 0.7
       }
     }
   ]

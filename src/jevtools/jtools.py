@@ -20,7 +20,7 @@ from jevcore import __version__
 from jevcore.auth import available, resolve
 from jevcore.backends import BACKEND_NAMES, BACKENDS, cache_dir, config_dir
 from jevcore.cli import EXIT_API, EXIT_AUTH, EXIT_OK, EXIT_USAGE, Parser, cli_entry, safe_url
-from jevcore.client import Jev
+from jevcore.client import Jev, price_per_mtok
 from jevcore.errors import AuthError, JevError, UsageError
 
 from . import TOOLS
@@ -104,7 +104,10 @@ async def _doctor(args: argparse.Namespace, out: IO[str], transport: httpx.Async
         return EXIT_API
     finally:
         await jev.close()
-    cost = usage.cost if usage.cost is not None else usage.input_tokens * 0.042 / 1e6
+    # The same rule the meter uses, and the same price: a gateway that reports a cost of exactly
+    # zero -- a plan that does not bill per call -- was being shown as "$0.0000000", which reads
+    # as free rather than as unreported, and disagreed with what --stats printed for the same call.
+    cost = usage.cost or usage.input_tokens * price_per_mtok() / 1e6
     print(
         f"ok: one call in {seconds * 1000:.0f} ms, {usage.input_tokens} input tokens, ${cost:.7f}"
         + (f", answered by {usage.model}" if usage.model else ""),

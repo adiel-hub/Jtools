@@ -38,11 +38,15 @@ def hbar_chart(
     # Labels are right-aligned into their own column; 13px sans is about 6.9px per character.
     label_w = max(250, int(max(len(label) for label, *_ in rows) * 6.9) + 20)
     bar_x, row_h = label_w + 10, 34
-    width = max(width, bar_x + 260)
+    # The annotation sits to the right of its bar, so the space it needs has to be reserved rather
+    # than assumed: a fixed 120px was narrower than "115 lines/s (5s for 600)", and the longest bar
+    # pushed its own label off the right edge of the canvas. 12px sans is about 6.6px per character.
+    note_w = max(120, int(max(len(note) for *_, note in rows) * 7.0) + 24)  # + the 8px gap and slack
+    width = max(width, bar_x + 160 + note_w)
     top = 52 + 16 * len(caption)
     height = top + row_h * len(rows) + 40
     vmax = max(v for _, v, _, _ in rows) or 1.0
-    span = width - bar_x - 120
+    span = width - bar_x - note_w
 
     def length(v: float) -> float:
         if log:
@@ -134,7 +138,7 @@ def throughput_chart(data: dict[str, Any]) -> bool:
                 f"jgrep -j {r['jobs']}",
                 r["lines_per_second"] or 0,
                 ACCENT if r["jobs"] > 1 else ACCENT2,
-                f"{r['lines_per_second']} lines/s  ({r['lines']} lines in {r['seconds']}s)",
+                f"{r['lines_per_second']:,.0f} lines/s  ({r['seconds']:.0f}s for {r['lines']:,})",
             )
             for r in t
         ]
@@ -159,7 +163,7 @@ def accuracy_chart() -> None:
         d = json.loads(spam.read_text())
         rows.append(
             (
-                f"jgrep finds SMS spam, F1 (n={judged(d)})",
+                f"jgrep finds SMS spam, F1 (n={judged(d):,})",
                 d["jgrep_at_0.5"]["f1"],
                 ACCENT,
                 f"{d['jgrep_at_0.5']['f1']:.2f}",
@@ -173,7 +177,7 @@ def accuracy_chart() -> None:
     sent = RESULTS / "accuracy-sentiment.json"
     if sent.exists():
         d = json.loads(sent.read_text())
-        rows.append((f"jsort ranks review sentiment, AUC (n={judged(d)})", d["auc"], ACCENT, f"{d['auc']:.2f}"))
+        rows.append((f"jsort ranks review sentiment, AUC (n={judged(d):,})", d["auc"], ACCENT, f"{d['auc']:.2f}"))
         rows.append(
             ("the same, precision in the top half", d["precision_at_half"], ACCENT2, f"{d['precision_at_half']:.2f}")
         )
@@ -181,7 +185,7 @@ def accuracy_chart() -> None:
     if news.exists():
         d = json.loads(news.read_text())
         rows.append(
-            (f"jtag labels AG News 4 ways, accuracy (n={judged(d)})", d["accuracy"], ACCENT, f"{d['accuracy']:.2f}")
+            (f"jtag labels AG News 4 ways, accuracy (n={judged(d):,})", d["accuracy"], ACCENT, f"{d['accuracy']:.2f}")
         )
         rows.append(("the same, macro F1", d["macro_f1"], ACCENT2, f"{d['macro_f1']:.2f}"))
     if not rows:

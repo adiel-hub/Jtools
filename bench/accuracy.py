@@ -20,6 +20,7 @@ import sys
 import time
 import urllib.request
 import zipfile
+from typing import Any
 
 from _common import OUT, backend_info, prf, run_tool, save
 
@@ -77,6 +78,24 @@ def prepare() -> None:
     print(f"spam: {len(pairs):,} messages; sentiment: {len(sentences):,} sentences; news: {len(news):,} articles")
 
 
+SAVED_PREDICTIONS = 40
+"""How many per-record predictions a result file keeps.
+
+Every metric is computed over the whole run; these rows are only for spot-checking that the
+corpus and the verdicts look like what the numbers claim. Keeping one per record put four
+megabytes of JSON into the repository on every rerun -- three of them for AG News alone -- which
+is a great deal of git history for data nobody reads twice.
+"""
+
+
+def spread(items: list[Any], k: int = SAVED_PREDICTIONS) -> list[Any]:
+    """An even spread through a list, so a sample of it still shows both classes."""
+    if len(items) <= k:
+        return items
+    step = len(items) / k
+    return [items[int(i * step)] for i in range(k)]
+
+
 def load(name: str, n: int) -> tuple[list[str], list[int]]:
     lines = (OUT / f"{name}.txt").read_text().splitlines()
     labels = [int(x) for x in (OUT / f"{name}.labels").read_text().split()]
@@ -126,10 +145,13 @@ def spam(n: int, jobs: int) -> None:
             "seconds": round(time.perf_counter() - t0, 4),
             "note": "the same regex over all 5,574 messages; free, so it needs no sample",
         },
-        "predictions": [
-            {"text": line, "spam": t, "p": ps[i], "regex": keyword[i]}
-            for i, (line, t) in enumerate(zip(lines, truth, strict=True))
-        ],
+        "predictions_sampled_from": len(lines),
+        "predictions": spread(
+            [
+                {"text": line, "spam": t, "p": ps[i], "regex": keyword[i]}
+                for i, (line, t) in enumerate(zip(lines, truth, strict=True))
+            ]
+        ),
     }
     save("accuracy-spam", result)
     print(json.dumps({k: v for k, v in result.items() if k != "predictions"}, indent=2))
@@ -168,7 +190,12 @@ def sentiment(n: int, jobs: int) -> None:
         "auc": round(auc, 4),
         "score_split_at_0.5": prf([s >= 0.5 for s in scores], [truth.get(r["line"], 0) == 1 for r in judged_rows]),
         "jsort_run": stats,
-        "ranking": [{"text": r["line"], "score": r.get("score"), "positive": truth.get(r["line"], 0)} for r in rows],
+        "ranking_sampled_from": len(rows),
+        # An even spread through the ranked order, so the sample still shows the top, the middle
+        # and the bottom of what jsort produced.
+        "ranking": spread(
+            [{"text": r["line"], "score": r.get("score"), "positive": truth.get(r["line"], 0)} for r in rows]
+        ),
     }
     save("accuracy-sentiment", result)
     print(json.dumps({k: v for k, v in result.items() if k != "ranking"}, indent=2))
@@ -206,10 +233,18 @@ def news(n: int, jobs: int) -> None:
         "macro_f1": round(sum(v["f1"] for v in per_class.values()) / len(per_class), 4),
         "per_class": per_class,
         "jtag_run": stats,
-        "predictions": [
-            {"text": r["line"][:200], "truth": t, "predicted": r.get("label"), "probabilities": r.get("probabilities")}
-            for r, t in zip(rows, truth_names, strict=True)
-        ],
+        "predictions_sampled_from": len(rows),
+        "predictions": spread(
+            [
+                {
+                    "text": r["line"][:200],
+                    "truth": t,
+                    "predicted": r.get("label"),
+                    "probabilities": r.get("probabilities"),
+                }
+                for r, t in zip(rows, truth_names, strict=True)
+            ]
+        ),
     }
     save("accuracy-news", result)
     print(json.dumps({k: v for k, v in result.items() if k != "predictions"}, indent=2))

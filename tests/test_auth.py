@@ -156,3 +156,37 @@ def test_doctor_names_a_key_file_anyone_on_the_machine_can_read(tmp_path, monkey
     assert "typesafe.key is readable by others" in text
     assert "openrouter.key" not in text, "a key file at 0600 was reported as loose"
     assert "sk-abcdefghijklmnop" not in text, "doctor printed a key in full"
+
+
+def test_doctor_prices_a_call_the_gateway_billed_at_zero(monkeypatch, tmp_path):
+    """A plan that does not bill per call reports $0, which is not the same as costing nothing.
+
+    Shown as "$0.0000000" it read as free, and disagreed with what --stats printed for the very
+    same call: the meter has always fallen back to the list price when no cost is reported.
+    """
+    import io
+    import json
+
+    import httpx
+
+    from jevtools.jtools import main
+
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "vck_test")
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+
+    def zero_cost(request: httpx.Request) -> httpx.Response:
+        questions = json.loads(request.content)["questions"]
+        return httpx.Response(
+            200,
+            json={
+                "answers": {qid: {"type": "boolean", "probability": 0.9} for qid in questions},
+                "usage": {"inputTokens": 1000, "outputTokens": 0},
+                "providerMetadata": {"gateway": {"cost": "0", "routing": {"canonicalSlug": "typesafe-ai/jev"}}},
+            },
+        )
+
+    out = io.StringIO()
+    assert main(["doctor"], transport=httpx.MockTransport(zero_cost), out=out, err=io.StringIO()) == 0
+    text = out.getvalue()
+    assert "$0.0000000" not in text, "a call the gateway did not price was reported as free"
+    assert "$0.0000420" in text, f"1,000 tokens at the list price is $0.000042; got: {text[-200:]}"

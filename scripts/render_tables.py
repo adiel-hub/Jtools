@@ -22,6 +22,18 @@ def judged(result: dict[str, Any]) -> int:
     return int(result.get("judged") or result.get("lines") or 0)
 
 
+def coverage(result: dict[str, Any], noun: str) -> str:
+    """ "all 5,574 messages" or "1,200 of 5,574 sampled messages judged".
+
+    A run over the whole corpus is a stronger claim than a sample of it, and printing it as
+    "5574 of 5574 sampled messages judged" states the weaker one while also being hard to read.
+    """
+    got, total = judged(result), int(result.get("lines") or 0)
+    if got == total:
+        return f"all {total:,} {noun}"
+    return f"{got:,} of {total:,} sampled {noun} judged"
+
+
 def load(name: str) -> dict[str, Any] | None:
     path = RESULTS / f"{name}.json"
     return json.loads(path.read_text()) if path.exists() else None
@@ -32,6 +44,14 @@ LIST_PRICE_PER_TOKEN = 0.042 / 1e6
 
 def money(d: float) -> str:
     return f"${d:.4f}" if d >= 0.001 else f"${d:.6f}"
+
+
+def duration(ms: Any) -> str:
+    """Milliseconds until they stop reading as milliseconds; a throttled wait is a queue, not a
+    measurement of Jev, and "298804 ms" in a latency table reads as a five-minute answer."""
+    if not isinstance(ms, int | float):
+        return "?"
+    return f"{ms / 1000:,.0f} s" if ms >= 10_000 else f"{ms:,.0f} ms"
 
 
 def run_dollars(run: dict[str, Any]) -> float:
@@ -49,20 +69,29 @@ def latency_table() -> str:
         "|---|---:|",
         f"| single yes/no call, p50 | {s['p50_ms']} ms |",
         f"| single yes/no call, p95 | {s['p95_ms']} ms |",
-        f"| the same, wall time incl. rate-limit waits (p50 / p95) | {s.get('wall_p50_ms', '?')} / {s.get('wall_p95_ms', '?')} ms |",
         f"| input tokens per call | {s['tokens_per_call']} |",
         f"| dollars per call | {money(s['dollars_per_call'])} |",
         f"| dollars per 1,000 decisions | {money(s['dollars_per_1000'])} |",
     ]
+    # Only when the key was actually throttled: on an unthrottled one this row repeats the two
+    # above it to the millisecond, and a table should not spend a line saying nothing.
+    wall_p95 = s.get("wall_p95_ms")
+    if isinstance(wall_p95, int | float) and wall_p95 > s["p95_ms"] * 1.2:
+        rows.insert(
+            4,
+            f"| the same, including the time this key spent rate-limited (p50 / p95) | "
+            f"{duration(s.get('wall_p50_ms'))} / {duration(wall_p95)} |",
+        )
     for b in d.get("batching", []):
         rows.append(
-            f"| {b['questions_per_call']} question(s) in one call, p50 | {b['p50_ms']} ms "
+            f"| {b['questions_per_call']} question{'' if b['questions_per_call'] == 1 else 's'} "
+            f"in one call, p50 | {b['p50_ms']} ms "
             f"({b['tokens_per_call']} tokens, {money(b['dollars_per_call'])}) |"
         )
     for t in d.get("throughput", []):
         lps = t.get("lines_per_second")
         if not t.get("rate_limited"):
-            rows.append(f"| jgrep -j {t['jobs']}, {t['lines']} lines | {t.get('seconds')} s ({lps} lines/s) |")
+            rows.append(f"| jgrep -j {t['jobs']}, {t['lines']:,} lines | {t.get('seconds')} s ({lps:,.0f} lines/s) |")
     build = f", jev-tools {d['build']}" if d.get("build") else ""
     head = (
         f"Measured {d['when'][:10]} through **{d['backend']}** (`{d['model']}`{build}), "
@@ -92,16 +121,17 @@ def accuracy_table() -> str:
         run = spam["jgrep_run"]
         parts.append(
             f"### jgrep vs a keyword regex: {spam['dataset']} "
-            f"({judged(spam)} of {spam['lines']} sampled messages judged, {spam['positives']} spam)\n\n"
+            f"({coverage(spam, 'messages')}, {spam['positives']:,} spam)\n\n"
             f"Description: *{spam['description']}*\n\n"
             "| filter | precision | recall | F1 | time | cost |\n|---|---:|---:|---:|---:|---:|\n"
             f"| `jgrep` at p ≥ 0.5 | {j['precision']:.2f} | {j['recall']:.2f} | **{j['f1']:.2f}** | {run.get('seconds', '?')} s | {money(run_dollars(run))} |\n"
             f"| `jgrep` at p ≥ 0.9 | {j9['precision']:.2f} | {j9['recall']:.2f} | {j9['f1']:.2f} | | |\n"
-            f"| keyword regex, same sample ({k['regex'].count('|') + 1} terms) | {k['precision']:.2f} | {k['recall']:.2f} | {k['f1']:.2f} | | free |\n"
+            f"| the same {k['regex'].count('|') + 1}-term keyword regex | {k['precision']:.2f} | {k['recall']:.2f} | {k['f1']:.2f} | | free |\n"
             + (
                 f"| the same regex over all {full['lines']:,} messages | {full['precision']:.2f} | {full['recall']:.2f} "
                 f"| {full['f1']:.2f} | {full['seconds']} s | free |\n"
-                if full
+                # Not when the sample was the whole corpus: the row above already is this row.
+                if full and full["lines"] != judged(spam)
                 else ""
             )
         )
@@ -110,7 +140,7 @@ def accuracy_table() -> str:
         run = sent["jsort_run"]
         parts.append(
             f"### jsort ranking quality: {sent['dataset']} "
-            f"({judged(sent)} of {sent['lines']} sampled sentences judged, {sent['positives']} positive)\n\n"
+            f"({coverage(sent, 'sentences')}, {sent['positives']:,} positive)\n\n"
             f"Description: *{sent['description']}*\n\n"
             "| measure | value |\n|---|---:|\n"
             f"| AUC (a random positive ranks above a random negative) | **{sent['auc']:.2f}** |\n"
@@ -130,7 +160,7 @@ def accuracy_table() -> str:
         labels = ", ".join(f"`{one}`" for one in spec) if isinstance(spec, list) else f"`{spec}`"
         parts.append(
             f"### jtag four-way classification: {news['dataset']} "
-            f"({judged(news)} of {news['lines']} sampled articles judged)\n\n"
+            f"({coverage(news, 'articles')})\n\n"
             f"Labels: {labels}\n\n"
             f"Accuracy **{news['accuracy']:.2f}**, macro F1 {news['macro_f1']:.2f}, "
             f"{run.get('seconds', '?')} s, {money(run_dollars(run))}.\n\n"
@@ -168,16 +198,17 @@ def summary() -> str:
     if spam:
         full = spam.get("keyword_grep_full_corpus")
         terms = spam["keyword_grep"]["regex"].count("|") + 1
-        where = f"over all {full['lines']:,} messages" if full else f"on the same {judged(spam)} messages"
         baseline = (full or spam["keyword_grep"])["f1"]
         acc.append(
-            f"`jgrep` finds SMS spam with F1 {spam['jgrep_at_0.5']['f1']:.2f} (n={judged(spam)}), where a "
-            f"{terms}-term keyword regex scores {baseline:.2f} {where}"
+            f"`jgrep` finds SMS spam with F1 {spam['jgrep_at_0.5']['f1']:.2f} over {coverage(spam, 'messages')}, "
+            f"where a {terms}-term keyword regex scores {baseline:.2f} on the same text"
         )
     if sent:
-        acc.append(f"`jsort` ranks review sentiment with AUC {sent['auc']:.2f} (n={judged(sent)})")
+        acc.append(f"`jsort` ranks review sentiment with AUC {sent['auc']:.2f} over {coverage(sent, 'sentences')}")
     if news:
-        acc.append(f"`jtag` labels AG News four ways with {news['accuracy']:.0%} accuracy (n={judged(news)})")
+        acc.append(
+            f"`jtag` labels AG News four ways with {news['accuracy']:.0%} accuracy over {coverage(news, 'articles')}"
+        )
     if acc:
         lines.append("- **Accuracy, from a one-line description, with no tuning:** " + "; ".join(acc) + ".")
         unjudged = sum(int(r.get("unjudged") or 0) for r in (spam, sent, news) if r)

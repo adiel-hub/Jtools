@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="506" viewBox="0 0 1034 506" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
-<rect width="1034" height="506" rx="10" fill="#0f1419"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="484" viewBox="0 0 1034 484" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
+<rect width="1034" height="484" rx="10" fill="#0f1419"/>
 <rect width="1034" height="30" fill="#1a1f26"/>
 <circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
 <text x="80" y="20" fill="#8a8f98">split a stream into buckets</text>
@@ -22,6 +22,5 @@
 <text x="18" y="393" fill="#e6e6e6" xml:space="preserve">Re: invoice #4471 - paid twice, please refund one payment.</text>
 <text x="18" y="415" fill="#e6e6e6" xml:space="preserve"></text>
 <text x="18" y="437" fill="#e6e6e6" xml:space="preserve">==&gt; /tmp/sorted/unrouted.txt &lt;==</text>
-<text x="18" y="459" fill="#e6e6e6" xml:space="preserve">Can we get a quote for 50 enterprise seats? We'd like to start next quarter.</text>
-<text x="18" y="481" fill="#8a8f98" xml:space="preserve">jroute: 10 lines routed (support: 4, sales: 3, spam: 3) -&gt; /tmp/sorted</text>
+<text x="18" y="459" fill="#8a8f98" xml:space="preserve">jroute: 10 lines routed (support: 4, sales: 3, spam: 3) -&gt; /tmp/sorted</text>
 </svg>

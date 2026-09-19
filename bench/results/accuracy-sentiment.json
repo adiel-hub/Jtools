@@ -2,38 +2,33 @@
   "backend": "vercel",
   "url": "https://ai-gateway.vercel.sh/v4/ai/evaluation-model",
   "model": "typesafe-ai/jev",
-  "build": "0.1.0+105a0b0",
-  "when": "2026-09-19T08:45:42+00:00",
+  "build": "0.1.0+f6af022",
+  "when": "2026-09-19T10:19:01+00:00",
   "dataset": "UCI Sentiment Labelled Sentences (Amazon, IMDb, Yelp)",
-  "lines": 80,
-  "judged": 80,
+  "lines": 3000,
+  "judged": 3000,
   "unjudged": 0,
-  "positives": 44,
+  "positives": 1500,
   "description": "the writer liked what they are reviewing",
-  "precision_at_half": 1.0,
-  "auc": 1.0,
+  "precision_at_half": 0.9973,
+  "auc": 0.9955,
   "score_split_at_0.5": {
-    "precision": 1.0,
-    "recall": 0.9318,
-    "f1": 0.9647,
-    "accuracy": 0.9625
+    "precision": 0.9877,
+    "recall": 0.912,
+    "f1": 0.9484,
+    "accuracy": 0.9503
   },
   "jsort_run": {
-    "calls": 80,
-    "tokens": 28220,
-    "dollars": 0.0012,
-    "p50_ms": 317,
-    "seconds": 4872.6,
-    "rate_limited": 491
+    "calls": 2982,
+    "tokens": 1052410,
+    "dollars": 0.0442,
+    "p50_ms": 233,
+    "seconds": 23.6
   },
+  "ranking_sampled_from": 3000,
   "ranking": [
     {
-      "text": "Love this product.",
-      "score": 1.0,
-      "positive": 1
-    },
-    {
-      "text": "By far the BEST cheesecurds we have ever had!",
+      "text": "These headphones were a great find - and I think they are perhaps the best purchase I've made in the last several years - seriously.",
       "score": 1.0,
       "positive": 1
     },
@@ -43,387 +38,192 @@
       "positive": 1
     },
     {
-      "text": "The Songs Were The Best And The Muppets Were So Hilarious.",
+      "text": "The food was great as always, compliments to the chef.",
       "score": 0.9975,
       "positive": 1
     },
     {
-      "text": "10 out of 10 stars.",
-      "score": 0.9975,
-      "positive": 1
-    },
-    {
-      "text": "This movie is well-balanced with comedy and drama and I thoroughly enjoyed myself.",
-      "score": 0.9975,
-      "positive": 1
-    },
-    {
-      "text": "This is such a fun and funny movie.",
-      "score": 0.995,
-      "positive": 1
-    },
-    {
-      "text": "The Wind and the Lion is well written and superbly acted.",
+      "text": "Great case and price!",
       "score": 0.9925,
       "positive": 1
     },
     {
-      "text": "the potatoes were great and so was the biscuit.",
-      "score": 0.9925,
+      "text": "I have been here several times in the past, and the experience has always been great.",
+      "score": 0.99,
       "positive": 1
     },
     {
-      "text": "It is simple to use and I like it.",
-      "score": 0.985,
+      "text": "Vivian Schilling did an excellent job with the script.",
+      "score": 0.9825,
       "positive": 1
     },
     {
-      "text": "That's right....the red velvet cake.....ohhh this stuff is so good.",
-      "score": 0.985,
-      "positive": 1
-    },
-    {
-      "text": "This is one of the best bars with food in Vegas.",
-      "score": 0.985,
-      "positive": 1
-    },
-    {
-      "text": "The headset fulfills my requirements so I am happy with my purchase.",
-      "score": 0.98,
-      "positive": 1
-    },
-    {
-      "text": "10/10",
-      "score": 0.98,
-      "positive": 1
-    },
-    {
-      "text": "its a little geeky but i think thats its sex on toast and it rocks and oozes sex right down to its battery embedded sleek stylish leather case.",
+      "text": "Great atmosphere, friendly and fast service.",
       "score": 0.975,
       "positive": 1
     },
     {
-      "text": "Great phone!.",
-      "score": 0.975,
-      "positive": 1
-    },
-    {
-      "text": "The cocktails are all handmade and delicious.",
-      "score": 0.97,
-      "positive": 1
-    },
-    {
-      "text": "Our server was fantastic and when he found out the wife loves roasted garlic and bone marrow, he added extra to our meal and another marrow to go!",
-      "score": 0.97,
-      "positive": 1
-    },
-    {
-      "text": "The black eyed peas and sweet potatoes... UNREAL!",
-      "score": 0.9675,
-      "positive": 1
-    },
-    {
-      "text": "The performances are real and gripping, the crocdodile is extremely well done, indeed if the Black Water website is to be believed that's because they used real crocs and the swamp location is fabulous.",
-      "score": 0.9625,
-      "positive": 1
-    },
-    {
-      "text": "So far it has worked like a charm.",
+      "text": "New Battery works great in phone.",
       "score": 0.96,
       "positive": 1
     },
     {
-      "text": "I highly recommend this movie for anyone interested in art, poetry, theater, politics, or Japanese history.",
-      "score": 0.96,
+      "text": "Food was good, service was good, Prices were good.",
+      "score": 0.945,
       "positive": 1
     },
     {
-      "text": "I really do recommend this place, you can go wrong with this donut place!",
-      "score": 0.96,
+      "text": "Only had this a month but it's worked flawlessly so far.",
+      "score": 0.9175,
       "positive": 1
     },
     {
-      "text": "Jawbone Era is awesome too!",
-      "score": 0.9575,
+      "text": "The incredible soundtrack truly captures the essence of the film.",
+      "score": 0.8975,
       "positive": 1
     },
     {
-      "text": "Works great.",
-      "score": 0.9475,
+      "text": "A world better than 95% of the garbage in the theatres today.",
+      "score": 0.8725,
       "positive": 1
     },
     {
-      "text": "The movie was very interesting from beginning to the end.",
-      "score": 0.9425,
-      "positive": 1
-    },
-    {
-      "text": "It is light, has plenty of battery capacity, and is very confortable to wear for somewhat extended periods of time.",
-      "score": 0.91,
-      "positive": 1
-    },
-    {
-      "text": "I like Steiners because it's dark and it feels like a bar.",
-      "score": 0.91,
-      "positive": 1
-    },
-    {
-      "text": "Owner's are really great people.!",
-      "score": 0.9025,
-      "positive": 1
-    },
-    {
-      "text": "Nothing short of magnificent photography/cinematography in this film.",
-      "score": 0.885,
-      "positive": 1
-    },
-    {
-      "text": "All in all, I'm quite satisfied with this purchase.",
-      "score": 0.8775,
-      "positive": 1
-    },
-    {
-      "text": "Try them in the airport to experience some tasty food and speedy, friendly service.",
-      "score": 0.8775,
-      "positive": 1
-    },
-    {
-      "text": "i'm glad i found this product on amazon it is hard to find, it wasn't high priced.",
-      "score": 0.8175,
-      "positive": 1
-    },
-    {
-      "text": "Ambience is perfect.",
-      "score": 0.8175,
+      "text": "Then I watched it again two Sundays ago (March 20th, 2005) and I began to really enjoy it and this time I taped the entire thing.",
+      "score": 0.84,
       "positive": 1
     },
     {
       "text": "The owners are super friendly and the staff is courteous.",
-      "score": 0.7975,
+      "score": 0.8075,
       "positive": 1
     },
     {
-      "text": "The characters are interesting and you want to find out more about them the longer the movie goes on, and I think people will be surprised by who does and doesn't make it.",
-      "score": 0.785,
+      "text": "I believe the screenwriter did a good job of tying up the loose ends.",
+      "score": 0.77,
       "positive": 1
     },
     {
-      "text": "I'm glad the film didn't go for the most obvious choice, as a lesser film certainly would have.",
-      "score": 0.75,
-      "positive": 1
-    },
-    {
-      "text": "Their Research and Development division obviously knows what they're doing.",
-      "score": 0.71,
-      "positive": 1
-    },
-    {
-      "text": "The shipping time was also very quick!",
-      "score": 0.7025,
-      "positive": 1
-    },
-    {
-      "text": "Pretty cool I would say.",
-      "score": 0.6325,
-      "positive": 1
-    },
-    {
-      "text": "These are certainly very comfortable and functionality is decent.",
-      "score": 0.5725,
-      "positive": 1
-    },
-    {
-      "text": "Both Rickman and Stowe play their roles to the hilt in this tale of a childrens' book writer who-- maybe?-- has written a subversive tract.",
-      "score": 0.45,
-      "positive": 1
-    },
-    {
-      "text": "The entire audience applauded at the conclusion of the film.",
-      "score": 0.285,
-      "positive": 1
-    },
-    {
-      "text": "My friend loved the salmon tartar.",
-      "score": 0.1325,
-      "positive": 1
-    },
-    {
-      "text": "Considering the relations off screen between Taylor and Stanwyck, it was surprising how little chemistry there was on screen between the two of them.",
-      "score": 0.0625,
+      "text": "I wasn't expecting Oscar material, but this?",
+      "score": 0.7275,
       "positive": 0
     },
     {
-      "text": "I Was Hoping for More.",
-      "score": 0.05,
+      "text": "I was very impressed with the price of the cases.",
+      "score": 0.68,
+      "positive": 1
+    },
+    {
+      "text": "There still are good actors around!",
+      "score": 0.6175,
+      "positive": 1
+    },
+    {
+      "text": "This movie has a cutting edge to it.",
+      "score": 0.535,
+      "positive": 1
+    },
+    {
+      "text": "Service was fine and the waitress was friendly.",
+      "score": 0.4275,
+      "positive": 1
+    },
+    {
+      "text": "The only thing I did like was the prime rib and dessert section.",
+      "score": 0.255,
+      "positive": 1
+    },
+    {
+      "text": "You'd have to have the IQ of particularly stupid mollusk not to see that one coming.",
+      "score": 0.0825,
       "positive": 0
     },
     {
-      "text": "putting the race card aside, lets look at the major flaw in the film: they destroy latifa's character.",
+      "text": "There is so much good food in Vegas that I feel cheated for wasting an eating opportunity by going to Rice and Company.",
       "score": 0.0325,
       "positive": 0
     },
     {
-      "text": "After 20 minutes wait, I got a table.",
-      "score": 0.02,
-      "positive": 0
-    },
-    {
-      "text": "Perhaps I caught them on an off night judging by the other reviews, but I'm not inspired to go back.",
+      "text": "Having to humour him just to get by and get through the day was so apt.",
       "score": 0.015,
+      "positive": 1
+    },
+    {
+      "text": "It probably would have been better if the director hadn't spent most of the movie showcasing his own art work, which really isn't that noteworthy.",
+      "score": 0.0075,
       "positive": 0
     },
     {
-      "text": "Then, there's the plot holes.",
-      "score": 0.0125,
-      "positive": 0
-    },
-    {
-      "text": "Third, the cheese on my friend's burger was cold.",
+      "text": "It also took her forever to bring us the check when we asked for it.",
       "score": 0.005,
       "positive": 0
     },
     {
-      "text": "She was quite disappointed although some blame needs to be placed at her door.",
-      "score": 0.005,
-      "positive": 0
-    },
-    {
-      "text": "However, BT headsets are currently not good for real time games like first-person shooters since the audio delay messes me up.",
+      "text": "The script looks as if only a rough draft was written and shooting began before a finished script was completed.",
       "score": 0.0025,
       "positive": 0
     },
     {
-      "text": "But what really made it unwatchable was the direction.",
-      "score": 0.0025,
-      "positive": 0
-    },
-    {
-      "text": "So there is no way for me to plug it in here in the US unless I go by a converter.",
+      "text": "Disappointed with battery.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "Poor Talk Time Performance.",
+      "text": "Unreliable - I'm giving up.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "Sending it back.",
+      "text": "Then I exchanged for the same phone, even that had the same problem.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "Very disappointing.",
+      "text": "It doesn't make you look cool.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "This is so embarassing and also my ears hurt if I try to push the ear plug into my ear.",
+      "text": "It always cuts out and makes a beep beep beep sound then says signal failed.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "Unfortunately the ability to actually know you are receiving a call is a rather important feature and this phone is pitiful in that respect.",
+      "text": "It was so BORING!",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "REALLY UGLY.",
+      "text": "It was a very superficial movie and it gave me the feeling that I was watching play rather than a film.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "Can't upload ringtones from a third party.",
+      "text": "Not recommended.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "Poor quality.",
+      "text": "Everything stinks.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "This was utterly confusing at first, which caused me to lose a couple of very, very important contacts.",
+      "text": "The poor batter to meat ratio made the chicken tenders very unsatisfying.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "Awful.",
+      "text": "The buffet is small and all the food they offered was BLAND.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "This is definitely one of the bad ones.",
+      "text": "a drive thru means you do not want to wait around for half an hour for your food, but somehow when we end up going here they make us wait and wait.",
       "score": 0.0,
       "positive": 0
     },
     {
-      "text": "Everything about this movie is stupid.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "Almost everyone involved must be return to school, acting is utterly predictable and bad, script is pile of garbage all round.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "I understand that it's supposed to be a cheap popcorn comedy, but that doesn't mean that it has to completely insult our intelligence, and have writing so incredibly hackneyed that it borders on offensive.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "Avoid, avoid, avoid!",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "In fact, this stinker smells like a direct-to-video release.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": ") Don't waste your time.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "The acting is like watching wooden puppets moving around and reading from a book, that's how bad it is.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "We waited an hour for what was a breakfast I could have done 100 times better at home.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "This one is simply a disappointment.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "I hate those things as much as cheap quality black olives.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "The chips that came out were dripping with grease, and mostly not edible.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "Their frozen margaritas are WAY too sugary for my taste.",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "This place is overpriced, not consistent with their boba, and it really is OVERPRICED!",
-      "score": 0.0,
-      "positive": 0
-    },
-    {
-      "text": "I could barely stomach the meal, but didn't complain because it was a business lunch.",
+      "text": "To my disbelief, each dish qualified as the worst version of these foods I have ever tasted.",
       "score": 0.0,
       "positive": 0
     }
