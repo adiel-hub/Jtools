@@ -6,9 +6,11 @@
 `JEV_GATEWAY_URL` + `JEV_GATEWAY_API_KEY`. `jtools doctor` tells you what it found and makes one call.
 
 **Is this an LLM wrapper?** No. Jev is a decision model: it never writes text. Every tool asks a
-typed question (yes/no, choice, score) and gets a probability back. That is why it is 20-200x
-faster and 40-400x cheaper than asking a chat model the same thing, and why the tools compose
-like coreutils.
+typed question (yes/no, choice, score) and gets a probability back. That is why one decision is
+a single short round trip rather than a wait on generated tokens, why the same yes/no costs
+<!--num:cost_ratio_range-->3.8-130.9x the cost<!--/num--> at a chat model's list price, and why the
+tools compose like coreutils. The measurements, and what they do and do not cover, are in
+[benchmarks.md](benchmarks.md).
 
 **Why not embeddings?** Embeddings find *similar* text. j-tools judges *whether a description
 applies*, with a calibrated probability. "Angriest customer first" is not a similarity query.
@@ -16,10 +18,10 @@ applies*, with a calibrated probability. "Angriest customer first" is not a simi
 **How much does it cost?** About <!--num:tokens_per_call_round-->300<!--/num--> tokens per line, or
 <!--num:dollars_per_call-->$0.000013<!--/num--> at TypeSafe's list price of $0.042 per million input
 tokens (output is free). A million lines is about <!--num:dollars_per_million-->$13<!--/num-->. Every tool
-stops at `--budget` (default $1) and prints `--stats` on request. A rerun costs one call:
-answers live in `~/.cache/jev/answers.sqlite` under the model version that produced them, and
-that one call establishes what `jev-latest` means today. Pin `--model jev-1.13.0` and a rerun
-costs nothing.
+stops at `--budget` (default $1) and prints `--stats` on request. Reruns are free: answers live
+in `~/.cache/jev/answers.sqlite`, keyed on the model name you asked for. Each row also records
+the version that answered, so when a moving alias like `jev-latest` comes to mean something else,
+the first real call to notice throws the old version's answers away and says so.
 
 **Why did the same command give a slightly different probability?** Jev is near-deterministic,
 not exactly deterministic; probabilities can move by a few hundredths between uncached runs and
