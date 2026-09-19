@@ -16,7 +16,7 @@
 tag, route and join text **by meaning**. Each does one decision job and pipes into the next,
 exactly like `grep`, `sort`, `uniq` and `head`. The difference: the criterion is a sentence, and
 the decision is made by [Jev](https://docs.typesafe.ai), TypeSafe's decision model, in about
-200 ms for about a thousandth of a cent.
+<!--num:latency_p50_round-->420 ms<!--/num--> for about a thousandth of a cent.
 
 ```console
 $ cat feedback.txt | jsort "angriest customer first" --with-score
@@ -113,7 +113,7 @@ ok: one call in 412 ms, 283 input tokens, $0.0000119, answered by typesafe-ai/je
 | what the model does | **judges**: yes/no, pick one, rate on a scale | **generates** text: summaries, commands, rewrites | **compares vectors**: nearest neighbours |
 | output | calibrated probabilities, labels, ranks, exit codes | prose | similarity scores |
 | "angriest customer first" | yes, that is a rubric | you get a paragraph about anger | no, anger is not a similarity |
-| per line | ~420 ms, ~$0.000013 (measured below) | 1-3 s, 4-130x the cost | fast after indexing; needs an index |
+| per line | ~<!--num:latency_p50_round-->420 ms<!--/num-->, ~<!--num:dollars_per_call-->$0.000013<!--/num--> (measured below) | 1-3 s, <!--num:cost_ratio_range-->3.8-130.9x the cost<!--/num--> | fast after indexing; needs an index |
 | composes with `&&`, `sort`, `head` | yes, by design | awkwardly | no |
 | failure mode | pass-through + exit 5; gate fails closed | hallucinated text | silent misses |
 
@@ -146,8 +146,8 @@ and the method notes are in [docs/benchmarks.md](docs/benchmarks.md).
 
 Two structural facts behind the numbers: Jev answers every question about one state **in one
 call** (so `jgrep -e a -e b -e c` and `juniq`'s 50 pair questions cost tokens, not time), and Jev
-charges for **input tokens only** (about 300 per line; a million lines is about $13 at list
-price).
+charges for **input tokens only** (about <!--num:tokens_per_call_round-->300<!--/num--> per line;
+a million lines is about <!--num:dollars_per_million-->$13<!--/num--> at list price).
 
 ## Common options
 

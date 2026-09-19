@@ -13,8 +13,9 @@ like coreutils.
 **Why not embeddings?** Embeddings find *similar* text. j-tools judges *whether a description
 applies*, with a calibrated probability. "Angriest customer first" is not a similarity query.
 
-**How much does it cost?** About 300 tokens per line, $0.0000126 at TypeSafe's list price
-($0.042 per million input tokens; output is free). A million lines is about $13. Every tool
+**How much does it cost?** About <!--num:tokens_per_call_round-->300<!--/num--> tokens per line, or
+<!--num:dollars_per_call-->$0.000013<!--/num--> at TypeSafe's list price of $0.042 per million input
+tokens (output is free). A million lines is about <!--num:dollars_per_million-->$13<!--/num-->. Every tool
 stops at `--budget` (default $1) and prints `--stats` on request. Reruns are free: answers are
 cached in `~/.cache/jev/answers.sqlite`.
 

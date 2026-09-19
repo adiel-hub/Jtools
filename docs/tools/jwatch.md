@@ -42,6 +42,7 @@ jwatch [options] DESCRIPTION [FILE ...]
 
 ## Cost on a long tail
 
-A line costs about 300 tokens, $0.0000126 at list price. Ten lines a second, all day, is about
+A line costs about <!--num:tokens_per_call_round-->300<!--/num--> tokens, or
+<!--num:dollars_per_call-->$0.000013<!--/num--> at list price. Ten lines a second, all day, is about
 $11. Set `JEV_BUDGET=20` (or `--budget 0` for no limit) for a monitor that must not stop at the
 default $1 seat belt.

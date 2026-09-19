@@ -11,16 +11,24 @@ Both files carry marker pairs::
 
 Everything between them comes from ``bench/results/*.json``, so a number in the docs is always a
 number some live run actually measured. Nothing else in either file is touched.
+
+A figure that belongs mid-sentence gets an inline span instead::
+
+    ... in about <!--num:latency_p50_round-->420 ms<!--/num--> for a thousandth of a cent.
+
+Those are filled from the same results, in every Markdown file in the repository, so a paragraph
+cannot quietly keep yesterday's number while the table above it moves.
 """
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from render_tables import accuracy_table, cost_table, latency_table, summary
+from render_tables import accuracy_table, cost_table, latency_table, numbers, summary
 
 ROOT = Path(__file__).resolve().parent.parent
 BLOCKS = {
@@ -29,6 +37,23 @@ BLOCKS = {
         "bench-tables": lambda: "\n".join(b for b in (latency_table(), cost_table(), accuracy_table()) if b),
     },
 }
+SPAN = re.compile(r"<!--num:([a-z0-9_]+)-->(.*?)<!--/num-->", re.S)
+
+
+def markdown_files() -> list[Path]:
+    skip = {".venv", "node_modules", "dist", "out"}
+    return [p for p in sorted(ROOT.rglob("*.md")) if not skip & set(p.parts)]
+
+
+def fill_spans(text: str, values: dict[str, str], unknown: set[str]) -> str:
+    def one(match: re.Match[str]) -> str:
+        key = match.group(1)
+        if key not in values:
+            unknown.add(key)
+            return match.group(0)
+        return f"<!--num:{key}-->{values[key]}<!--/num-->"
+
+    return SPAN.sub(one, text)
 
 
 def begin(name: str) -> str:
@@ -46,18 +71,24 @@ def replace(text: str, name: str, body: str) -> str:
 
 def main(check: bool) -> int:
     stale = []
-    for path, blocks in BLOCKS.items():
+    values = numbers()
+    unknown: set[str] = set()
+    for path in markdown_files():
         original = path.read_text()
         text = original
-        for name, build in blocks.items():
+        for name, build in BLOCKS.get(path, {}).items():
             body = build()
             if not body.strip():
                 body = "_No benchmark results recorded yet. Run `bench/` and `scripts/update_docs.py`._"
             text = replace(text, name, body)
+        text = fill_spans(text, values, unknown)
         if text != original:
             stale.append(path.name)
             if not check:
                 path.write_text(text)
+    if unknown:
+        print(f"unknown placeholder(s): {', '.join(sorted(unknown))}", file=sys.stderr)
+        return 1
     if check and stale:
         print(f"out of date: {', '.join(stale)}; run scripts/update_docs.py", file=sys.stderr)
         return 1

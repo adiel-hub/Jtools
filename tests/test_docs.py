@@ -124,6 +124,26 @@ def test_the_news_table_is_whole_for_either_label_shape(labels, monkeypatch):
     assert "world affairs" in table
 
 
+def test_every_inline_number_placeholder_is_one_the_generator_knows():
+    """`<!--num:key-->…<!--/num-->` spans keep prose figures generated; a typo must not pass."""
+    import importlib.util
+    import sys as _sys
+
+    spec = importlib.util.spec_from_file_location("render_tables", ROOT / "scripts" / "render_tables.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    _sys.modules["render_tables"] = module
+    spec.loader.exec_module(module)
+    known = set(module.numbers())
+
+    used = {key for md in markdown_files() for key in re.findall(r"<!--num:([a-z0-9_]+)-->", md.read_text())}
+    assert used, "no inline number placeholders found; the prose has gone back to typed figures"
+    assert used <= known, f"unknown placeholder(s): {sorted(used - known)}"
+    for md in markdown_files():
+        text = md.read_text()
+        assert text.count("<!--num:") == text.count("<!--/num-->"), f"unbalanced number span in {md.name}"
+
+
 def test_contributing_states_the_hard_rule():
     text = (ROOT / "CONTRIBUTING.md").read_text()
     assert "Hard Rule" in text

@@ -186,9 +186,38 @@ def summary() -> str:
     return "\n".join(lines) + "\n"
 
 
+def numbers() -> dict[str, str]:
+    """The measured figures that appear mid-sentence in the prose, keyed by placeholder name.
+
+    A number in a paragraph drifts from the benchmark that produced it the moment either changes,
+    so the prose carries ``<!--num:key-->…<!--/num-->`` spans and `scripts/update_docs.py` fills
+    them from here. Nothing in the docs is a figure somebody remembered.
+    """
+    out: dict[str, str] = {}
+    if lat := load("latency"):
+        single = lat["single"]
+        out["latency_p50"] = f"{single['p50_ms']} ms"
+        out["latency_p50_round"] = f"{round(single['p50_ms'] / 10) * 10} ms"
+        out["tokens_per_call"] = str(single["tokens_per_call"])
+        out["tokens_per_call_round"] = str(round(single["tokens_per_call"] / 10) * 10)
+        out["dollars_per_call"] = money(single["dollars_per_call"])
+        out["dollars_per_1000"] = money(single["dollars_per_1000"])
+        out["dollars_per_million"] = f"${single['dollars_per_1000'] * 1000:,.0f}"
+    if cost := load("cost"):
+        chat = [r for r in cost["rows"] if r["kind"] == "chat model"]
+        if chat:
+            lo, hi = min(r["relative_to_jev"] for r in chat), max(r["relative_to_jev"] for r in chat)
+            out["cost_ratio_range"] = f"{lo:g}-{hi:g}x the cost"
+    return out
+
+
 def main(argv: list[str]) -> None:
     if argv[:1] == ["summary"]:
         sys.stdout.write(summary())
+        return
+    if argv[:1] == ["numbers"]:
+        for key, value in numbers().items():
+            sys.stdout.write(f"{key}\t{value}\n")
         return
     for block in (latency_table(), cost_table(), accuracy_table()):
         if block:
