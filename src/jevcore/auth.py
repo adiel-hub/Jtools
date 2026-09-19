@@ -57,7 +57,14 @@ def resolve(name: str | None = None) -> Credentials:
         if key and url:
             return Credentials(backend, key, url)
     envs = ", ".join(b.key_env for b in BACKENDS.values())
-    raise AuthError(f"no API key. Set one of {envs}, or put a key in {config_dir()}/<api>.key")
+    # The most likely error anyone hits is their first one, and it was the only branch that said
+    # what to set without saying where to get it. One backend, named concretely, beats four
+    # consoles to choose between when you have none of them.
+    start = BACKENDS["vercel"]
+    raise AuthError(
+        f"no API key. Set one of {envs}, or put a key in {config_dir()}/<api>.key\n"
+        f"  no key yet? get one at {start.console}, then: export {start.key_env}=vck_..."
+    )
 
 
 def available() -> list[Backend]:

@@ -3,6 +3,17 @@
 All notable changes to j-tools. The format follows [Keep a Changelog](https://keepachangelog.com);
 versions follow [SemVer](https://semver.org).
 
+## Unreleased
+
+### Changed
+
+- The "no API key" error now says where to get one. It listed the four variables to set and the
+  file to write, and never named a console -- the one thing somebody with no key is missing. It
+  now points at one backend concretely, with the line to copy:
+  `no key yet? get one at https://vercel.com/ai-gateway, then: export AI_GATEWAY_API_KEY=vck_...`
+  Naming a backend with `--api` already said where its key comes from; this is the branch a new
+  user actually reaches.
+
 ## 0.1.0 - 2026-09-19
 
 First public release: ten tools and the `jevcore` library.

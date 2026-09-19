@@ -33,6 +33,33 @@ def test_order_openrouter_then_vercel_then_gateway(monkeypatch):
     assert c.backend.name == "gateway" and c.url == "https://gw.example/v1/systemone"
 
 
+def test_the_no_key_error_says_where_to_get_one(monkeypatch):
+    """The first error a new user hits is the one that has to be actionable.
+
+    It named the four variables to set and the file to write, and never said where a key comes
+    from -- which is the one thing somebody with no key does not have. Naming Vercel concretely
+    beats four consoles to choose between.
+    """
+    monkeypatch.delenv("TYPESAFE_API_KEY")
+    with pytest.raises(AuthError) as e:
+        resolve()
+    message = str(e.value)
+    assert "https://vercel.com/ai-gateway" in message, "nowhere to get a key"
+    assert "export AI_GATEWAY_API_KEY=" in message, "no command to copy"
+    # Still says everything it said before: a reader may already hold one of the other keys.
+    for env in ("TYPESAFE_API_KEY", "OPENROUTER_API_KEY", "AI_GATEWAY_API_KEY", "JEV_GATEWAY_API_KEY"):
+        assert env in message
+    assert "<api>.key" in message, "the file path is the other way to set it"
+
+
+def test_naming_a_backend_with_no_key_points_at_that_one(monkeypatch):
+    """--api openrouter is not a new user; the hint follows what they asked for."""
+    monkeypatch.delenv("TYPESAFE_API_KEY")
+    with pytest.raises(AuthError) as e:
+        resolve("openrouter")
+    assert "https://openrouter.ai/keys" in str(e.value)
+
+
 def test_vercel_key_aliases(monkeypatch):
     monkeypatch.delenv("TYPESAFE_API_KEY")
     for name in ("VERCEL_AI_GATEWAY_API_KEY", "VERCEL_API_KEY", "vercel_api_key"):
