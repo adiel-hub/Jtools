@@ -51,7 +51,7 @@ def test_jsonl_field_with_dotted_paths_and_errors(tmp_path):
         "a.jsonl",
         '{"event":{"message":"hello"},"n":1}\nnot json\n{"other":1}\n\n{"event":{"message":null}}\n',
     )
-    items = list(iter_records([a], jsonl_field="event.message"))
+    items = list(iter_records([a], structured="jsonl", field="event.message"))
     recs = [i for i in items if isinstance(i, Record)]
     errs = [i for i in items if isinstance(i, InputError)]
     assert [r.text for r in recs] == ["hello", ""]
@@ -63,7 +63,7 @@ def test_jsonl_field_with_dotted_paths_and_errors(tmp_path):
 
 def test_csv_field_keeps_rows_and_header(tmp_path):
     a = write(tmp_path, "a.csv", 'id,text\n1,"hello, world"\n2,"multi\nline"\n3\n')
-    items = list(iter_records([a], csv_field="text"))
+    items = list(iter_records([a], structured="csv", field="text"))
     recs = [i for i in items if isinstance(i, Record)]
     errs = [i for i in items if isinstance(i, InputError)]
     assert [r.text for r in recs] == ["hello, world", "multi\nline"]
@@ -74,7 +74,7 @@ def test_csv_field_keeps_rows_and_header(tmp_path):
     )
     assert recs[1].lineno == 3
     assert len(errs) == 1 and "columns" in errs[0].message
-    bad = list(iter_records([a], csv_field="nope"))
+    bad = list(iter_records([a], structured="csv", field="nope"))
     assert isinstance(bad[0], InputError) and "no column" in bad[0].message
 
 
@@ -158,11 +158,21 @@ def test_discover_walks_sorted_skips_junk_and_binaries(tmp_path, monkeypatch):
         ("lines, bare CR", b"a 50%\rb\nc\n", {}, [(1, "a 50%\rb"), (2, "c")]),
         ("lines, BOM", "﻿one\ntwo\n".encode(), {}, [(1, "one"), (2, "two")]),
         ("paragraphs, CRLF", b"a one\r\na two\r\n\r\nb one\r\n", {"mode": "para"}, [(1, "a one\na two"), (4, "b one")]),
-        ("jsonl, CRLF", b'{"t":"alpha"}\r\n{"t":"beta"}\r\n', {"jsonl_field": "t"}, [(1, "alpha"), (2, "beta")]),
-        ("jsonl, BOM", '﻿{"t":"alpha"}\n'.encode(), {"jsonl_field": "t"}, [(1, "alpha")]),
-        ("csv, CRLF", b"id,t\r\n1,alpha\r\n", {"csv_field": "t"}, [(2, "alpha")]),
-        ("csv, BOM on the key column", "﻿id,t\n1,alpha\n".encode(), {"csv_field": "id"}, [(2, "1")]),
-        ("csv, newline inside a field", b'id,t\n1,"one\ntwo"\n', {"csv_field": "t"}, [(2, "one\ntwo")]),
+        (
+            "jsonl, CRLF",
+            b'{"t":"alpha"}\r\n{"t":"beta"}\r\n',
+            {"structured": "jsonl", "field": "t"},
+            [(1, "alpha"), (2, "beta")],
+        ),
+        ("jsonl, BOM", '﻿{"t":"alpha"}\n'.encode(), {"structured": "jsonl", "field": "t"}, [(1, "alpha")]),
+        ("csv, CRLF", b"id,t\r\n1,alpha\r\n", {"structured": "csv", "field": "t"}, [(2, "alpha")]),
+        ("csv, BOM on the key column", "﻿id,t\n1,alpha\n".encode(), {"structured": "csv", "field": "id"}, [(2, "1")]),
+        (
+            "csv, newline inside a field",
+            b'id,t\n1,"one\ntwo"\n',
+            {"structured": "csv", "field": "t"},
+            [(2, "one\ntwo")],
+        ),
     ],
 )
 def test_line_endings_and_byte_order_marks(tmp_path, name, data, kwargs, expected):

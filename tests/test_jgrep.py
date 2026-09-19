@@ -167,7 +167,7 @@ def test_auth_error_is_exit_3(invoke, monkeypatch):
 def test_usage_errors_are_exit_2(invoke):
     assert invoke(main, []).code == 2
     assert invoke(main, ["x", "-p", "2"]).code == 2
-    assert invoke(main, ["x", "--jsonl"]).code == 2
+    assert invoke(main, ["x", "--field", "msg"]).code == 2  # --field without --jsonl/--csv
     assert invoke(main, ["x", "--whole", "-C", "2"]).code == 2
     assert invoke(main, ["x", "-m", "-1"]).code == 2
     assert invoke(main, ["x", "-j", "0"]).code == 2
@@ -202,3 +202,53 @@ def test_help_and_version(invoke):
     assert res.code == 0
     res = invoke(main, ["--version"])
     assert res.code == 0
+
+
+def test_jsonl_without_a_field_judges_the_whole_object(invoke, tmp_path):
+    """`--jsonl --field x` judges one value; `--jsonl` alone judges the record.
+
+    Naming a field used to be compulsory, so there was no way to ask about a record as a whole --
+    "a deploy that touched production out of hours" is three fields at once, and jevcore has always
+    accepted a JSON object as a state. The object goes on the wire as an object, not as a string
+    that happens to hold JSON.
+    """
+    f = tmp_path / "events.jsonl"
+    f.write_text(
+        '{"level": "error", "msg": "a payment failed", "service": "billing"}\n{"level": "info", "msg": "ok"}\n'
+    )
+    res = invoke(main, ["--jsonl", "-p", "0", "a problem", str(f)])
+    assert res.code == 0, res.err
+    sent = res.mock.bodies[0]["state"]
+    assert isinstance(sent, dict), f"the whole record went as {type(sent).__name__}, not an object"
+    assert sent == {"level": "error", "msg": "a payment failed", "service": "billing"}
+
+
+def test_a_named_field_still_sends_only_that_field(invoke, tmp_path):
+    f = tmp_path / "events.jsonl"
+    f.write_text('{"level": "error", "msg": "a payment failed"}\n')
+    res = invoke(main, ["--jsonl", "--field", "msg", "-p", "0", "a problem", str(f)])
+    assert res.code == 0, res.err
+    assert res.mock.bodies[0]["state"] == "a payment failed"
+
+
+def test_csv_without_a_column_judges_the_whole_row(invoke, tmp_path):
+    f = tmp_path / "rows.csv"
+    f.write_text("id,title,status\n1,checkout is down,open\n")
+    res = invoke(main, ["--csv", "-p", "0", "a problem", str(f)])
+    assert res.code == 0, res.err
+    sent = res.mock.bodies[0]["state"]
+    assert sent == {"id": "1", "title": "checkout is down", "status": "open"}
+
+
+def test_a_whole_record_over_max_chars_falls_back_to_text(invoke, tmp_path):
+    """An object has no first N characters, so --max-chars has to cut the JSON instead.
+
+    Reporting a record as truncated and then sending all of it would be the worse answer.
+    """
+    f = tmp_path / "big.jsonl"
+    f.write_text('{"msg": "' + "x" * 500 + '"}\n')
+    res = invoke(main, ["--jsonl", "--max-chars", "100", "-p", "0", "a problem", str(f)])
+    assert res.code == 0, res.err
+    sent = res.mock.bodies[0]["state"]
+    assert isinstance(sent, str) and len(sent) == 100, f"sent {type(sent).__name__} of {len(sent)}"
+    assert "truncated" in res.err

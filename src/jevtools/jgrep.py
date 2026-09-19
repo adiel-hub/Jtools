@@ -12,7 +12,8 @@ be judged and passed through unjudged).
 
 Several descriptions (``-e``) go in ONE call per line; a line matches if any fits, or all with
 ``--all``. ``-C N`` shows Jev the N lines either side (still one decision per line). ``--para``,
-``--whole``, ``--jsonl --field`` and ``--csv --field`` change what a record is.
+``--whole``, ``--jsonl`` and ``--csv`` change what a record is: a structured record is judged
+entire (Jev reads the object) unless ``--field`` names one value inside it.
 """
 
 from __future__ import annotations
@@ -43,7 +44,7 @@ from jevcore.errors import UsageError
 from jevcore.inputs import STDIN, InputError, Item, Record, discover, iter_records
 from jevcore.io import fmt_p, paint, score_colour
 from jevcore.pipeline import Pipeline
-from jevcore.questions import Noul, NoulAnswer
+from jevcore.questions import Noul, NoulAnswer, State
 
 from ._shared import report_pipeline_errors
 
@@ -67,6 +68,7 @@ def parser() -> Parser:
             'jgrep -v -p 0.2 "spam" inbox.txt',
             'jgrep -e "about economics" -e "about New York" --all articles.txt',
             'jgrep --jsonl --field message "a payment failed" events.jsonl',
+            'jgrep --jsonl "a production deploy outside working hours" deploys.jsonl',
             'jgrep -r --glob "*.py" "reads an environment variable" src/',
         ],
         usage="jgrep [options] DESCRIPTION [FILE ...]",
@@ -110,9 +112,9 @@ def parser() -> Parser:
     unit = ap.add_mutually_exclusive_group()
     unit.add_argument("--para", action="store_true", help="judge paragraphs (blank-line separated), not lines")
     unit.add_argument("--whole", action="store_true", help="judge each file as a whole; print matching file names")
-    unit.add_argument("--jsonl", action="store_true", help="read JSON objects; judge --field and print full records")
-    unit.add_argument("--csv", action="store_true", help="read CSV with a header; judge --field and print full rows")
-    ap.add_argument("--field", metavar="NAME", help="JSON field (dotted path) or CSV column to judge")
+    unit.add_argument("--jsonl", action="store_true", help="read JSON objects; judge the whole record, or just --field")
+    unit.add_argument("--csv", action="store_true", help="read CSV with a header; judge the whole row, or just --field")
+    ap.add_argument("--field", metavar="NAME", help="judge only this JSON field (dotted path) or CSV column")
     ap.add_argument(
         "-C",
         "--context",
@@ -137,8 +139,6 @@ def prepare(args: argparse.Namespace) -> None:
         raise UsageError("-m takes 0 or more matches")
     if args.context < 0:
         raise UsageError("-C takes 0 or more records")
-    if (args.jsonl or args.csv) and not args.field:
-        raise UsageError("--jsonl and --csv require --field")
     if args.field and not (args.jsonl or args.csv):
         raise UsageError("--field requires --jsonl or --csv")
     if args.whole and args.context:
@@ -146,6 +146,7 @@ def prepare(args: argparse.Namespace) -> None:
     if args.files_with_matches and args.count:
         raise UsageError("-l and -c cannot be combined")
     args.mode = "whole" if args.whole else "para" if args.para else "lines"
+    args.structured = "jsonl" if args.jsonl else "csv" if args.csv else None
 
 
 def questions(args: argparse.Namespace) -> dict[str, Noul]:
@@ -166,8 +167,8 @@ def dry(args: argparse.Namespace, out: IO[str]) -> int:
                 files or None,
                 mode=args.mode,
                 keep_blank=False,
-                jsonl_field=args.field if args.jsonl else None,
-                csv_field=args.field if args.csv else None,
+                structured=args.structured,
+                field=args.field,
             ),
             args.context,
         )
@@ -218,10 +219,10 @@ def marked(text: str, prefix: str) -> str:
     return "\n".join(prefix + line for line in text.split("\n"))
 
 
-def state(rec: Record, args: argparse.Namespace) -> str:
+def state(rec: Record, args: argparse.Namespace) -> State:
     """What Jev is shown: the record alone, or marked with ``>`` inside its context."""
     if not args.context:
-        return rec.text
+        return rec.state
     window = [marked(t, "  ") for t in rec.before]
     window.append(marked(rec.text, "> "))
     window += [marked(t, "  ") for t in rec.after]
@@ -242,7 +243,8 @@ def render(
             obj["text"] = rec.shown
             if rec.data is not None:
                 obj["record"] = rec.data
-                obj["field"] = args.field
+                if args.field is not None:
+                    obj["field"] = args.field
         return json.dumps(obj, ensure_ascii=False)
     if args.whole or args.files_with_matches:
         body = rec.source
@@ -323,8 +325,8 @@ async def scan(
         iter_records(
             files,
             mode=args.mode,
-            jsonl_field=args.field if args.jsonl else None,
-            csv_field=args.field if args.csv else None,
+            structured=args.structured,
+            field=args.field,
             max_chars=args.max_chars,
             stop=pipe.stop_event,
         ),
@@ -351,8 +353,8 @@ async def run(r: Run) -> int:
         if discovery_errors:
             return EXIT_USAGE
         files = ["-"]
-    structured = (args.csv or args.jsonl) and not args.count
-    show_file = not args.no_filename and (args.with_filename or (not structured and (len(files) > 1 or args.recursive)))
+    per_record = (args.csv or args.jsonl) and not args.count
+    show_file = not args.no_filename and (args.with_filename or (not per_record and (len(files) > 1 or args.recursive)))
     totals = {"seen": 0, "matched": 0, "unjudged": 0, "input_errors": 0, "truncated": 0}
     counts: dict[int, int] = {}
     if args.max_count == 0:

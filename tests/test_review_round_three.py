@@ -187,7 +187,7 @@ def test_a_byte_order_mark_does_not_hide_the_first_csv_column(tmp_path):
     """Every CSV a spreadsheet writes starts with one, so --field <first column> never worked."""
     f = tmp_path / "x.csv"
     f.write_bytes("﻿id,text\n1,alpha\n".encode())
-    records = list(iter_records([str(f)], csv_field="id"))
+    records = list(iter_records([str(f)], structured="csv", field="id"))
     assert [r.text for r in records] == ["1"]
 
 

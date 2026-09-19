@@ -60,6 +60,9 @@ jgrep --csv --field abstract "uses a natural experiment" papers.csv > selected.c
 
 # Judge one JSONL field, return full records
 jgrep --jsonl --field message "a payment failed" events.jsonl
+
+# Judge the whole record, so one description can weigh several fields at once
+jgrep --jsonl "a production deploy made outside working hours by a bot" deploys.jsonl
 ```
 
 ## Composition

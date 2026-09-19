@@ -34,7 +34,8 @@ jgrep [options] DESCRIPTION [FILE ...]
 | `-r`, `--recursive`, `--glob PAT`, `--exclude PAT`, `--hidden` | recursive search; skips VCS/dependency dirs and binaries |
 | `--para`, `--whole` | judge paragraphs or whole files |
 | `-C N`, `--context N` | show Jev the N records either side; still one decision per record, and only that record prints |
-| `--jsonl --field NAME`, `--csv --field NAME` | judge one field, print the full record (dotted JSON paths work) |
+| `--jsonl`, `--csv` | judge the whole record, and print it. Jev reads a JSON object natively, so the record goes as an object rather than as text that happens to contain JSON — which is what lets one description weigh several fields at once |
+| `--field NAME` | with `--jsonl` or `--csv`: judge only this value, still printing the full record (dotted JSON paths work) |
 | `--json` | one JSON object per match: `{"file", "line", "p", "text", ["ps"], ["record", "field"]}` |
 | `--unordered` | print as answers arrive instead of in input order |
 

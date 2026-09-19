@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TextIO
 
+from .questions import State
+
 STDIN = "(standard input)"
 DEFAULT_MAX_CHARS = 8000
 SKIP_DIRS = frozenset({".git", ".hg", ".svn", "node_modules", "__pycache__", ".venv", "venv", ".tox", ".mypy_cache"})
@@ -45,11 +47,23 @@ class Record:
     before: tuple[str, ...] = ()
     """Neighbouring records shown to Jev as context (jgrep -C); never printed."""
     after: tuple[str, ...] = ()
+    whole_record: bool = False
+    """A structured record being judged entire, rather than through one of its fields."""
 
     @property
     def shown(self) -> str:
         """What to print for this record: the original when there is one."""
         return self.original if self.original is not None else self.text
+
+    @property
+    def state(self) -> State:
+        """What Jev is shown for this record.
+
+        Text, except for a structured record with no field picked out: Jev reads a JSON object
+        natively, so a whole record goes as the object rather than as a string that happens to
+        contain JSON. ``text`` stays the string form, which is what traces and blank-checks want.
+        """
+        return self.data if self.whole_record and self.data is not None else self.text
 
     def is_blank(self) -> bool:
         return not self.text.strip()
@@ -124,8 +138,8 @@ def iter_records(
     files: Sequence[str] | None,
     *,
     mode: str = "lines",
-    jsonl_field: str | None = None,
-    csv_field: str | None = None,
+    structured: str | None = None,
+    field: str | None = None,
     max_chars: int = DEFAULT_MAX_CHARS,
     stop: threading.Event | None = None,
     keep_blank: bool = True,
@@ -133,6 +147,10 @@ def iter_records(
     """Yield records from files (``-`` for stdin; none means stdin) in order.
 
     ``mode`` is ``lines``, ``para`` (blank-line separated) or ``whole`` (one record per file).
+
+    ``structured`` is ``jsonl`` or ``csv``, and is independent of ``field``: naming a field judges
+    that field and prints the whole record, while leaving it out judges the record entire. The two
+    used to be one argument, which made "judge this whole object" impossible to ask for.
     """
     seq = 0
     for input_id, path in enumerate(files or ["-"]):
@@ -142,15 +160,15 @@ def iter_records(
         try:
             # The csv module needs the raw terminators inside quoted fields; everything else wants
             # a lone carriage return left alone. See open_text.
-            stream = open_text(path, newline="" if csv_field is not None else "\n")
+            stream = open_text(path, newline="" if structured == "csv" else "\n")
         except OSError as e:
             yield InputError(f"{name}: {e.strerror or e}")
             continue
         try:
-            if jsonl_field is not None:
-                producer = _jsonl(stream, name, input_id, jsonl_field, max_chars, seq)
-            elif csv_field is not None:
-                producer = _csv(stream, name, input_id, csv_field, max_chars, seq)
+            if structured == "jsonl":
+                producer = _jsonl(stream, name, input_id, field, max_chars, seq)
+            elif structured == "csv":
+                producer = _csv(stream, name, input_id, field, max_chars, seq)
             elif mode == "whole":
                 producer = _whole(stream, name, input_id, max_chars, seq)
             elif mode == "para":
@@ -205,7 +223,7 @@ def _whole(stream: TextIO, name: str, input_id: int, max_chars: int, seq: int) -
     yield Record(seq, text, name, 1, input_id, original=content, truncated=cut)
 
 
-def _jsonl(stream: TextIO, name: str, input_id: int, field: str, max_chars: int, seq: int) -> Iterator[Item]:
+def _jsonl(stream: TextIO, name: str, input_id: int, field: str | None, max_chars: int, seq: int) -> Iterator[Item]:
     for lineno, raw in enumerate(_readlines(stream), 1):
         if not raw.strip():
             continue
@@ -213,6 +231,18 @@ def _jsonl(stream: TextIO, name: str, input_id: int, field: str, max_chars: int,
             data = json.loads(raw)
         except ValueError as e:
             yield InputError(f"{name}:{lineno}: invalid JSON: {e}")
+            continue
+        if field is None:
+            # No field named: the object itself is the state, and ``text`` is its JSON form, which
+            # is what a --verbose trace and the blank check read. An object cannot be cut to a
+            # character count, so one over --max-chars goes as its first max_chars characters of
+            # JSON text instead: the alternative is to report a record as truncated and then send
+            # all of it anyway.
+            text, cut = _clip(raw, max_chars)
+            yield Record(
+                seq, text, name, lineno, input_id, original=raw, data=data, truncated=cut, whole_record=not cut
+            )
+            seq += 1
             continue
         try:
             value = get_field(data, field)
@@ -224,7 +254,7 @@ def _jsonl(stream: TextIO, name: str, input_id: int, field: str, max_chars: int,
         seq += 1
 
 
-def _csv(stream: TextIO, name: str, input_id: int, field: str, max_chars: int, seq: int) -> Iterator[Item]:
+def _csv(stream: TextIO, name: str, input_id: int, field: str | None, max_chars: int, seq: int) -> Iterator[Item]:
     reader = csv.reader(stream)
     try:
         header = next(reader)
@@ -233,13 +263,13 @@ def _csv(stream: TextIO, name: str, input_id: int, field: str, max_chars: int, s
     except csv.Error as e:
         yield InputError(f"{name}: {e}")
         return
-    if field not in header:
+    if field is not None and field not in header:
         yield InputError(f"{name}: no column {field!r} in header {header}")
         return
     if len(set(header)) != len(header):
         yield InputError(f"{name}: duplicate column names in header")
         return
-    col = header.index(field)
+    col = header.index(field) if field is not None else -1
     header_line = _csv_line(header)
     while True:
         start = reader.line_num + 1
@@ -252,13 +282,25 @@ def _csv(stream: TextIO, name: str, input_id: int, field: str, max_chars: int, s
             continue
         if not row or (len(row) == 1 and not row[0].strip()):
             continue
-        if len(row) <= col:
+        if field is not None and len(row) <= col:
             yield InputError(f"{name}:{start}: row has {len(row)} columns, expected at least {col + 1}")
             continue
-        text, cut = _clip(row[col], max_chars)
+        line = _csv_line(row)
         data = dict(zip(header, row, strict=False))
+        text, cut = _clip(row[col] if field is not None else line, max_chars)
         yield Record(
-            seq, text, name, start, input_id, original=_csv_line(row), data=data, header=header_line, truncated=cut
+            seq,
+            text,
+            name,
+            start,
+            input_id,
+            original=line,
+            data=data,
+            header=header_line,
+            truncated=cut,
+            # No column named: the row goes as the object its header describes. As in _jsonl, a row
+            # too long for --max-chars falls back to its text, since a dict has no first N characters.
+            whole_record=field is None and not cut,
         )
         seq += 1
 

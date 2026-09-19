@@ -11,7 +11,8 @@ First public release: ten tools and the `jevcore` library.
 
 - `jgrep`: grep by meaning. `-e` (several descriptions in one call), `--all`, `-v`, `-o`, `-n`,
   `-H`, `-c`, `-l`, `-m`, `-q`, `-r` with `--glob`/`--exclude`/`--hidden`, `--para`, `--whole`,
-  `-C N` context, `--jsonl --field`, `--csv --field`, `--json`, `--unordered`.
+  `-C N` context, `--jsonl` / `--csv` (the whole record, or one `--field` of it), `--json`,
+  `--unordered`.
 - `jsort`: rank lines by fit (score primitive). `--asc`, `-n`, `--with-score`, `--levels`.
 - `jpick`: choose the best line by tournament (choice primitive). `--top`, `--why`, `--group`.
 - `jgate`: exit status from a judgment. Whole input or `--each` / `--all`; `-P` pass-through;
@@ -63,6 +64,11 @@ development and the tests exist so it cannot go wrong again:
   row records the version that produced it: when a moving alias like `jev-latest` comes to mean
   something else, the first real call to notice discards the old version's answers.
 - A text state and the JSON object that spells it are different cache keys.
+- `--jsonl` and `--csv` without `--field` send the record as a JSON object, which is what lets one
+  description weigh several fields at once ("a production deploy outside working hours by a bot"
+  is three fields). A record over `--max-chars` falls back to its first N characters of text,
+  because an object has no first N characters and reporting a truncation while sending everything
+  would be worse.
 - Nothing a backend sends can make an answer name an option that was never offered or a rung
   outside its rubric.
 - In `--json` mode every output line is a JSON object, blank input lines included.

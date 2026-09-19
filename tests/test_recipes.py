@@ -40,6 +40,10 @@ INVENTED = {
     "papers.csv": "id,abstract\n1,uses a natural experiment on wages\n2,a theory paper about wages\n",
     "events.jsonl": '{"message":"a payment failed for order 88213"}\n{"message":"checkout completed"}\n',
     "customers.csv": "customer,note\na,asked twice about cancelling\nb,renewed early and said thanks\n",
+    "deploys.jsonl": (
+        '{"service":"billing","actor":"ci-bot","at":"03:12","env":"production","change":"bump the image tag"}\n'
+        '{"service":"docs","actor":"maria","at":"14:05","env":"staging","change":"fix a typo"}\n'
+    ),
 }
 
 # (name, pipeline). Everything after the first tool is exactly what docs/recipes.md prints.
@@ -80,6 +84,10 @@ RECIPES = [
     ),
     ("judge one CSV column", 'jgrep --csv --field abstract "uses a natural experiment" papers.csv > selected.csv'),
     ("judge one JSONL field", 'jgrep --jsonl --field message "a payment failed" events.jsonl'),
+    (
+        "judge a whole JSONL record",
+        'jgrep --jsonl "a production deploy made outside working hours by a bot" deploys.jsonl',
+    ),
     (
         "rank, filter on the score, tag the survivors",
         'cat leads.txt | jsort "ready to buy" --with-score | '
