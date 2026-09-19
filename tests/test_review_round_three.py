@@ -267,3 +267,32 @@ def test_a_dry_run_hides_a_token_in_the_url_userinfo(tmp_path):
     assert done.returncode == 0, done.stderr[-400:]
     assert "SUPERSECRET123" not in done.stdout + done.stderr
     assert "gw.example.com" in done.stdout
+
+
+def test_a_repeated_file_argument_is_counted_once_per_occurrence(invoke, tmp_path):
+    """`grep -c pat a.txt a.txt` prints the file's own count twice, not the sum twice."""
+    f = write(tmp_path, "a.txt", "The app crashes on launch\nanother crash report here\ncalm and fine\n")
+    from jevtools.jgrep import main as jgrep
+
+    one = invoke(jgrep, ["-c", "a crash report", f])
+    two = invoke(jgrep, ["-c", "a crash report", f, f])
+    n = int(one.lines[0])
+    assert n >= 1
+    assert [line.split(":")[-1] for line in two.lines] == [str(n), str(n)], two.lines
+
+
+def test_a_path_shaped_glob_is_read_relative_to_the_directory_searched(tmp_path, monkeypatch):
+    """`jgrep -r --glob 'src/*.py' proj` means "the Python files in proj/src"."""
+    from jevcore.inputs import discover
+
+    (tmp_path / "proj" / "src").mkdir(parents=True)
+    (tmp_path / "proj" / "docs").mkdir()
+    (tmp_path / "proj" / "src" / "a.py").write_text("code\n")
+    (tmp_path / "proj" / "docs" / "b.py").write_text("docs\n")
+    monkeypatch.chdir(tmp_path)
+    found, errors = discover(["proj"], recursive=True, globs=["src/*.py"])
+    assert not errors
+    assert [os.path.basename(f) for f in found] == ["a.py"], found
+    # The working-directory spelling still works, as does a bare name.
+    assert discover(["proj"], recursive=True, globs=["proj/src/*.py"])[0] == found
+    assert len(discover(["proj"], recursive=True, globs=["*.py"])[0]) == 2

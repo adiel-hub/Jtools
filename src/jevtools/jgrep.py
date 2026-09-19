@@ -255,8 +255,14 @@ def render(
     return body + ("\n" if args.para and not (args.whole or args.files_with_matches) else "")
 
 
-async def scan(r: Run, files: list[str], show_file: bool, totals: dict[str, int], counts: dict[str, int]) -> bool:
-    """Judge one group of inputs. Returns True when the whole run should stop (quiet match, broken pipe)."""
+async def scan(
+    r: Run, files: list[str], show_file: bool, totals: dict[str, int], counts: dict[int, int], offset: int = 0
+) -> bool:
+    """Judge one group of inputs. Returns True when the whole run should stop (quiet match, broken pipe).
+
+    ``counts`` is keyed on the position of the file among the arguments, not on its name, so
+    ``jgrep -c pattern a.txt a.txt`` counts each occurrence separately, as grep does.
+    """
     args = r.args
     qs = questions(args)
     pipe: Pipeline[tuple[float, list[float]] | None] = Pipeline(
@@ -281,8 +287,9 @@ async def scan(r: Run, files: list[str], show_file: bool, totals: dict[str, int]
 
     def deliver(rec: Record, value: tuple[float, list[float]] | None) -> None:
         name = STDIN if rec.source == "-" else rec.source
+        where = offset + rec.input_id
         totals["seen"] += 1
-        counts.setdefault(name, 0)
+        counts.setdefault(where, 0)
         if rec.is_blank():
             p, ps = 0.0, [0.0] * len(qs)
         elif value is None:
@@ -298,7 +305,7 @@ async def scan(r: Run, files: list[str], show_file: bool, totals: dict[str, int]
             return
         totals["matched"] += 1
         matched_here.matched += 1
-        counts[name] += 1
+        counts[where] += 1
         if not (args.quiet or args.count):
             emit(rec, name, p, ps)
         if args.quiet:
@@ -347,21 +354,20 @@ async def run(r: Run) -> int:
     structured = (args.csv or args.jsonl) and not args.count
     show_file = not args.no_filename and (args.with_filename or (not structured and (len(files) > 1 or args.recursive)))
     totals = {"seen": 0, "matched": 0, "unjudged": 0, "input_errors": 0, "truncated": 0}
-    counts: dict[str, int] = {}
+    counts: dict[int, int] = {}
     if args.max_count == 0:
-        for f in files:
-            counts[STDIN if f == "-" else f] = 0
+        counts = dict.fromkeys(range(len(files)), 0)
     else:
         per_file = args.max_count is not None or args.files_with_matches or (args.csv and not args.json)
         groups = [[f] for f in files] if per_file else [files]
-        for group in groups:
-            if await scan(r, group, show_file, totals, counts):
+        for i, group in enumerate(groups):
+            # One group per file means input_id is always 0, so the offset carries the position.
+            if await scan(r, group, show_file, totals, counts, i if per_file else 0):
                 break
     if args.count and not args.quiet:
-        for f in files:
+        for i, f in enumerate(files):
             name = STDIN if f == "-" else f
-            n = counts.get(name, 0)
-            r.out.write(f"{name}:{n}" if show_file else str(n))
+            r.out.write(f"{name}:{counts.get(i, 0)}" if show_file else str(counts.get(i, 0)))
     if totals["truncated"]:
         r.note(f"truncated {totals['truncated']:,} records to {args.max_chars:,} characters; raise --max-chars")
     if totals["input_errors"] > MAX_ERRORS_SHOWN:

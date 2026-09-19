@@ -291,13 +291,24 @@ def discover(
     found: list[str] = []
     errors: list[str] = []
 
-    def included(rel: str) -> bool:
-        base = os.path.basename(rel)
-        if any(fnmatch.fnmatchcase(rel, p) or fnmatch.fnmatchcase(base, p) for p in excludes):
-            return False
-        return not globs or any(fnmatch.fnmatchcase(rel, p) or fnmatch.fnmatchcase(base, p) for p in globs)
+    def names(path: str, root: str) -> set[str]:
+        """Every spelling a pattern might reasonably use for this path.
 
-    def walk(root: str) -> None:
+        ``jgrep -r --glob 'src/*.py' proj`` reads as "under proj, the Python files in src", so the
+        pattern is matched against the path relative to the directory being searched as well as
+        against the path relative to the working directory and the bare file name.
+        """
+        return {os.path.basename(path), path, os.path.relpath(path), os.path.relpath(path, root)}
+
+    def matches(path: str, root: str, patterns: Sequence[str]) -> bool:
+        return any(fnmatch.fnmatchcase(name, p) for name in names(path, root) for p in patterns)
+
+    def included(path: str, root: str) -> bool:
+        if matches(path, root, excludes):
+            return False
+        return not globs or matches(path, root, globs)
+
+    def walk(root: str, top: str) -> None:
         try:
             entries = sorted(os.scandir(root), key=lambda e: e.name)
         except OSError as e:
@@ -309,12 +320,11 @@ def discover(
             if entry.name in SKIP_DIRS or (not hidden and entry.name.startswith(".")):
                 continue
             path = os.path.join(root, entry.name)
-            rel = os.path.relpath(path)
             if entry.is_dir(follow_symlinks=False):
-                if any(fnmatch.fnmatchcase(rel, p) or fnmatch.fnmatchcase(entry.name, p) for p in excludes):
+                if matches(path, top, excludes):
                     continue
-                walk(path)
-            elif entry.is_file(follow_symlinks=False) and included(rel) and not is_binary(Path(path)):
+                walk(path, top)
+            elif entry.is_file(follow_symlinks=False) and included(path, top) and not is_binary(Path(path)):
                 found.append(path)
 
     for raw in paths or (["."] if recursive else []):
@@ -324,7 +334,7 @@ def discover(
         p = Path(raw)
         if p.is_dir():
             if recursive:
-                walk(raw)
+                walk(raw, raw)
             else:
                 errors.append(f"{raw}: is a directory (use -r)")
         elif p.exists():
