@@ -172,6 +172,9 @@ Every tool:
 -v               one line on stderr per decision, as it is made
 ```
 
+`jgrep` keeps grep's `-q` instead: print nothing, stop at the first match, let the exit status be
+the answer. It also keeps grep's `-v` for invert-match, and spells the shared one `--verbose`.
+
 Exit codes: **0** ok · **1** nothing matched · **2** usage or file error · **3** no or bad key ·
 **4** API error or budget spent · **5** partial (some lines could not be judged and passed through).
 
