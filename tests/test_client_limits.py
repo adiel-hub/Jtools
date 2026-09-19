@@ -7,6 +7,7 @@ tools ever use the client, so each one gets a concurrent test rather than a sequ
 from __future__ import annotations
 
 import asyncio
+import io
 import subprocess
 import sys
 import time
@@ -126,3 +127,46 @@ def test_an_unusable_environment_default_is_a_usage_error_and_help_still_works(v
     )
     assert run.returncode == 2, run.stderr[-500:]
     assert "JEV_TIMEOUT" in run.stderr and value in run.stderr
+
+
+@pytest.mark.parametrize(
+    "kwargs,env,expected",
+    [({}, None, 15.0), ({}, "3", 3.0), ({"timeout": 7.5}, "3", 7.5)],
+    ids=["neither given", "the variable only", "the argument wins"],
+)
+async def test_the_deadline_the_client_resolved_is_the_one_the_socket_gets(creds, monkeypatch, kwargs, env, expected):
+    """httpx reads timeout=None as "no timeout at all".
+
+    Every tool resolves --timeout before building a client, so the ten of them were never exposed;
+    `jtools doctor` and the documented `Jev(resolve())` library call were, and would wait for ever
+    on exactly the unresponsive endpoint doctor exists to report.
+    """
+    monkeypatch.delenv("JEV_TIMEOUT", raising=False)
+    if env is not None:
+        monkeypatch.setenv("JEV_TIMEOUT", env)
+    jev = Jev(creds, disk_cache=False, **kwargs)
+    try:
+        assert jev.timeout == expected
+        assert jev.http.timeout.connect == expected, "the client resolved one deadline and used another"
+        assert jev.http.timeout.read == expected
+    finally:
+        await jev.close()
+
+
+def test_doctor_does_not_build_a_client_that_can_wait_for_ever(creds, monkeypatch):
+    """The one command you run when the endpoint is hanging must itself be able to give up."""
+    from jevtools import jtools
+
+    built: list[Jev] = []
+    real = jtools.Jev
+
+    def spy(*args, **kw):
+        jev = real(*args, **kw)
+        built.append(jev)
+        return jev
+
+    monkeypatch.setattr(jtools, "Jev", spy)
+    monkeypatch.setenv("JEV_TIMEOUT", "2")
+    jtools.main(["doctor"], transport=httpx.MockTransport(MockJev()), out=io.StringIO(), err=io.StringIO())
+    assert built, "doctor built no client"
+    assert built[0].http.timeout.read == 2.0

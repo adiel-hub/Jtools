@@ -259,7 +259,11 @@ class Jev:
             headers=headers,
             limits=httpx.Limits(max_connections=self.concurrency + 4, max_keepalive_connections=self.concurrency + 4),
             transport=transport,
-            timeout=httpx.Timeout(timeout),
+            # self.timeout, not the argument: that is None whenever the caller left it out, and
+            # httpx reads None as "no timeout at all". Every one of the ten tools resolves the
+            # flag before constructing a client, so this only ever bit `jtools doctor` and library
+            # callers -- who would hang for ever on the endpoint doctor exists to diagnose.
+            timeout=httpx.Timeout(self.timeout),
         )
 
     async def __aenter__(self) -> Jev:
