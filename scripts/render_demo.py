@@ -28,7 +28,7 @@ BG, FG, DIM, GREEN, YELLOW, RED, PROMPT = "#0f1419", "#e6e6e6", "#8a8f98", "#6fd
 TITLE_BG = "#1a1f26"
 SPEED = 2.0  # recorded seconds per GIF second
 
-_SCORE = re.compile(r"^(\d\.\d{3})\t")
+_SCORE = re.compile(r"^(\d\.\d{3}|-)(?:\t|  )")  # a score column, after wrap() turned the tab into spaces
 _JSON_LINE = re.compile(r'^\{"')
 
 
@@ -69,8 +69,9 @@ def draw_terminal(lines: list[tuple[str, str]], rows: int, title: str) -> Image.
         elif kind == "out":
             m = _SCORE.match(text)
             if m:
-                p = float(m.group(1))
-                d.text((x, y), m.group(1), fill=colour_for_score(p), font=font(True))
+                label = m.group(1)
+                colour = colour_for_score(float(label)) if label != "-" else DIM
+                d.text((x, y), label, fill=colour, font=font(True))
                 d.text((x + 7 * CHAR_W, y), text[len(m.group(0)) :].replace("\t", "  "), fill=FG, font=font())
             elif _JSON_LINE.match(text):
                 d.text((x, y), text, fill=YELLOW, font=font())
@@ -140,15 +141,13 @@ def render_svg(scene: dict, path: Path) -> None:
         elif kind == "err":
             parts.append(f'<text x="{PAD}" y="{y}" fill="{DIM}" xml:space="preserve">{esc(text)}</text>')
         else:
-            m = _SCORE.match(text.replace("  ", "\t", 1)) if not text.startswith("{") else None
-            m = _SCORE.match(scene_line_original(text)) if m is None and not text.startswith("{") else m
+            m = _SCORE.match(text)
             if m:
-                p = float(m.group(1))
+                label = m.group(1)
+                colour = colour_for_score(float(label)) if label != "-" else DIM
+                parts.append(f'<text x="{PAD}" y="{y}" fill="{colour}" font-weight="bold">{label}</text>')
                 parts.append(
-                    f'<text x="{PAD}" y="{y}" fill="{colour_for_score(p)}" font-weight="bold">{m.group(1)}</text>'
-                )
-                parts.append(
-                    f'<text x="{PAD + 7 * CHAR_W}" y="{y}" fill="{FG}" xml:space="preserve">{esc(text[len(m.group(1)) :].strip())}</text>'
+                    f'<text x="{PAD + 7 * CHAR_W}" y="{y}" fill="{FG}" xml:space="preserve">{esc(text[len(m.group(0)) :])}</text>'
                 )
             else:
                 fill = YELLOW if text.startswith("{") else FG
@@ -156,10 +155,6 @@ def render_svg(scene: dict, path: Path) -> None:
         y += LINE_H
     parts.append("</svg>")
     path.write_text("\n".join(parts) + "\n")
-
-
-def scene_line_original(text: str) -> str:
-    return text.replace("  ", "\t", 1)
 
 
 def main(names: list[str]) -> None:
