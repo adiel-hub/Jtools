@@ -134,9 +134,12 @@ def parse_answer(qid: str, question: Question, raw: Any, *, yes_key: str, confid
             else:
                 raise JevError(f"invalid answer for {qid!r}: unknown level {key!r}") from None
         if not 0 <= idx < n:
-            # ScoreAnswer.level picks the most probable rung; an index off the scale would make
-            # it name a rung the rubric does not have, and legend.get would quietly return None.
-            raise JevError(f"invalid answer for {qid!r}: level {idx} is outside 0..{n - 1}")
+            # ScoreAnswer.level picks the most probable rung, so an index off the scale used to
+            # make it name a rung the rubric does not have and legend.get return None. The score
+            # itself is range-checked above and still usable, so an unusable rung is dropped
+            # rather than thrown away with the answer: a backend that numbered its rungs from one
+            # would otherwise turn every score into an unjudged line.
+            continue
         by_index[idx] = p
     for i in range(n):
         by_index.setdefault(i, 0.0)

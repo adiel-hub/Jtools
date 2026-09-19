@@ -170,13 +170,23 @@ def test_a_distribution_may_not_name_an_option_nobody_offered():
         parse_answer("q", q, raw, yes_key="noul")
 
 
-def test_a_score_may_not_name_a_rung_outside_the_rubric():
-    """ScoreAnswer.level indexes the rubric; an index off the scale makes legend.get return None."""
+def test_a_rung_outside_the_rubric_is_dropped_and_the_score_survives():
+    """ScoreAnswer.level indexes the rubric, so it must never name a rung the rubric lacks.
+
+    The score is separately range-checked and still usable, so an unreadable rung costs the
+    distribution an entry rather than costing the run the answer. A backend that numbered its
+    rungs from one would otherwise make every score an unjudged line.
+    """
     q = Score("how urgent", ["low", "high"])
-    with pytest.raises(JevError, match=r"outside 0\.\.1"):
-        parse_answer("q", q, {"score": 1.0, "probabilities": {"7": 0.9, "1": 0.1}}, yes_key="noul")
-    with pytest.raises(JevError, match=r"outside 0\.\.1"):
-        parse_answer("q", q, {"score": 1.0, "probabilities": {"-3": 1.0}}, yes_key="noul")
+    answer = parse_answer("q", q, {"score": 1.0, "probabilities": {"7": 0.9, "1": 0.1}}, yes_key="noul")
+    assert isinstance(answer, ScoreAnswer)
+    assert answer.level in (0, 1) and answer.legend.get(answer.level) in ("low", "high")
+    assert set(answer.probabilities) == {0, 1}
+    negative = parse_answer("q", q, {"score": 1.0, "probabilities": {"-3": 1.0}}, yes_key="noul")
+    assert isinstance(negative, ScoreAnswer) and set(negative.probabilities) == {0, 1}
+    # A score genuinely outside the scale is still a rejected answer.
+    with pytest.raises(JevError, match="outside"):
+        parse_answer("q", q, {"score": 9.0, "probabilities": {"1": 1.0}}, yes_key="noul")
 
 
 @pytest.mark.parametrize("raw,expected", [("300", 300), ("300.0", 300), (301.7, 301), ("many", 0), (None, 0)])

@@ -35,9 +35,11 @@ Two dialects exist and only this module knows either:
 
 Answers are validated strictly and rejected as `JevError` before anything is cached: a
 probability outside 0..1, a choice that is not one of the options, a distribution carrying an
-option that was never offered, a score outside the scale, a rung index outside the rubric. Token
-counts are the exception: they are metering, not a decision, so an odd one costs the run a
-statistic rather than the answer it just paid for.
+option that was never offered, a score outside the scale. Two things are deliberately tolerated
+instead, because rejecting them would cost a usable answer rather than prevent a wrong one: a
+token count that will not parse (metering, not a decision) and a probability keyed to a rung the
+rubric does not have (the score itself is separately range-checked, so the unusable entry is
+dropped and the answer stands).
 
 ## Backends and keys (`backends.py`, `auth.py`)
 
