@@ -32,7 +32,8 @@ jroute [options] "NAME:DESCRIPTION" "NAME:DESCRIPTION" ... [-i FILE]
 | `-q` | no summary line on stderr |
 | `-v` | one line per routed line: the bucket, the probability, the text |
 
-Bucket names may use letters, digits, `.`, `-` and `_`.
+Bucket names may use letters, digits, `.`, `-` and `_`, and must not be all dots: a name becomes a
+file under `--out-dir`, and `.` or `..` would name the directory instead.
 
 ## Behaviour
 
