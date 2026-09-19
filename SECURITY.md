@@ -15,7 +15,9 @@ the state before anything is sent.
 
 Keys are read from environment variables or `~/.config/jev/*.key`. They are sent only as the
 `Authorization` header to the backend's URL and are never written to the cache, logs or output.
-`--dry-run` prints a redacted key (first and last four characters).
+`--dry-run` prints a redacted key (first and last four characters), and drops the query string
+from the endpoint it prints, since some gateways carry the token there and a dry run is the thing
+people paste into an issue.
 
 The answer cache (`~/.cache/jev/answers.sqlite`) stores the SHA-256 of (model, state, question)
 and the answer, not the text itself. Disable it with `--no-cache` or `JEV_NO_CACHE=1`.
