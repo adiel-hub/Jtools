@@ -1,0 +1,44 @@
+{
+  "name": "jtag",
+  "command": "jtag --labels bug,feature,question,complaint examples/tickets.txt",
+  "stdout": [
+    [
+      1.5,
+      "bug\tThe app crashes when I open settings"
+    ],
+    [
+      1.5,
+      "feature\tCould you add a dark theme?"
+    ],
+    [
+      1.5,
+      "question\tHow do I reset my password?"
+    ],
+    [
+      1.824,
+      "complaint\tI was charged twice for one order and nobody answers"
+    ],
+    [
+      1.824,
+      "feature\tExport to CSV would save me hours every week"
+    ],
+    [
+      2.174,
+      "bug\tLogin fails with error 500 since this morning"
+    ],
+    [
+      3.674,
+      "question\tIs there an API for this?"
+    ],
+    [
+      3.674,
+      "complaint\tYour support is a joke, three days without a reply"
+    ]
+  ],
+  "stderr": [],
+  "exit": 0,
+  "seconds": 605.514,
+  "shown_seconds": 3.674,
+  "timeline": "gaps over 1.5s compressed to 1.5s; wall time 605.514s",
+  "title": "label every line"
+}
