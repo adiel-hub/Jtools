@@ -141,17 +141,35 @@ def asciicast(scene: dict[str, object], title: str) -> str:
     return "\n".join([json.dumps(header), *(json.dumps(e) for e in events)]) + "\n"
 
 
-def main() -> None:
+def clean(scene: dict[str, object]) -> bool:
+    """A cast worth publishing: the tool finished normally and every line was judged."""
+    lines = [text for _, text in scene["stdout"]]  # type: ignore[union-attr]
+    return scene["exit"] in (0, 1) and not any(text.startswith("-\t") for text in lines) and not scene["stderr"]
+
+
+def main(names: list[str]) -> None:
+    """Record every scene, or only the named ones (``record_demos.py jsort jpick``)."""
     DEMOS.mkdir(parents=True, exist_ok=True)
-    for name, argv, stdin_file, title in SCENES:
+    wanted = [sc for sc in SCENES if not names or sc[0] in names]
+    bad: list[str] = []
+    for name, argv, stdin_file, title in wanted:
         print(f"recording {name} ...", file=sys.stderr, flush=True)
         scene = run_scene(name, argv, stdin_file)
         scene["title"] = title
         (DEMOS / f"{name}.json").write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n")
         (DEMOS / f"{name}.cast").write_text(asciicast(scene, title))
-        print(f"  exit {scene['exit']} in {scene['seconds']}s, {len(scene['stdout'])} lines", file=sys.stderr)  # type: ignore[arg-type]
+        ok = clean(scene)
+        print(
+            f"  exit {scene['exit']} in {scene['seconds']}s, {len(scene['stdout'])} lines"  # type: ignore[arg-type]
+            + ("" if ok else "  <- NOT CLEAN, re-record"),
+            file=sys.stderr,
+        )
+        if not ok:
+            bad.append(name)
         time.sleep(5)  # be gentle with rate limits
+    if bad:
+        print(f"re-record: python scripts/record_demos.py {' '.join(bad)}", file=sys.stderr)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
