@@ -11,23 +11,23 @@ _jtools_complete() {
     jgrep)
         flags="--after-context --all --api --before-context --budget --color --concurrency --context --count --csv --dry-run --exclude --field --files-with-matches --files-without-match --glob --help --hidden --invert-match --json --jsonl --judge-context --line-number --max-chars --max-count --model --no-cache --no-filename --no-stats --para --prob --quiet --recursive --stats --strict --threshold --timeout --unordered --verbose --version --whole --with-filename -A -B -C -H -L -c -e -h -j -l -m -n -o -p -q -r -v" ;;
     jsort)
-        flags="--api --asc --budget --color --concurrency --dry-run --help --json --levels --limit --max-chars --model --no-cache --no-stats --quiet --stats --strict --timeout --verbose --version --with-score -h -j -n -q -s -v" ;;
+        flags="--api --asc --budget --color --concurrency --csv --dry-run --field --help --json --jsonl --levels --limit --max-chars --model --no-cache --no-stats --quiet --stats --strict --timeout --verbose --version --with-score -h -j -n -q -s -v" ;;
     jpick)
-        flags="--api --budget --color --concurrency --dry-run --group --help --json --max-chars --model --no-cache --no-stats --quiet --stats --strict --timeout --top --verbose --version --why --with-score -h -j -q -s -v" ;;
+        flags="--api --budget --color --concurrency --csv --dry-run --field --group --help --json --jsonl --max-chars --model --no-cache --no-stats --quiet --stats --strict --timeout --top --verbose --version --why --with-score -h -j -q -s -v" ;;
     jgate)
-        flags="--all --api --budget --color --concurrency --dry-run --each --fail-open --help --json --max-chars --model --no-cache --no-stats --print --quiet --stats --strict --threshold --timeout --verbose --version -P -h -j -p -q -v" ;;
+        flags="--all --api --budget --color --concurrency --csv --dry-run --each --fail-open --field --help --json --jsonl --max-chars --model --no-cache --no-stats --print --quiet --stats --strict --threshold --timeout --verbose --version -P -h -j -p -q -v" ;;
     jwatch)
-        flags="--all-lines --api --bell --budget --color --concurrency --cooldown --dry-run --exec --help --json --max --max-chars --model --no-cache --no-stats --quiet --stats --strict --threshold --timeout --verbose --version --with-score -h -j -p -q -s -v" ;;
+        flags="--all-lines --api --bell --budget --color --concurrency --cooldown --csv --dry-run --exec --field --help --json --jsonl --max --max-chars --model --no-cache --no-stats --quiet --stats --strict --threshold --timeout --verbose --version --with-score -h -j -p -q -s -v" ;;
     juniq)
-        flags="--api --budget --color --concurrency --count --dry-run --help --json --max-chars --model --no-cache --no-stats --quiet --repeated --show-groups --stats --strict --threshold --timeout --unique --verbose --version --window -c -d -h -j -p -q -u -v -w" ;;
+        flags="--api --budget --color --concurrency --count --csv --dry-run --field --help --json --jsonl --max-chars --model --no-cache --no-stats --quiet --repeated --show-groups --stats --strict --threshold --timeout --unique --verbose --version --window -c -d -h -j -p -q -u -v -w" ;;
     jhead)
-        flags="--api --budget --color --concurrency --dry-run --help --json --levels --max-chars --model --no-cache --no-stats --quiet --reorder --stats --strict --tail --timeout --verbose --version --with-score -h -j -q -s -v" ;;
+        flags="--api --budget --color --concurrency --csv --dry-run --field --help --json --jsonl --levels --max-chars --model --no-cache --no-stats --quiet --reorder --stats --strict --tail --timeout --verbose --version --with-score -h -j -q -s -v" ;;
     jtag)
-        flags="--api --budget --color --concurrency --default --dry-run --help --json --label --labels --levels --max-chars --model --no-cache --no-stats --quiet --scale --score --sep --stats --strict --suffix --threshold --timeout --verbose --version --with-prob -h -j -p -q -v" ;;
+        flags="--api --budget --color --column --concurrency --csv --default --dry-run --field --help --json --jsonl --label --labels --levels --max-chars --model --no-cache --no-stats --quiet --scale --score --sep --stats --strict --suffix --threshold --timeout --verbose --version --with-prob -h -j -p -q -v" ;;
     jroute)
-        flags="--api --budget --color --concurrency --default --dry-run --ext --help --input --json --max-chars --model --no-cache --no-files --no-stats --out-dir --quiet --stats --stdout --strict --threshold --timeout --truncate --verbose --version -h -i -j -o -p -q -v" ;;
+        flags="--api --budget --color --concurrency --csv --default --dry-run --ext --field --help --input --json --jsonl --max-chars --model --no-cache --no-files --no-stats --out-dir --quiet --stats --stdout --strict --threshold --timeout --truncate --verbose --version -h -i -j -o -p -q -v" ;;
     jmatch)
-        flags="--api --budget --color --concurrency --dry-run --format --group --help --json --max-chars --model --no-cache --no-stats --quiet --shortlist --stats --strict --threshold --timeout --unmatched --verbose --version -h -j -p -q -v" ;;
+        flags="--api --budget --color --concurrency --csv --dry-run --field --field-b --format --group --help --json --jsonl --max-chars --model --no-cache --no-stats --quiet --shortlist --stats --strict --threshold --timeout --unmatched --verbose --version -h -j -p -q -v" ;;
     jtools)
         flags="--help --version -h"
         subs="list doctor version" ;;

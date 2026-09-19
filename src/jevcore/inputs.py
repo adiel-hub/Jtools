@@ -270,7 +270,7 @@ def _csv(stream: TextIO, name: str, input_id: int, field: str | None, max_chars:
         yield InputError(f"{name}: duplicate column names in header")
         return
     col = header.index(field) if field is not None else -1
-    header_line = _csv_line(header)
+    header_line = csv_line(header)
     while True:
         start = reader.line_num + 1
         try:
@@ -285,7 +285,7 @@ def _csv(stream: TextIO, name: str, input_id: int, field: str | None, max_chars:
         if field is not None and len(row) <= col:
             yield InputError(f"{name}:{start}: row has {len(row)} columns, expected at least {col + 1}")
             continue
-        line = _csv_line(row)
+        line = csv_line(row)
         data = dict(zip(header, row, strict=False))
         text, cut = _clip(row[col] if field is not None else line, max_chars)
         yield Record(
@@ -305,7 +305,7 @@ def _csv(stream: TextIO, name: str, input_id: int, field: str | None, max_chars:
         seq += 1
 
 
-def _csv_line(row: Sequence[str]) -> str:
+def csv_line(row: Sequence[str]) -> str:
     buf = io.StringIO()
     csv.writer(buf, lineterminator="").writerow(row)
     return buf.getvalue()

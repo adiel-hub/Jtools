@@ -25,6 +25,8 @@ jpick [options] DESCRIPTION [FILE ...]
 | `-s`, `--with-score` | prefix each line with its final-round probability |
 | `--group K` | candidates compared per call (default 12, max 40) |
 | `--json` | `{"rank", "line", "probability", "runner_up", "runner_up_probability", "source", "lineno"}` |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): the header is not a candidate, and the winner comes back with it |
+| `--field NAME` | with `--jsonl`/`--csv`: judge only this value (dotted JSON paths work), still printing the whole record |
 
 ## How it works
 

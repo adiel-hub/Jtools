@@ -88,6 +88,19 @@ RECIPES = [
         "judge a whole JSONL record",
         'jgrep --jsonl "a production deploy made outside working hours by a bot" deploys.jsonl',
     ),
+    ("triage a CSV export", 'jsort "how urgent this ticket is" --csv tickets.csv > triaged.csv'),
+    (
+        "add a label as a real column",
+        'jtag --csv --labels "bug,feature,question" --column triage tickets.csv > labelled.csv',
+    ),
+    (
+        "split an export into CSV buckets",
+        'jroute --csv "bug:something is broken" "ask:a question or a request" -i tickets.csv -o triage',
+    ),
+    (
+        "join two exports that name a column differently",
+        'jmatch --csv --field customer --field-b account_name tickets.csv accounts.csv "the same company"',
+    ),
     (
         "rank, filter on the score, tag the survivors",
         'cat leads.txt | jsort "ready to buy" --with-score | '

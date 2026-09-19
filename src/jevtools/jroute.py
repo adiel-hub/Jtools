@@ -11,6 +11,10 @@ is below the threshold go to ``--default``; lines that could not be judged go th
 ``--stdout`` selects one bucket to send to standard output, and ``--no-files`` writes none: both
 narrow what the run keeps, deliberately, and together they keep only the bucket you named. The
 count of every bucket is still reported at the end.
+
+With ``--csv`` or ``--jsonl`` a bucket is a file of the same kind as the input, not a pile of
+lines: the buckets become ``<name>.csv`` / ``<name>.jsonl``, and a CSV bucket gets the header
+when this run starts it -- appending to an earlier run's bucket does not repeat it.
 """
 
 from __future__ import annotations
@@ -32,7 +36,7 @@ from jevcore.inputs import Record, iter_records
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Choice, ChoiceAnswer
 
-from ._shared import report_input_error, report_pipeline_errors
+from ._shared import add_structured, prepare_structured, report_input_error, report_pipeline_errors, structured_kwargs
 
 PROG = "jroute"
 UNROUTED = "unrouted"
@@ -60,7 +64,9 @@ def parser() -> Parser:
         help="read this file instead of stdin (repeatable)",
     )
     ap.add_argument("-o", "--out-dir", default=".", metavar="DIR", help="where bucket files go (default: .)")
-    ap.add_argument("--ext", default=".txt", metavar="EXT", help="bucket file extension (default .txt)")
+    ap.add_argument(
+        "--ext", metavar="EXT", help="bucket file extension (default .txt, or .csv/.jsonl to match the input)"
+    )
     ap.add_argument(
         "--default",
         metavar="NAME",
@@ -70,10 +76,14 @@ def parser() -> Parser:
     ap.add_argument("--stdout", metavar="NAME", help="also copy this bucket's lines to standard output")
     ap.add_argument("--truncate", action="store_true", help="start bucket files empty instead of appending")
     ap.add_argument("--no-files", action="store_true", help="write no files (use with --json or --stdout)")
+    add_structured(ap)
     return ap
 
 
 def prepare(args: argparse.Namespace) -> None:
+    prepare_structured(args)
+    # Bucket files hold what came in, so they are named for it: a bucket of CSV rows is a .csv.
+    args.ext = args.ext if args.ext is not None else f".{args.structured}" if args.structured else ".txt"
     args.bucket_map = rubric.parse_buckets(args.buckets)
     if args.default_bucket and args.default_bucket in args.bucket_map:
         raise UsageError("--default must not be one of the judged buckets; use a separate name")
@@ -102,7 +112,8 @@ def question(args: argparse.Namespace) -> Choice:
 
 
 def dry(args: argparse.Namespace, out: IO[str]) -> int:
-    sample = (r.text for r in iter_records(args.files or None, keep_blank=False) if hasattr(r, "text"))
+    source = iter_records(args.files or None, keep_blank=False, **structured_kwargs(args))
+    sample = (r.text for r in source if hasattr(r, "text"))
     targets = ", ".join(str(Path(args.out_dir) / f"{b}{args.ext}") for b in args.bucket_map)
     return dry_run(PROG, args, {"bucket": question(args)}, sample, out, note=f"one call per line; files: {targets}")
 
@@ -117,6 +128,8 @@ class Buckets:
         self.enabled = enabled
         self.files: dict[str, IO[str]] = {}
         self.counts: dict[str, int] = {}
+        self.headers: set[str] = set()
+        """Every header seen. A bucket mixes rows from every input, so more than one is a problem."""
         self._to_empty: list[str] = []
 
     def prepare(self, names: Iterable[str]) -> None:
@@ -139,16 +152,24 @@ class Buckets:
             if path.exists():
                 path.write_text("", encoding="utf-8")
 
-    def write(self, bucket: str, line: str) -> None:
+    def write(self, bucket: str, line: str, header: str | None = None) -> None:
         self.counts[bucket] = self.counts.get(bucket, 0) + 1
+        if header is not None:
+            self.headers.add(header)
         if not self.enabled:
             return
         self._empty_the_rest()
         f = self.files.get(bucket)
         if f is None:
             self.dir.mkdir(parents=True, exist_ok=True)
-            f = open(self.dir / f"{bucket}{self.ext}", self.mode, encoding="utf-8", buffering=1)  # noqa: SIM115
+            path = self.dir / f"{bucket}{self.ext}"
+            # A CSV bucket needs its header, but only if this run is starting the file: appending
+            # to yesterday's bucket must not drop a second header line into the middle of it.
+            fresh = self.mode == "w" or not path.exists() or path.stat().st_size == 0
+            f = open(path, self.mode, encoding="utf-8", buffering=1)  # noqa: SIM115
             self.files[bucket] = f
+            if header is not None and fresh:
+                f.write(header + "\n")
         f.write(line + "\n")
 
     def close(self) -> None:
@@ -170,11 +191,11 @@ async def run(r: Run) -> int:
             raise UsageError(f"cannot write to --out-dir {args.out_dir!r}: {e.strerror or e}") from None
     buckets = Buckets(args.out_dir, args.ext, args.truncate, not args.no_files)
     buckets.prepare([*args.bucket_map, args.default_bucket or UNROUTED, UNROUTED])
-    stats = {"lines": 0, "unjudged": 0}
+    stats = {"lines": 0, "unjudged": 0, "header": 0}
     pipe: Pipeline[ChoiceAnswer | None] = Pipeline(concurrency=args.concurrency)
 
     async def judge(rec: Record) -> ChoiceAnswer | None:
-        answers = await r.judge(rec.text, {"bucket": q})
+        answers = await r.judge(rec.state, {"bucket": q})
         a = answers["bucket"] if answers else None
         return a if isinstance(a, ChoiceAnswer) else None
 
@@ -190,7 +211,7 @@ async def run(r: Run) -> int:
             bucket, prob = answer.choice, answer.probability
             if prob < args.threshold and args.default_bucket:
                 bucket = args.default_bucket
-        buckets.write(bucket, rec.shown)
+        buckets.write(bucket, rec.shown, rec.header)
         r.verbose(f"{bucket:<12} p={prob if prob is None else f'{prob:.2f}'} {rec.text[:70]}")
         if args.stdout and bucket != args.stdout:
             return  # --stdout selects what reaches stdout, in --json as much as in plain output
@@ -206,10 +227,15 @@ async def run(r: Run) -> int:
                 }
             )
         elif args.stdout:
+            if rec.header is not None and not stats["header"]:
+                stats["header"] = 1  # the bucket going to stdout is a CSV too, header and all
+                r.out.write(rec.header)
             r.out.write(rec.shown)
 
     try:
-        source = iter_records(args.files or None, max_chars=args.max_chars, stop=pipe.stop_event)
+        source = iter_records(
+            args.files or None, max_chars=args.max_chars, stop=pipe.stop_event, **structured_kwargs(args)
+        )
         result = await pipe.run(source, judge, deliver, report_input_error(r))
     finally:
         buckets.close()
@@ -218,6 +244,8 @@ async def run(r: Run) -> int:
     report_pipeline_errors(r, result)
     if not stats["lines"]:
         return r.empty_input()
+    if len(buckets.headers) > 1:
+        r.warn("the inputs do not share a header; each bucket carries the first one it was given")
     summary = ", ".join(f"{name}: {n:,}" for name, n in sorted(buckets.counts.items(), key=lambda kv: -kv[1]))
     where = "" if args.no_files else f" -> {os.path.abspath(args.out_dir)}"
     r.note(f"{stats['lines']:,} lines routed ({summary}){where}")

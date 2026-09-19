@@ -65,6 +65,26 @@ jgrep --jsonl --field message "a payment failed" events.jsonl
 jgrep --jsonl "a production deploy made outside working hours by a bot" deploys.jsonl
 ```
 
+## Spreadsheets in, spreadsheets out
+
+Every tool takes `--csv` and `--jsonl`, so a CSV goes in and a CSV comes back: the header is never
+judged as data, and it is never sorted into the middle of the output. See
+[structured input](structured.md).
+
+```bash
+# Triage a ticket export: still a CSV, still openable
+jsort "how urgent this ticket is" --csv tickets.csv > triaged.csv
+
+# Add a label as a real column, weighing the plan and the message together
+jtag --csv --labels "bug,feature,question" --column triage tickets.csv > labelled.csv
+
+# Split the export into bug.csv and ask.csv, each with the header
+jroute --csv "bug:something is broken" "ask:a question or a request" -i tickets.csv -o triage
+
+# Join two exports that name the same thing differently
+jmatch --csv --field customer --field-b account_name tickets.csv accounts.csv "the same company"
+```
+
 ## Composition
 
 ```bash

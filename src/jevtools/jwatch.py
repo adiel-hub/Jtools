@@ -7,6 +7,11 @@
 Built for ``tail -f``: every line is judged as it arrives (concurrently, printed in order) and
 only the ones that fit are printed. ``--exec`` runs a shell command per alert with ``{}``
 replaced by the shell-quoted line; ``--cooldown`` collapses bursts into one alert.
+
+``--csv`` / ``--jsonl`` make the records of a structured stream the unit: the header row is no
+longer judged as if it were data, each record goes to Jev as the object it is, and ``--exec``
+receives the whole row. What comes out is still an alert feed -- scores, markers, a bell -- so no
+header is printed; jroute and jgrep are the tools that hand back a file you can open again.
 """
 
 from __future__ import annotations
@@ -39,7 +44,14 @@ from jevcore.inputs import Record, iter_records
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Noul, NoulAnswer
 
-from ._shared import report_input_error, report_pipeline_errors, split_description
+from ._shared import (
+    add_structured,
+    prepare_structured,
+    report_input_error,
+    report_pipeline_errors,
+    split_description,
+    structured_kwargs,
+)
 
 PROG = "jwatch"
 EXEC_GRACE_SECONDS = 10.0
@@ -85,10 +97,12 @@ def parser() -> Parser:
         action="store_true",
         help="also print non-matching lines (dimmed on a terminal); a marker shows the alerts",
     )
+    add_structured(ap)
     return ap
 
 
 def prepare(args: argparse.Namespace) -> None:
+    prepare_structured(args)
     args.description, args.files = split_description(args.files)
     if args.cooldown < 0:
         raise UsageError("--cooldown must be 0 or more")
@@ -209,7 +223,8 @@ def question(args: argparse.Namespace) -> Noul:
 
 
 def dry(args: argparse.Namespace, out: IO[str]) -> int:
-    sample = (r.text for r in iter_records(args.files or None, keep_blank=False) if hasattr(r, "text"))
+    source = iter_records(args.files or None, keep_blank=False, **structured_kwargs(args))
+    sample = (r.text for r in source if hasattr(r, "text"))
     return dry_run(
         PROG,
         args,
@@ -229,7 +244,7 @@ async def run(r: Run) -> int:
     loop = asyncio.get_running_loop()
 
     async def judge(rec: Record) -> float | None:
-        answers = await r.judge(rec.text, {"fits": q})
+        answers = await r.judge(rec.state, {"fits": q})
         if not answers:
             return None
         a = answers["fits"]
@@ -304,7 +319,7 @@ async def run(r: Run) -> int:
         elif args.all_lines:
             r.out.write(f"   {rec.shown}")
 
-    source = iter_records(args.files or None, max_chars=args.max_chars, stop=pipe.stop_event)
+    source = iter_records(args.files or None, max_chars=args.max_chars, stop=pipe.stop_event, **structured_kwargs(args))
     result = await pipe.run(source, judge, deliver, report_input_error(r))
     if result.fatal is not None:
         raise result.fatal

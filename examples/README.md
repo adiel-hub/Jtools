@@ -14,3 +14,12 @@ jpick "the most urgent thing to fix" examples/tickets.txt --why
 cat examples/app.log | jgate "mentions a security incident" && echo "page security"
 jgrep -o "a payment problem" examples/inbox.txt
 ```
+
+Two of them are CSV exports, for the `--csv` mode every tool has:
+
+```bash
+jsort "how urgent this ticket is" --csv examples/tickets.csv
+jtag --csv --labels "bug,feature,question" --column triage examples/tickets.csv
+jmatch --csv --field customer --field-b account_name \
+  examples/tickets.csv examples/accounts.csv "the same company"
+```

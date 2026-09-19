@@ -34,6 +34,8 @@ argument that names an existing file is treated as a file.
 | `-u`, `--unique` | print only lines that had none |
 | `--show-groups` | print each kept line followed by its duplicates, indented |
 | `--json` | `{"line", "count", "duplicates": [...], "source", "lineno"}` per kept line |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): the header is not compared with the rows, and what survives keeps it |
+| `--field NAME` | with `--jsonl`/`--csv`: judge only this value (dotted JSON paths work), still printing the whole record |
 
 ## How it works
 

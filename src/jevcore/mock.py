@@ -6,7 +6,8 @@ simple, predictable rules:
 - a **noul** is 0.9 when a keyword from the quoted description in the question appears in the
   state, else 0.1 (``KEYWORDS`` maps words to synonyms so tests can use natural text);
 - a **choice** picks the option whose name or description shares a keyword with the state, or
-  the candidate (for ``[{"id", "text"}]`` states) whose text does; otherwise the first option;
+  the candidate (for ``[{"id", "text"}]`` or ``[{"id", "record"}]`` states) whose text does;
+  otherwise the first option;
 - a **score** counts keyword hits and maps them onto the rungs.
 
 Explicit :class:`Rule` fixtures override the heuristics. The mock also scripts failures: HTTP
@@ -160,7 +161,7 @@ class MockJev:
         options: dict[str, str] = dict(question.get("criteria") or {})
         names = list(options)
         winner: str | None = None
-        # Candidate lists: [{"id":..., "text":...}] possibly under "candidates" with a "target".
+        # Candidate lists: [{"id":..., "text"|"record":...}], possibly under "candidates" with a "target".
         candidates: list[dict[str, Any]] | None = None
         target: str | None = None
         if isinstance(state, list) and state and isinstance(state[0], dict) and "id" in state[0]:
@@ -174,7 +175,7 @@ class MockJev:
                 cid = str(cand.get("id"))
                 if cid not in options:
                     continue
-                ctext = str(cand.get("text", ""))
+                ctext = _state_text(cand.get("text", cand.get("record", "")))
                 hits_by_name[cid] = _overlap(target, ctext) if target is not None else _hits(description, ctext)
             if not any(hits_by_name.values()) and "none" in options:
                 winner = "none"

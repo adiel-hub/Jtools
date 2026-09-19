@@ -24,6 +24,8 @@ jhead [options] N DESCRIPTION [FILE ...]
 | `-s`, `--with-score` | prefix each line with its 0..1 score |
 | `--levels CSV` | your own ordered rubric, lowest first |
 | `--json` | `{"rank", "line", "score", "level", "confidence", "source", "lineno"}`; `rank` is the relevance rank, so `jq 'select(.rank==1)'` names the best line whatever order the lines came out in |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): the header is not judged, and the survivors come back with it |
+| `--field NAME` | with `--jsonl`/`--csv`: judge only this value (dotted JSON paths work), still printing the whole record |
 
 ## Behaviour
 

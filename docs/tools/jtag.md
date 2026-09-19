@@ -31,11 +31,14 @@ follows looks like `name:`. Write `\,` for a literal comma. |
 | `--score DESC` | what to rate; a parenthesised range `(0-100)` or `from 1 to 5` in it sets the output scale (a bare `2024-2025` in prose does not) |
 | `--sep CHAR` | column separator (default tab; `\t`, `,`, `|` work) |
 | `--suffix` | put the new column last instead of first |
-| `--with-prob` | also write the label's probability, or the score's confidence |
+| `--with-prob` | also write the label's probability, or the score's confidence. With `--csv`/`--jsonl` it becomes its own column (`label_probability`, `score_confidence`) rather than a second value inside the first |
 | `--default LABEL` | labels mode: use this label when the best label's probability is below `-p` |
 | `--scale LO-HI` | score mode: rescale the 0..1 score explicitly |
 | `--levels CSV` | score mode: your own ordered rubric, lowest first |
 | `--json` | labels: `{"line", "label", "probability", "probabilities"}`; score: `{"line", "score", "value", "level", "confidence"}`. A blank input line is an object too, marked `"blank": true`, so every output line parses; a line that could not be judged carries `"judged": false` |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): the header is not labelled as data, and the verdict becomes a real CSV column or JSON key rather than text glued on with `--sep` |
+| `--field NAME` | with `--jsonl`/`--csv`: judge only this value (dotted JSON paths work), still printing the whole record |
+| `--column NAME` | name the added column or key (default `label`, or `score` in score mode). A name the record already uses is reported on stderr — run jtag over its own output and the old value is replaced |
 
 ## Behaviour
 

@@ -31,6 +31,8 @@ jroute [options] "NAME:DESCRIPTION" "NAME:DESCRIPTION" ... [-i FILE]
 | `--json` | `{"bucket", "line", "probability", "probabilities", "source", "lineno"}` per line |
 | `-q` | no summary line on stderr |
 | `-v` | one line per routed line: the bucket, the probability, the text |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): buckets become `<name>.csv` / `<name>.jsonl`, each written with its own header |
+| `--field NAME` | with `--jsonl`/`--csv`: judge only this value (dotted JSON paths work), still printing the whole record |
 
 Bucket names may use letters, digits, `.`, `-` and `_`, and must not be all dots: a name becomes a
 file under `--out-dir`, and `.` or `..` would name the directory instead.

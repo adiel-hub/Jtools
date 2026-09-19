@@ -30,6 +30,8 @@ jwatch [options] DESCRIPTION [FILE ...]
 | `--bell` | ring the terminal bell |
 | `--all-lines` | also print non-matching lines, indented; alerts stand out |
 | `--json` | `{"line", "probability", "source", "lineno", "alert": true}` per alert |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): the header is not judged and `--exec` gets the whole row; the alert feed carries no header |
+| `--field NAME` | with `--jsonl`/`--csv`: judge only this value (dotted JSON paths work), still printing the whole record |
 
 ## Behaviour
 

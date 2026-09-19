@@ -7,10 +7,10 @@ around the user's words minimal and consistent.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from .errors import UsageError
-from .questions import Choice, Noul, Score
+from .questions import Choice, Noul, Score, State
 
 FIT_LEVELS: tuple[str, ...] = (
     "does not fit the description at all",
@@ -49,8 +49,17 @@ def same_meaning(description: str, index: int) -> Noul:
     )
 
 
-def candidates_state(texts: Iterable[str], ids: Iterable[str]) -> list[dict[str, str]]:
-    return [{"id": cid, "text": text} for cid, text in zip(ids, texts, strict=True)]
+def candidates_state(values: Iterable[State], ids: Iterable[str]) -> list[dict[str, State]]:
+    """The candidates jpick and jmatch choose between, each under the id the answer names.
+
+    A whole structured record arrives here as the object it is, and goes under ``record`` rather
+    than ``text``: Jev reads an object natively, and calling one "text" would be a lie about the
+    thing it is looking at.
+    """
+    return [
+        {"id": cid, "record": value} if isinstance(value, Mapping) else {"id": cid, "text": value}
+        for cid, value in zip(ids, values, strict=True)
+    ]
 
 
 def pick(description: str, ids: Sequence[str], *, allow_none: bool = False) -> Choice:

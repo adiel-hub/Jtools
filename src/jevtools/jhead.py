@@ -21,7 +21,18 @@ from jevcore.errors import UsageError
 from jevcore.inputs import iter_records
 from jevcore.questions import Score
 
-from ._shared import add_levels_option, read_all, render_scored, score_json, score_records, trace
+from ._shared import (
+    add_levels_option,
+    add_structured,
+    prepare_structured,
+    read_all,
+    render_scored,
+    score_json,
+    score_records,
+    structured_kwargs,
+    trace,
+    write_header_once,
+)
 
 PROG = "jhead"
 
@@ -42,10 +53,12 @@ def parser() -> Parser:
     ap.add_argument("--reorder", action="store_true", help="sort the survivors by score instead of input order")
     ap.add_argument("-s", "--with-score", action="store_true", help="prefix each line with its 0-1 score")
     add_levels_option(ap)
+    add_structured(ap)
     return ap
 
 
 def prepare(args: argparse.Namespace) -> None:
+    prepare_structured(args)
     positionals = list(args.files)
     if len(positionals) < 2:
         raise UsageError("usage: jhead N DESCRIPTION [FILE ...]")
@@ -65,7 +78,8 @@ def question(args: argparse.Namespace) -> Score:
 
 
 def dry(args: argparse.Namespace, out: IO[str]) -> int:
-    sample = (r.text for r in iter_records(args.files or None, keep_blank=False) if hasattr(r, "text"))
+    source = iter_records(args.files or None, keep_blank=False, **structured_kwargs(args))
+    sample = (r.text for r in source if hasattr(r, "text"))
     return dry_run(
         PROG,
         args,
@@ -102,6 +116,7 @@ async def run(r: Run) -> int:
     rank_of = {rec.seq: i for i, rec in enumerate(ranked, 1)}
     if not args.reorder:
         survivors.sort(key=lambda rec: rec.seq)
+    write_header_once(r, records, prefixed=args.with_score)
     for record in survivors:
         answer = scores[record.seq]
         if args.json:

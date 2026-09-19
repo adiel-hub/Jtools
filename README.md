@@ -183,6 +183,30 @@ the answer. It also keeps grep's `-v` for invert-match, and spells the shared on
 Exit codes: **0** ok · **1** nothing matched · **2** usage or file error · **3** no or bad key ·
 **4** API error or budget spent · **5** partial (some lines could not be judged and passed through).
 
+## CSV and JSONL in, CSV and JSONL out
+
+A spreadsheet export is not a list of lines. Read as lines, its header row costs a real decision,
+comes back with a verdict on it, and lands wherever that verdict put it — so what you get out is
+no longer a file anything will open. `--csv` and `--jsonl` make the record the unit instead:
+
+```console
+$ jsort "how urgent this ticket is" --csv examples/tickets.csv
+id,customer,plan,message
+1004,hooli,enterprise,"I was charged twice for one order, and nobody answers"
+1006,acme,enterprise,Login fails with error 500 since this morning
+1008,wayne,free,"Your support is a joke, three days without a reply"
+1001,acme,enterprise,The app crashes when I open settings
+…
+```
+
+A whole record goes to Jev **as an object**, so one description can weigh several columns at once
+(`"a paying customer who is blocked"` reads the plan and the message together); `--field NAME`
+narrows it to one value, and takes a dotted path in JSON. `jtag` adds its verdict as a real column
+or JSON key, `jroute` writes `bug.csv` and `ask.csv` each with their header, `jmatch` joins two
+exports whose columns are named differently (`--field` / `--field-b`).
+
+Full behaviour, per tool, in [docs/structured.md](docs/structured.md).
+
 ## How it works
 
 <p align="center"><img src="docs/assets/pipeline.svg" alt="pipeline" width="880"></p>

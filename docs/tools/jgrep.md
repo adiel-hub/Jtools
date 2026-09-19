@@ -36,7 +36,7 @@ jgrep [options] DESCRIPTION [FILE ...]
 | `--para`, `--whole` | judge paragraphs or whole files |
 | `-A N`/`--after-context`, `-B N`/`--before-context`, `-C N`/`--context` | print N records after / before / either side of each match, as grep does: `-` where a match has `:`, and `--` between runs that are not adjacent. What matched does not change |
 | `--judge-context N` | the different thing: show Jev the N records either side **when deciding**. Still one decision per record, and only that record prints |
-| `--jsonl`, `--csv` | judge the whole record, and print it. Jev reads a JSON object natively, so the record goes as an object rather than as text that happens to contain JSON — which is what lets one description weigh several fields at once |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): judge the whole record, and print it. Jev reads a JSON object natively, so the record goes as an object rather than as text that happens to contain JSON — which is what lets one description weigh several fields at once |
 | `--field NAME` | with `--jsonl` or `--csv`: judge only this value, still printing the full record (dotted JSON paths work) |
 | `--json` | one JSON object per match: `{"file", "line", "p", "text", ["ps"], ["record", "field"]}` |
 | `--unordered` | print as answers arrive instead of in input order |

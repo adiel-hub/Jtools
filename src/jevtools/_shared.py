@@ -54,9 +54,17 @@ while there is still something the user can do about it.
 """
 
 
-async def read_all(run: Run, files: Sequence[str], *, keep_blank: bool = False, mode: str = "lines") -> list[Record]:
+async def read_all(
+    run: Run, files: Sequence[str], *, keep_blank: bool = False, mode: str = "lines", field: str | None = None
+) -> list[Record]:
     records = await collect(
-        iter_records(files or None, mode=mode, max_chars=run.args.max_chars, keep_blank=keep_blank),
+        iter_records(
+            files or None,
+            mode=mode,
+            max_chars=run.args.max_chars,
+            keep_blank=keep_blank,
+            **structured_kwargs(run.args, field=field),
+        ),
         report_input_error(run),
     )
     if len(records) >= LARGE_INPUT:
@@ -71,7 +79,7 @@ async def score_records(run: Run, records: Sequence[Record], question: Score) ->
     """Score every record with one question, concurrently. ``None`` where judging failed (fail-open)."""
 
     async def one(record: Record) -> tuple[int, ScoreAnswer | None]:
-        answers = await run.judge(record.text, {"fit": question})
+        answers = await run.judge(record.state, {"fit": question})
         answer = answers.get("fit") if answers else None
         scored = answer if isinstance(answer, ScoreAnswer) else None
         trace(run, "-" if scored is None else f"{scored.normalized:.2f}", record)
@@ -137,3 +145,57 @@ def add_levels_option(ap: argparse.ArgumentParser) -> None:
         metavar="CSV",
         help='your own ordered rubric, lowest first, e.g. "not at all,somewhat,very" (default: a 5-rung fit scale)',
     )
+
+
+def add_structured(ap: argparse.ArgumentParser) -> None:
+    """``--jsonl`` / ``--csv`` / ``--field``, for a tool whose records are rows of a file.
+
+    Only jgrep had these, which meant a CSV handed to any other tool arrived as plain lines: the
+    header row was judged along with the data (a real call, and a nonsense row in the output) and
+    what came back was no longer a CSV anybody could open.
+    """
+    unit = ap.add_mutually_exclusive_group()
+    unit.add_argument("--jsonl", action="store_true", help="read JSON objects; judge the whole record, or just --field")
+    unit.add_argument("--csv", action="store_true", help="read CSV with a header; judge the whole row, or just --field")
+    ap.add_argument("--field", metavar="NAME", help="judge only this JSON field (dotted path) or CSV column")
+
+
+def prepare_structured(args: argparse.Namespace) -> None:
+    """Turn the flags into what :func:`jevcore.inputs.iter_records` takes. Call from ``prepare``."""
+    if args.field and not (args.jsonl or args.csv):
+        raise UsageError("--field requires --jsonl or --csv")
+    args.structured = "jsonl" if args.jsonl else "csv" if args.csv else None
+
+
+def structured_kwargs(args: argparse.Namespace, *, field: str | None = None) -> dict[str, Any]:
+    """The reader arguments for a tool that may or may not have the structured flags.
+
+    ``field`` overrides ``--field`` for one of the inputs: jmatch joins two files whose columns
+    are rarely named the same, so ``--field-b`` speaks for FILE_B and ``--field`` for the rest.
+    """
+    return {"structured": getattr(args, "structured", None), "field": field or getattr(args, "field", None)}
+
+
+def write_header_once(run: Run, records: Sequence[Record], *, prefixed: bool = False) -> None:
+    """A CSV whose rows a tool reorders or drops still has to carry its header, once and first.
+
+    Without it the output is a pile of rows with nothing saying what the columns are -- which is
+    what every tool but jgrep produced for a CSV, because none of them knew it was one.
+
+    ``prefixed`` is the tool saying it puts something in front of each row (a score, a count, a
+    line number). Then the output is a *view*, not a file: the columns no longer line up with the
+    header, so writing one would claim more than is true. Each caller passes its own flags rather
+    than this reading them off ``args``, because the same attribute means different things in
+    different tools -- ``jhead`` keeps its N in ``args.count``, which has nothing to do with
+    ``juniq``'s ``-c``.
+    """
+    if prefixed or getattr(run.args, "json", False):
+        return
+    header = next((rec.header for rec in records if rec.header), None)
+    if header is None:
+        return
+    if any(rec.header not in (None, header) for rec in records):
+        # These tools interleave rows from every input, so there is no header that describes them
+        # all. jgrep can write one per file because it never reorders; here, say so and carry on.
+        run.warn("the inputs do not share a header; the output carries the first one")
+    run.out.write(header)

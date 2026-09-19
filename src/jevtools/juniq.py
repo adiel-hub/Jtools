@@ -30,7 +30,15 @@ from jevcore.inputs import Record, iter_records
 from jevcore.io import DIM, RESET
 from jevcore.questions import NoulAnswer
 
-from ._shared import read_all, split_optional_description, trace
+from ._shared import (
+    add_structured,
+    prepare_structured,
+    read_all,
+    split_optional_description,
+    structured_kwargs,
+    trace,
+    write_header_once,
+)
 
 PROG = "juniq"
 DEFAULT_DESCRIPTION = "the same thing said in different words"
@@ -64,10 +72,12 @@ def parser() -> Parser:
     ap.add_argument("-c", "--count", action="store_true", help="prefix each kept line with the size of its group")
     ap.add_argument("-d", "--repeated", action="store_true", help="print only lines that had duplicates")
     ap.add_argument("-u", "--unique", action="store_true", help="print only lines that had no duplicates")
+    add_structured(ap)
     return ap
 
 
 def prepare(args: argparse.Namespace) -> None:
+    prepare_structured(args)
     args.description, args.files = split_optional_description(args.files, DEFAULT_DESCRIPTION)
     if not 1 <= args.window <= MAX_WINDOW:
         raise UsageError(f"--window must be between 1 and {MAX_WINDOW}")
@@ -82,7 +92,8 @@ def normalise(text: str) -> str:
 
 
 def dry(args: argparse.Namespace, out: IO[str]) -> int:
-    sample = (r.text for r in iter_records(args.files or None, keep_blank=False) if hasattr(r, "text"))
+    source = iter_records(args.files or None, keep_blank=False, **structured_kwargs(args))
+    sample = (r.text for r in source if hasattr(r, "text"))
     qs = {f"k{i}": rubric.same_meaning(args.description, i) for i in range(2)}
     return dry_run(
         PROG,
@@ -125,7 +136,7 @@ async def run(r: Run) -> int:
         if not window:
             trace(r, "first", unique[i])  # nothing to compare it with; it is kept by definition
             return []
-        state = {"candidate": unique[i].text, "kept": [rec.text for rec in window]}
+        state = {"candidate": unique[i].state, "kept": [rec.state for rec in window]}
         questions = {f"k{j}": rubric.same_meaning(args.description, j) for j in range(len(window))}
         answers = await r.judge(state, questions)
         if answers is None:
@@ -168,6 +179,7 @@ async def run(r: Run) -> int:
         members.sort(key=lambda x: x.seq)
 
     kept = [rec for rec in records if rep.get(rec.seq) == rec.seq]
+    write_header_once(r, records, prefixed=args.count or args.show_groups)
     printed = 0
     for rec in kept:
         members = groups[rec.seq]

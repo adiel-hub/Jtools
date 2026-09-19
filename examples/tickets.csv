@@ -1,0 +1,9 @@
+id,customer,plan,message
+1001,acme,enterprise,The app crashes when I open settings
+1002,globex,free,Could you add a dark theme?
+1003,initech,pro,How do I reset my password?
+1004,hooli,enterprise,"I was charged twice for one order, and nobody answers"
+1005,umbrella,free,Export to CSV would save me hours every week
+1006,acme,enterprise,Login fails with error 500 since this morning
+1007,stark,pro,Is there an API for this?
+1008,wayne,free,"Your support is a joke, three days without a reply"

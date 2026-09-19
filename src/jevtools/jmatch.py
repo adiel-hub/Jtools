@@ -9,6 +9,11 @@ to Jev in groups (``--group``, default 12) as ``{"target": a, "candidates": [{id
 choice question that includes a "none" option; group winners meet in a final round. Lines in A
 whose best candidate is "none" or below the threshold are unmatched (printed with ``--unmatched``).
 A cheap word-overlap ``--shortlist`` keeps the candidate set small for large B files.
+
+``--csv`` / ``--jsonl`` read both files as records, which is what a join of two exports usually
+is: the header row stops being a candidate, and each side goes to Jev as the object it is, so one
+description can weigh several columns at once. Joined files rarely name their columns alike, so
+``--field`` speaks for FILE_A and ``--field-b`` for FILE_B.
 """
 
 from __future__ import annotations
@@ -30,7 +35,7 @@ from jevcore.inputs import Record, iter_records
 from jevcore.io import fmt_p
 from jevcore.questions import ChoiceAnswer
 
-from ._shared import read_all, trace, unescape
+from ._shared import add_structured, prepare_structured, read_all, structured_kwargs, trace, unescape
 
 PROG = "jmatch"
 DEFAULT_GROUP = 12
@@ -72,10 +77,15 @@ def parser() -> Parser:
         metavar="M",
         help="only consider the M candidates sharing the most words with each A line (a free prefilter)",
     )
+    add_structured(ap)
+    ap.add_argument("--field-b", metavar="NAME", help="the field or column to judge in FILE_B, when it differs")
     return ap
 
 
 def prepare(args: argparse.Namespace) -> None:
+    prepare_structured(args)
+    if args.field_b and not args.structured:
+        raise UsageError("--field-b requires --jsonl or --csv")
     if len(args.positionals) != 3:
         raise UsageError("usage: jmatch FILE_A FILE_B DESCRIPTION")
     args.file_a, args.file_b, args.description = args.positionals
@@ -101,7 +111,8 @@ def prepare(args: argparse.Namespace) -> None:
 
 
 def dry(args: argparse.Namespace, out: IO[str]) -> int:
-    sample = (r.text for r in iter_records([args.file_a], keep_blank=False) if hasattr(r, "text"))
+    source = iter_records([args.file_a], keep_blank=False, **structured_kwargs(args))
+    sample = (r.text for r in source if hasattr(r, "text"))
     ids = rubric.ids_for(min(args.group, 3))
     return dry_run(
         PROG,
@@ -128,7 +139,7 @@ async def judge_group(
 ) -> tuple[Record | None, float] | None:
     """Best candidate of one group and its probability; (None, p) when 'none' wins; None on a failed call."""
     ids = rubric.ids_for(len(group))
-    state = {"target": target.text, "candidates": rubric.candidates_state([rec.text for rec in group], ids)}
+    state = {"target": target.state, "candidates": rubric.candidates_state([rec.state for rec in group], ids)}
     answers = await run.judge(state, {"match": rubric.match(description, ids)})
     if not answers:
         return None
@@ -198,7 +209,8 @@ async def best_match(run: Run, a: Record, candidates: list[Record]) -> Match:
 
 async def run(r: Run) -> int:
     args = r.args
-    a_records, b_records = await read_all(r, [args.file_a]), await read_all(r, [args.file_b])
+    a_records = await read_all(r, [args.file_a])
+    b_records = await read_all(r, [args.file_b], field=args.field_b)
     if not a_records:
         return r.empty_input(f"{args.file_a}: no lines")
     if not b_records:

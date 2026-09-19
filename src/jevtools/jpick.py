@@ -27,7 +27,15 @@ from jevcore.inputs import Record, iter_records
 from jevcore.io import fmt_p
 from jevcore.questions import ChoiceAnswer
 
-from ._shared import read_all, split_description, trace
+from ._shared import (
+    add_structured,
+    prepare_structured,
+    read_all,
+    split_description,
+    structured_kwargs,
+    trace,
+    write_header_once,
+)
 
 PROG = "jpick"
 DEFAULT_GROUP = 12
@@ -68,10 +76,12 @@ def parser() -> Parser:
         metavar="K",
         help=f"candidates compared per call (default {DEFAULT_GROUP}, max {MAX_GROUP})",
     )
+    add_structured(ap)
     return ap
 
 
 def prepare(args: argparse.Namespace) -> None:
+    prepare_structured(args)
     args.description, args.files = split_description(args.files)
     if args.top < 1:
         raise UsageError("--top takes 1 or more")
@@ -83,7 +93,8 @@ def prepare(args: argparse.Namespace) -> None:
 
 def dry(args: argparse.Namespace, out: IO[str]) -> int:
     ids = rubric.ids_for(args.group)
-    sample = (r.text for r in iter_records(args.files or None, keep_blank=False) if hasattr(r, "text"))
+    source = iter_records(args.files or None, keep_blank=False, **structured_kwargs(args))
+    sample = (r.text for r in source if hasattr(r, "text"))
     return dry_run(
         PROG,
         args,
@@ -114,7 +125,7 @@ async def judge_group(run: Run, description: str, group: list[Record]) -> list[t
         # candidate has nothing to lose to, so it goes through without a call.
         return [(group[0], 1.0)]
     ids = rubric.ids_for(len(group))
-    state = rubric.candidates_state([rec.text for rec in group], ids)
+    state = rubric.candidates_state([rec.state for rec in group], ids)
     answers = await run.judge(state, {"best": rubric.pick(description, ids)})
     if not answers:
         return None
@@ -185,6 +196,7 @@ async def run(r: Run) -> int:
     chosen = {f.record.seq: i for i, f in enumerate(finalists, 1)}
     for record in records:
         trace(r, f"#{chosen[record.seq]}" if record.seq in chosen else "out", record)
+    write_header_once(r, records, prefixed=args.with_score)
     for rank, f in enumerate(finalists, 1):
         if args.json:
             r.out.json(

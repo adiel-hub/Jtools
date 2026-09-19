@@ -45,7 +45,15 @@ from jevcore.io import BrokenOutput
 from jevcore.pipeline import Pipeline
 from jevcore.questions import Noul, NoulAnswer
 
-from ._shared import read_all, report_input_error, report_pipeline_errors, split_description
+from ._shared import (
+    add_structured,
+    prepare_structured,
+    read_all,
+    report_input_error,
+    report_pipeline_errors,
+    split_description,
+    structured_kwargs,
+)
 
 PROG = "jgate"
 WHOLE_MAX_CHARS = 60_000
@@ -76,14 +84,20 @@ def parser() -> Parser:
     ap.add_argument(
         "--fail-open", action="store_true", help="pass (exit 0) when Jev cannot be reached, instead of exit 4"
     )
+    add_structured(ap)
     return ap
 
 
 def prepare(args: argparse.Namespace) -> None:
+    prepare_structured(args)
     args.description, args.files = split_description(args.files)
     if args.fail_open and args.strict:
         raise UsageError("--fail-open and --strict contradict each other")
     args.per_line = args.each or args.all
+    if args.structured and not args.per_line:
+        # Without --each/--all the whole input is one state, records and all; there is nothing
+        # for a per-record reader to do, and a header row is part of the document being judged.
+        raise UsageError("--jsonl and --csv need --each or --all")
     if not args.per_line and args.max_chars == DEFAULT_MAX_CHARS:
         # A whole document is the state here; the per-line default would truncate most of it.
         args.max_chars = WHOLE_MAX_CHARS
@@ -95,7 +109,8 @@ def question(args: argparse.Namespace) -> Noul:
 
 def dry(args: argparse.Namespace, out: IO[str]) -> int:
     if args.per_line:
-        sample = (r.text for r in iter_records(args.files or None, keep_blank=False) if hasattr(r, "text"))
+        source = iter_records(args.files or None, keep_blank=False, **structured_kwargs(args))
+        sample = (r.text for r in source if hasattr(r, "text"))
         note = "one call per line; " + ("ANY line" if args.each else "ALL lines") + " must reach the threshold"
     else:
         sample = (
@@ -222,7 +237,7 @@ async def gate_each(r: Run) -> int:
     pipe: Pipeline[float | None] = Pipeline(concurrency=args.concurrency, ordered=False)
 
     async def judge(rec: Record) -> float | None:
-        answers = await r.judge(rec.text, {"fits": q})  # r.judge, so --strict fails closed here too
+        answers = await r.judge(rec.state, {"fits": q})  # r.judge, so --strict fails closed here too
         if not answers:
             return None
         a = answers["fits"]
@@ -249,6 +264,14 @@ async def gate_each(r: Run) -> int:
             stats.decided = EXIT_NOMATCH
             pipe.halt()
 
+    def echo(records: Sequence[Record]) -> None:
+        """-P copies the input through, so a CSV comes out of the gate as the CSV it went in as."""
+        header = next((rec.header for rec in records if rec.header), None)
+        if header is not None:
+            r.out.write(header)
+        for rec in records:
+            r.out.write(rec.shown)
+
     source: Iterable[Item]
     if args.passthrough:
         # -P can only echo after the verdict, so the input is read first; it is then echoed
@@ -256,13 +279,14 @@ async def gate_each(r: Run) -> int:
         kept = await read_all(r, args.files, keep_blank=True)
         source = kept
     else:
-        source = iter_records(args.files or None, max_chars=args.max_chars, stop=pipe.stop_event)
+        source = iter_records(
+            args.files or None, max_chars=args.max_chars, stop=pipe.stop_event, **structured_kwargs(args)
+        )
     result = await pipe.run(source, judge, deliver, report_input_error(r))
     if result.fatal is not None:
         if isinstance(result.fatal, JevError) and args.fail_open:
             r.warn("Jev unreachable; --fail-open lets the input pass")
-            for rec in kept:
-                r.out.write(rec.shown)
+            echo(kept)
             return EXIT_OK
         raise result.fatal
     report_pipeline_errors(r, result)
@@ -299,8 +323,7 @@ async def gate_each(r: Run) -> int:
                 }
             )
         if code == EXIT_OK and args.passthrough:
-            for rec in kept:
-                r.out.write(rec.shown)
+            echo(kept)
     return code
 
 

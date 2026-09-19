@@ -26,6 +26,9 @@ Either file may be `-` for standard input (not both).
 | `--group K` | candidates compared per call (default 12, max 40) |
 | `--shortlist M` | only consider the M candidates sharing the most words with each A line (a free prefilter, not embeddings) |
 | `--json` | `{"a", "b", "score", "matched", "a_line", "b_line", "judged"}` per A line |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): both files are read as records, so neither header is a target or a candidate |
+| `--field NAME` | with `--jsonl`/`--csv`: judge only this value (dotted JSON paths work), still printing the whole record |
+| `--field-b NAME` | the field or column to judge in FILE_B, when the two exports name it differently |
 
 ## How it works
 

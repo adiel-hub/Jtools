@@ -26,6 +26,8 @@ jsort [options] DESCRIPTION [FILE ...]
 | `-s`, `--with-score` | prefix each line with its 0..1 score |
 | `--levels CSV` | your own ordered rubric, lowest first (default: a five-rung "fits the description …" scale) |
 | `--json` | `{"rank", "line", "score", "level", "confidence", "source", "lineno"}` per line |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): the header is not sorted in as data, and the output is still a CSV/JSONL |
+| `--field NAME` | with `--jsonl`/`--csv`: judge only this value (dotted JSON paths work), still printing the whole record |
 
 ## Behaviour
 

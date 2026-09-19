@@ -26,9 +26,20 @@ First public release: ten tools and the `jevcore` library.
   A label description may contain commas.
 - `jroute`: split a stream into bucket files; `--out-dir`, `--default`, `--stdout`, `--truncate`,
   `--no-files`, `-i`.
-- `jmatch`: semantic join of two files; `--unmatched`, `--format`, `--group`, `--shortlist`.
+- `jmatch`: semantic join of two files; `--unmatched`, `--format`, `--group`, `--shortlist`,
+  and `--field-b` for the column FILE_B names differently.
 - `jtools`: `list` and `doctor` (key check, a warning for a key file anyone on the machine can
   read, plus one real call with latency and cost).
+
+### Structured input
+
+`--jsonl`, `--csv` and `--field` on every tool, not only `jgrep`. A CSV or JSONL file is read as
+records: the header row is never judged as data, a whole record goes to Jev as the object it is
+(so one description can weigh several columns at once), and `--field NAME` narrows it to one value
+by name or dotted path. What comes back is still a file you can open -- rows keep their header,
+`jtag` writes a real column or JSON key (`--column NAME`), `jroute` writes `<bucket>.csv` /
+`<bucket>.jsonl` each with its own header, `jgate -P` copies the header through, and `jmatch`
+reads both sides as records. See [docs/structured.md](docs/structured.md).
 
 ### Library (`jevcore`)
 

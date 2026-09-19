@@ -342,7 +342,10 @@ async def scan(
 
     def emit(rec: Record, name: str, p: float | None, ps: list[float]) -> None:
         first_row = rec.header is not None and rec.input_id not in headers_written
-        if first_row and not (args.json or args.files_with_matches or args.files_without_match):
+        # -o, -n and a file-name prefix all put something before the row, so the columns stop
+        # lining up with the header: the output is a view then, not a file, and gets none.
+        plain = not (args.prob or args.line_number or show_file)
+        if first_row and plain and not (args.json or args.files_with_matches or args.files_without_match):
             r.out.write(rec.header or "")
             headers_written.add(rec.input_id)
         r.out.write(render(replace(rec, source=name), p, ps, args, show_file, r.out.colour))

@@ -24,6 +24,8 @@ jgate [options] DESCRIPTION [FILE ...]
 | `--fail-open` | pass (exit 0) when Jev cannot be reached, instead of exit 4 |
 | `--json` | print `{"pass", "probability", "threshold"}` (per-line modes add counts) |
 | `-v` | print the probability and the decision to stderr |
+| `--jsonl`, `--csv` | read [records, not lines](../structured.md): each record is judged whole (needs `--each`/`--all`); `-P` copies the header through |
+| `--field NAME` | with `--jsonl`/`--csv`: judge only this value (dotted JSON paths work), still printing the whole record |
 
 ## Fails closed
 

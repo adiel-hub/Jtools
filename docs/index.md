@@ -2,6 +2,7 @@
 
 - [README](../README.md): what it is, install, the ten tools, numbers
 - [Recipes](recipes.md): pipelines people actually run
+- [Structured input](structured.md): `--jsonl` and `--csv`, for files whose unit is a record
 - [Architecture](architecture.md): the primitives, the wire formats, the client, the pipeline
 - [Benchmarks](benchmarks.md): how the numbers were measured, and how to reproduce them
 - [FAQ and things to know](faq.md)
