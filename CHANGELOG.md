@@ -42,3 +42,19 @@ First public release: ten tools and the `jevcore` library.
 - Common CLI surface on every tool: `--json`, `--dry-run`, `-p`, `--model`, `--api`, `-j`,
   `--timeout`, `--budget`, `--max-chars`, `--no-cache`, `--strict`, `--color`, `--stats`.
 - Exit codes: 0 ok, 1 no match, 2 usage, 3 auth, 4 API/budget, 5 partial (some lines unjudged).
+- Records that could not be judged pass through rather than disappear; only `jgate` fails closed.
+
+### Repository
+
+- Shell completions for every command in `completions/`, generated from the argparse parsers.
+- Benchmarks in `bench/` that run the installed commands against a real endpoint and write
+  `bench/results/*.json`; the README and `docs/benchmarks.md` numbers are generated from those
+  files by `scripts/update_docs.py`, and the charts by `scripts/render_charts.py`.
+- The README's terminal screenshots are recorded runs: `scripts/record_demos.py` saves each one as
+  a cast in `docs/demo/` (asciinema v2 included) and `scripts/render_demo.py` renders the GIFs
+  and SVGs.
+- Offline test suite of 200+ tests against `MockJev`, including subprocess tests for streaming,
+  broken pipes, dead endpoints, ordering under latency and bounded concurrency, plus documentation
+  tests (links, tool pages, casts, generated blocks). Live smoke tests run one real call per tool.
+- CI on Python 3.11, 3.12 and 3.13: ruff, ruff format, mypy --strict, the offline suite, and the
+  checks that the generated docs and completions are in step.

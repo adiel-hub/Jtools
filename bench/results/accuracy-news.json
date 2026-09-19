@@ -2,7 +2,7 @@
   "backend": "vercel",
   "url": "https://ai-gateway.vercel.sh/v4/ai/evaluation-model",
   "model": "typesafe-ai/jev",
-  "when": "2026-09-19T03:26:08+00:00",
+  "when": "2026-09-19T05:08:29+00:00",
   "dataset": "AG News test split",
   "lines": 20,
   "labels": "world:news about world affairs, politics or conflict,sports:news about sports,business:news about business, markets or the economy,scitech:news about science or technology",
@@ -38,8 +38,270 @@
     "calls": 20,
     "tokens": 8665,
     "dollars": 0.000364,
-    "p50_ms": 333,
-    "seconds": 969.0,
-    "rate_limited": 85
-  }
+    "p50_ms": 313,
+    "seconds": 919.9,
+    "rate_limited": 78
+  },
+  "predictions": [
+    {
+      "text": "Fears for T N pension after talks. Unions representing workers at Turner Newall say they are 'disappointed' after talks with stricken parent firm Federal Mogul.",
+      "truth": "business",
+      "predicted": "business",
+      "probabilities": {
+        "world": 0.0,
+        "business": 1.0,
+        "scitech": 0.0,
+        "sports": 0.0,
+        "politics or conflict": 0.0,
+        "markets or the economy": 0.0
+      }
+    },
+    {
+      "text": "U.S. Gymnasts Win 3 Medals; Hamm Angry (AP). AP - Terin Humphrey and Annia Hatch got silver. Courtney Kupets got bronze. And Paul Hamm got mad. The United States upped its gymnastics medal haul to sev",
+      "truth": "sports",
+      "predicted": "sports",
+      "probabilities": {
+        "scitech": 0.0,
+        "politics or conflict": 0.0,
+        "sports": 1.0,
+        "markets or the economy": 0.0,
+        "business": 0.0,
+        "world": 0.0
+      }
+    },
+    {
+      "text": "UK growth at fastest pace in nearly 4 years. Britain #39;s economy accelerated to the fastest annual pace in nearly four years in the second quarter as manufacturing emerged from a slump and consumers",
+      "truth": "business",
+      "predicted": "markets or the economy",
+      "probabilities": {
+        "sports": 0.0,
+        "markets or the economy": 1.0,
+        "world": 0.0,
+        "scitech": 0.0,
+        "politics or conflict": 0.0,
+        "business": 0.0
+      }
+    },
+    {
+      "text": "Livewire: Fantasy Sports Leagues Thrive Online (Reuters). Reuters - Take 15 million armchair athletes, add a steady stream of statistics and mix in a healthy dollop of trash talk. Post it all on the I",
+      "truth": "scitech",
+      "predicted": "business",
+      "probabilities": {
+        "sports": 0.18,
+        "politics or conflict": 0.0,
+        "scitech": 0.01,
+        "markets or the economy": 0.02,
+        "world": 0.0,
+        "business": 0.79
+      }
+    },
+    {
+      "text": "Astronauts Briefly Fix Oxygen Generator (AP). AP - The astronauts aboard the international space station got their broken oxygen generator running after three tries Friday, but the machine shut down a",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "politics or conflict": 0.0,
+        "business": 0.0,
+        "markets or the economy": 0.0,
+        "world": 0.0,
+        "scitech": 1.0,
+        "sports": 0.0
+      }
+    },
+    {
+      "text": "After the Bell-Texas instruments up after sets share buyback. Shares of Texas Instruments Inc. (TXN.N: Quote, Profile, Research) rose after the market close on Thursday, after the chip maker said it p",
+      "truth": "business",
+      "predicted": "markets or the economy",
+      "probabilities": {
+        "markets or the economy": 0.7,
+        "business": 0.3,
+        "world": 0.0,
+        "scitech": 0.0,
+        "politics or conflict": 0.0,
+        "sports": 0.0
+      }
+    },
+    {
+      "text": "Iraq promises to release one of two high-profile women prisoners. BAGHDAD Iraq promised Wednesday to release one of two high-profile women prisoners, but officials denied the decision was linked to de",
+      "truth": "world",
+      "predicted": "politics or conflict",
+      "probabilities": {
+        "business": 0.0,
+        "sports": 0.0,
+        "world": 0.06,
+        "scitech": 0.0,
+        "markets or the economy": 0.0,
+        "politics or conflict": 0.94
+      }
+    },
+    {
+      "text": "Gas prices up 5 cents after Hurricane Ivan. CAMARILLO, Calif. - Gas prices jumped more than 5 cents a gallon in the past two weeks, largely because of supply problems related to Hurricane Ivan, an ind",
+      "truth": "scitech",
+      "predicted": "markets or the economy",
+      "probabilities": {
+        "scitech": 0.0,
+        "markets or the economy": 0.86,
+        "business": 0.14,
+        "politics or conflict": 0.0,
+        "world": 0.0,
+        "sports": 0.0
+      }
+    },
+    {
+      "text": "King's Widow Turns Focus on Voting Rights (AP). AP - The widow of Martin Luther King Jr. said the right to vote should be open to everyone in a democracy, including those who have been convicted of cr",
+      "truth": "world",
+      "predicted": "politics or conflict",
+      "probabilities": {
+        "politics or conflict": 1.0,
+        "sports": 0.0,
+        "scitech": 0.0,
+        "business": 0.0,
+        "world": 0.0,
+        "markets or the economy": 0.0
+      }
+    },
+    {
+      "text": "RIAA legal action barely gets a mention. SOMETHING INTERESTING HAPPENED in the filesharing world this week, the music industry launched another round of lawsuits against their core user base.",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "scitech": 0.79,
+        "world": 0.0,
+        "politics or conflict": 0.01,
+        "sports": 0.0,
+        "business": 0.2,
+        "markets or the economy": 0.0
+      }
+    },
+    {
+      "text": "Google Unveils Desktop Search, Takes on Microsoft. Google Inc. (GOOG.O: Quote, Profile, Research) on Thursday rolled out a preliminary version of its new desktop search tool, making the first move aga",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "scitech": 0.72,
+        "politics or conflict": 0.0,
+        "world": 0.0,
+        "markets or the economy": 0.0,
+        "sports": 0.0,
+        "business": 0.28
+      }
+    },
+    {
+      "text": "Souness Looks Forward. Newcastle boss Graeme Souness was in defiant mood tonight as he attempted to push yesterdays training ground bust-up with striker Craig Bellamy into the background.",
+      "truth": "sports",
+      "predicted": "sports",
+      "probabilities": {
+        "sports": 1.0,
+        "markets or the economy": 0.0,
+        "world": 0.0,
+        "scitech": 0.0,
+        "politics or conflict": 0.0,
+        "business": 0.0
+      }
+    },
+    {
+      "text": "Halliburton suffers loss on asbestos claims. HOUSTON -- Oilfield services giant Halliburton Co. on Tuesday swung to a loss in the third quarter ended Sept. 30, hurt by hefty charges from discontinued ",
+      "truth": "business",
+      "predicted": "business",
+      "probabilities": {
+        "markets or the economy": 0.0,
+        "sports": 0.0,
+        "world": 0.0,
+        "business": 1.0,
+        "scitech": 0.0,
+        "politics or conflict": 0.0
+      }
+    },
+    {
+      "text": "Med school move delayed to 2007. The MSU College of Human Medicine won #39;t be relocated to Grand Rapids until at least 2007, and could cost only half as much as university officials originally estim",
+      "truth": "business",
+      "predicted": "scitech",
+      "probabilities": {
+        "sports": 0.0,
+        "business": 0.28,
+        "politics or conflict": 0.01,
+        "world": 0.0,
+        "scitech": 0.7,
+        "markets or the economy": 0.01
+      }
+    },
+    {
+      "text": "Ivorian unrest poses new test for France. Two years after French forces arrived to restore order in turmoil-torn Ivory Coast, a peace agreement between Ivorian rebels and the government of President L",
+      "truth": "world",
+      "predicted": "politics or conflict",
+      "probabilities": {
+        "scitech": 0.0,
+        "markets or the economy": 0.0,
+        "business": 0.0,
+        "sports": 0.0,
+        "politics or conflict": 0.94,
+        "world": 0.06
+      }
+    },
+    {
+      "text": "Northern Irish Protestant group pledges to end violence. Northern Ireland #39;s main pro-British paramilitary group, The Ulster Defence Association (UDA), has pledged to end all violence and work towa",
+      "truth": "world",
+      "predicted": "politics or conflict",
+      "probabilities": {
+        "scitech": 0.0,
+        "business": 0.0,
+        "world": 0.0,
+        "markets or the economy": 0.0,
+        "politics or conflict": 1.0,
+        "sports": 0.0
+      }
+    },
+    {
+      "text": "Lab used by LAPD falsified DNA data. and possibly dozens -- of pending criminal cases to determine whether critical evidence was tainted or falsified during",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "sports": 0.0,
+        "business": 0.0,
+        "markets or the economy": 0.0,
+        "politics or conflict": 0.4,
+        "scitech": 0.41,
+        "world": 0.19
+      }
+    },
+    {
+      "text": "Reliance battle seen getting messier in days ahead:. Business India: Mumbai, Nov 26 : The much talked about family feud over the control of Reliance Industries, India #39;s largest industrial house, i",
+      "truth": "business",
+      "predicted": "business",
+      "probabilities": {
+        "scitech": 0.0,
+        "sports": 0.0,
+        "business": 1.0,
+        "markets or the economy": 0.0,
+        "politics or conflict": 0.0,
+        "world": 0.0
+      }
+    },
+    {
+      "text": "Freeze on anti-spam campaign. A campaign by Lycos Europe to target spam-related websites appears to have been put on hold. Earlier this week the company released a screensaver that bombarded the sites",
+      "truth": "scitech",
+      "predicted": "scitech",
+      "probabilities": {
+        "sports": 0.0,
+        "scitech": 0.97,
+        "markets or the economy": 0.0,
+        "politics or conflict": 0.0,
+        "business": 0.03,
+        "world": 0.0
+      }
+    },
+    {
+      "text": "Homeless families total 100,000. The figure for homeless families in England has topped 100,000 for the first time.",
+      "truth": "world",
+      "predicted": "politics or conflict",
+      "probabilities": {
+        "business": 0.0,
+        "sports": 0.0,
+        "scitech": 0.0,
+        "world": 0.25,
+        "markets or the economy": 0.07,
+        "politics or conflict": 0.68
+      }
+    }
+  ]
 }
