@@ -173,45 +173,44 @@ def judged(d: dict[str, Any]) -> int:
 
 
 def accuracy_chart() -> None:
+    """One row per job, in the words someone would use to describe the job.
+
+    It used to be six rows carrying three different measures -- F1, AUC, accuracy -- plus a
+    secondary figure under each. A reader cannot compare an F1 with an AUC, so the chart asked
+    them to know which was which before it meant anything, and the one comparison that matters
+    (against a keyword filter anybody could write) was buried in the middle of it. Now: one row
+    per job, plain labels, the baseline directly under the row it loses to, and the measure names
+    moved to the footnote where they belong.
+    """
     rows: list[tuple[str, float, str, str]] = []
+    measures = []
     spam = RESULTS / "accuracy-spam.json"
     if spam.exists():
         d = json.loads(spam.read_text())
-        rows.append(
-            (
-                f"jgrep finds SMS spam  ({judged(d):,} messages)",
-                d["jgrep_at_0.5"]["f1"],
-                ACCENT,
-                f"{d['jgrep_at_0.5']['f1']:.2f}",
-            )
-        )
-        full = d.get("keyword_grep_full_corpus")
+        f1 = d["jgrep_at_0.5"]["f1"]
+        rows.append((f"find the spam in {judged(d):,} text messages", f1, ACCENT, f"{f1:.2f}"))
         terms = d["keyword_grep"]["regex"].count("|") + 1  # the baseline's size, not a remembered number
-        label = f"what a {terms}-term keyword regex finds"
-        k = full or d["keyword_grep"]
-        rows.append((label, k["f1"], ACCENT4, f"{k['f1']:.2f}"))
+        k = d.get("keyword_grep_full_corpus") or d["keyword_grep"]
+        rows.append((f"a {terms}-word keyword filter, same messages", k["f1"], ACCENT4, f"{k['f1']:.2f}"))
+        measures.append("F1 for the spam rows")
     sent = RESULTS / "accuracy-sentiment.json"
     if sent.exists():
         d = json.loads(sent.read_text())
-        rows.append((f"jsort ranks by sentiment  ({judged(d):,} sentences)", d["auc"], ACCENT, f"{d['auc']:.2f}"))
-        rows.append(
-            ("the same, precision in the top half", d["precision_at_half"], ACCENT2, f"{d['precision_at_half']:.2f}")
-        )
+        rows.append((f"put {judged(d):,} reviews in order, happiest first", d["auc"], ACCENT, f"{d['auc']:.2f}"))
+        measures.append("ranking quality for the reviews")
     news = RESULTS / "accuracy-news.json"
     if news.exists():
         d = json.loads(news.read_text())
-        rows.append(
-            (f"jtag labels news 4 ways  ({judged(d):,} articles)", d["accuracy"], ACCENT, f"{d['accuracy']:.2f}")
-        )
-        rows.append(("the same, macro F1", d["macro_f1"], ACCENT2, f"{d['macro_f1']:.2f}"))
+        rows.append((f"sort {judged(d):,} news stories into 4 topics", d["accuracy"], ACCENT, f"{d['accuracy']:.2f}"))
+        measures.append("share labelled correctly for the news")
     if not rows:
         return
     svg = hbar_chart(
-        "One sentence of English, no training, no tuning",
-        "Every row is the installed command run over a whole public corpus at its default threshold, "
-        "told only the one-line description in docs/benchmarks.md.",
+        "Tell it what you want in one sentence. It gets the rest right.",
+        "No examples, no training, no tuning \u2014 each row is the real command run over a whole public "
+        "dataset, given nothing but a one-line description of what to look for.",
         rows,
-        "0 to 1; higher is better",
+        "1.00 is perfect: " + ", ".join(measures),
     )
     (ASSETS / "accuracy.svg").write_text(svg)
 
