@@ -97,13 +97,6 @@ def parse_scale(text: str, *, bare: bool = False) -> tuple[float, float] | None:
     return (lo, hi) if lo != hi else None
 
 
-def parse_levels(text: str) -> tuple[str, ...]:
-    levels = tuple(part.strip() for part in text.split(",") if part.strip())
-    if len(levels) < 2:
-        raise UsageError("--levels needs at least two comma-separated levels, lowest first")
-    return levels
-
-
 NAME = r"[A-Za-z0-9._-]+"
 _LABEL_START = re.compile(rf"(?:^|,)\s*({NAME})\s*:")
 _PLAIN_ITEM = re.compile(rf"^\s*{NAME}\s*(?::|$)")
@@ -113,6 +106,14 @@ _ESCAPED_COMMA = re.compile(r"\\,")
 def _split_commas(text: str) -> list[str]:
     """Split on commas, except ``\\,`` which means a comma inside a description."""
     return [part.replace("\0", ",") for part in _ESCAPED_COMMA.sub("\0", text).split(",")]
+
+
+def parse_levels(text: str) -> tuple[str, ...]:
+    """``"low,medium,high"`` -> the rungs, lowest first. ``\\,`` is a comma inside one rung."""
+    levels = tuple(part.strip() for part in _split_commas(text) if part.strip())
+    if len(levels) < 2:
+        raise UsageError("--levels needs at least two comma-separated levels, lowest first")
+    return levels
 
 
 def parse_labels(text: str) -> dict[str, str]:

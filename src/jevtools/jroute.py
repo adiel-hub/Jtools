@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import os
+import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import IO
@@ -72,6 +73,11 @@ def prepare(args: argparse.Namespace) -> None:
     args.bucket_map = rubric.parse_buckets(args.buckets)
     if args.default_bucket and args.default_bucket in args.bucket_map:
         raise UsageError("--default must not be one of the judged buckets; use a separate name")
+    if args.default_bucket and not re.fullmatch(rubric.NAME, args.default_bucket):
+        # A bucket name becomes a file name under --out-dir; keep it a name, not a path.
+        raise UsageError("--default may only use letters, digits, dot, dash and underscore")
+    if args.ext and ("/" in args.ext or args.ext.strip(".") == ""):
+        raise UsageError("--ext must be a plain file extension, for example .txt")
     if args.stdout and args.stdout not in args.bucket_map and args.stdout != args.default_bucket:
         raise UsageError(f"--stdout {args.stdout!r} is not a bucket")
     if args.ext and not args.ext.startswith("."):

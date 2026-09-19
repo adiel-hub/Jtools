@@ -249,3 +249,17 @@ def test_parse_labels_rejects_nonsense():
         parse_labels("bad name:x,b:y")
     with pytest.raises(UsageError):
         parse_labels("a:x,a:y")
+
+
+def test_jroute_bucket_names_stay_inside_the_out_dir(invoke, tmp_path):
+    """A bucket name becomes a file name; it must not be able to name a path."""
+    out = tmp_path / "s"
+    assert invoke(jroute, ["a:x", "b:y", "-o", str(out), "--default", "../escape"], "line\n").code == 2
+    assert invoke(jroute, ["a:x", "b:y", "-o", str(out), "--ext", "../../x"], "line\n").code == 2
+    assert not (tmp_path.parent / "escape.txt").exists()
+
+
+def test_jtag_levels_may_contain_an_escaped_comma(invoke, mock):
+    res = invoke(jtag, ["--score", "how it went", "--levels", r"bad\, really bad,fine,great"], "it was fine\n")
+    assert res.code == 0
+    assert mock.bodies[0]["questions"]["tag"]["criteria"] == ["bad, really bad", "fine", "great"]
