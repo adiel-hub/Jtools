@@ -125,10 +125,6 @@ Bump `version` in `pyproject.toml` and `src/jevcore/__init__.py`, add the CHANGE
 `vX.Y.Z` and push the tag. `.github/workflows/publish.yml` builds and publishes to PyPI via
 Trusted Publishing.
 
-On the **first** release, also restore the PyPI version badge at the top of `README.md` (it is
-commented out beside the install badge that stands in for it) and drop the "once the first release
-is on PyPI" note from the install block. Until then both would point at a project that does not
-exist, and a badge reading "package or version not found" is the first thing a visitor sees.
 
 ## Code of conduct
 
