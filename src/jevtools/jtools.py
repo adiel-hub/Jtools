@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import stat
 import sys
 from collections.abc import Sequence
 from typing import IO
@@ -52,6 +53,26 @@ def list_tools(out: IO[str]) -> int:
     return EXIT_OK
 
 
+def loose_key_files() -> list[str]:
+    """A key file that anyone on the machine can read, named so the user can go and fix it.
+
+    ``~/.config/jev/*.key`` is offered as the tidy alternative to an environment variable, so the
+    tool that recommends it should say when the file is world-readable. Reported, never enforced:
+    refusing to run over a permission bit would break a container image that has no other way to
+    ship a key, and the key is the user's to handle as they see fit.
+    """
+    warnings = []
+    for backend in BACKENDS.values():
+        path = backend.key_file
+        try:
+            mode = path.stat().st_mode
+        except OSError:  # missing, or a directory we may not stat: nothing to say about it
+            continue
+        if mode & (stat.S_IRGRP | stat.S_IROTH):
+            warnings.append(f"  warning: {path} is readable by others; chmod 600 it")
+    return warnings
+
+
 async def _doctor(args: argparse.Namespace, out: IO[str], transport: httpx.AsyncBaseTransport | None) -> int:
     print(f"jev-tools {__version__}  python {sys.version.split()[0]}", file=out)
     print(f"config dir: {config_dir()}   cache dir: {cache_dir()}", file=out)
@@ -59,6 +80,8 @@ async def _doctor(args: argparse.Namespace, out: IO[str], transport: httpx.Async
     for backend in BACKENDS.values():
         state = "key found" if backend in usable else "no key"
         print(f"  {backend.name:<11} {state:<10} {backend.key_env}", file=out)
+    for warning in loose_key_files():
+        print(warning, file=out)
     try:
         creds = resolve(args.api)
     except AuthError as e:

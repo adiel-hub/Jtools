@@ -124,3 +124,35 @@ def test_a_tool_speaks_the_dialect_its_backend_uses(invoke, monkeypatch, api, en
         assert "model" not in body
     else:
         assert body.get("model"), "the model was not named in the body"
+
+
+def test_doctor_names_a_key_file_anyone_on_the_machine_can_read(tmp_path, monkeypatch):
+    """`~/.config/jev/*.key` is the tidy alternative this tool recommends; it should also say
+    when the file it recommended is world-readable."""
+    import io
+    import os
+
+    import httpx
+
+    from jevcore.mock import MockJev
+    from jevtools.jtools import main
+
+    for name in list(os.environ):
+        if name.endswith("API_KEY"):
+            monkeypatch.delenv(name, raising=False)
+    monkeypatch.delenv("vercel_api_key", raising=False)
+    cfg = tmp_path / "jev"
+    cfg.mkdir()
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    (cfg / "typesafe.key").write_text("sk-abcdefghijklmnop\n")
+    (cfg / "openrouter.key").write_text("sk-or-abcdefghijklmnop\n")
+    os.chmod(cfg / "typesafe.key", 0o644)
+    os.chmod(cfg / "openrouter.key", 0o600)
+
+    out = io.StringIO()
+    code = main(["doctor"], transport=httpx.MockTransport(MockJev()), out=out, err=io.StringIO())
+    text = out.getvalue()
+    assert code == 0
+    assert "typesafe.key is readable by others" in text
+    assert "openrouter.key" not in text, "a key file at 0600 was reported as loose"
+    assert "sk-abcdefghijklmnop" not in text, "doctor printed a key in full"

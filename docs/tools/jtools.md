@@ -25,5 +25,5 @@ ok: one call in 412 ms, 283 input tokens, $0.0000119, answered by typesafe-ai/je
 | command | does |
 |---|---|
 | `jtools list` | the ten tools and what each decides (also the default) |
-| `jtools doctor [--api NAME] [--model ID]` | check which keys are present, make one real call, report latency, tokens and cost. Exit 0 ok, 3 no or bad key, 4 call failed |
+| `jtools doctor [--api NAME] [--model ID]` | check which keys are present, warn about a key file anyone can read, make one real call, report latency, tokens and cost. Exit 0 ok, 3 no or bad key, 4 call failed |
 | `jtools version` | print the version |
