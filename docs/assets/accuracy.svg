@@ -1,25 +1,25 @@
 <svg xmlns='http://www.w3.org/2000/svg' width='760' height='328' viewBox='0 0 760 328' font-family='-apple-system, Segoe UI, Helvetica, Arial, sans-serif'>
 <rect width='760' height='328' fill='white' rx='8'/>
-<text x='20' y='30' font-size='18' font-weight='600' fill='#24292f'>Accuracy on public labelled corpora</text>
-<text x='20' y='52' font-size='12' fill='#57606a'>each row runs the installed command, uncached, at its default threshold, from the one-line description in</text>
-<text x='20' y='68' font-size='12' fill='#57606a'>docs/benchmarks.md</text>
-<text x='337' y='104' font-size='13' fill='#24292f' text-anchor='end'>jgrep finds SMS spam, F1 (n=5,574)</text>
-<rect x='347' y='90' width='268.1' height='20' rx='3' fill='#2da44e'/>
-<text x='623.1' y='105' font-size='12' fill='#24292f'>0.91</text>
-<text x='337' y='138' font-size='13' fill='#24292f' text-anchor='end'>a 17-term keyword regex, F1 (n=5,574)</text>
-<rect x='347' y='124' width='210.7' height='20' rx='3' fill='#cf222e'/>
-<text x='565.7' y='139' font-size='12' fill='#24292f'>0.72</text>
-<text x='337' y='172' font-size='13' fill='#24292f' text-anchor='end'>jsort ranks review sentiment, AUC (n=3,000)</text>
-<rect x='347' y='158' width='292.5' height='20' rx='3' fill='#2da44e'/>
-<text x='647.5' y='173' font-size='12' fill='#24292f'>1.00</text>
-<text x='337' y='206' font-size='13' fill='#24292f' text-anchor='end'>the same, precision in the top half</text>
-<rect x='347' y='192' width='293.0' height='20' rx='3' fill='#0969da'/>
+<text x='20' y='30' font-size='18' font-weight='600' fill='#24292f'>One sentence of English, no training, no tuning</text>
+<text x='20' y='52' font-size='12' fill='#57606a'>Every row is the installed command run over a whole public corpus at its default threshold, told only the one-</text>
+<text x='20' y='68' font-size='12' fill='#57606a'>line description in docs/benchmarks.md.</text>
+<text x='316' y='104' font-size='13' fill='#24292f' text-anchor='end'>jgrep finds SMS spam  (5,574 messages)</text>
+<rect x='326' y='90' width='287.3' height='20' rx='3' fill='#2da44e'/>
+<text x='621.3' y='105' font-size='12' fill='#24292f'>0.91</text>
+<text x='316' y='138' font-size='13' fill='#24292f' text-anchor='end'>what a 17-term keyword regex finds</text>
+<rect x='326' y='124' width='225.8' height='20' rx='3' fill='#cf222e'/>
+<text x='559.8' y='139' font-size='12' fill='#24292f'>0.72</text>
+<text x='316' y='172' font-size='13' fill='#24292f' text-anchor='end'>jsort ranks by sentiment  (3,000 sentences)</text>
+<rect x='326' y='158' width='313.4' height='20' rx='3' fill='#2da44e'/>
+<text x='647.4' y='173' font-size='12' fill='#24292f'>1.00</text>
+<text x='316' y='206' font-size='13' fill='#24292f' text-anchor='end'>the same, precision in the top half</text>
+<rect x='326' y='192' width='314.0' height='20' rx='3' fill='#0969da'/>
 <text x='648.0' y='207' font-size='12' fill='#24292f'>1.00</text>
-<text x='337' y='240' font-size='13' fill='#24292f' text-anchor='end'>jtag labels AG News 4 ways, accuracy (n=7,600)</text>
-<rect x='347' y='226' width='254.2' height='20' rx='3' fill='#2da44e'/>
-<text x='609.2' y='241' font-size='12' fill='#24292f'>0.87</text>
-<text x='337' y='274' font-size='13' fill='#24292f' text-anchor='end'>the same, macro F1</text>
-<rect x='347' y='260' width='253.7' height='20' rx='3' fill='#0969da'/>
-<text x='608.7' y='275' font-size='12' fill='#24292f'>0.86</text>
+<text x='316' y='240' font-size='13' fill='#24292f' text-anchor='end'>jtag labels news 4 ways  (7,600 articles)</text>
+<rect x='326' y='226' width='272.5' height='20' rx='3' fill='#2da44e'/>
+<text x='606.5' y='241' font-size='12' fill='#24292f'>0.87</text>
+<text x='316' y='274' font-size='13' fill='#24292f' text-anchor='end'>the same, macro F1</text>
+<rect x='326' y='260' width='271.9' height='20' rx='3' fill='#0969da'/>
+<text x='605.9' y='275' font-size='12' fill='#24292f'>0.86</text>
 <text x='740' y='314' font-size='11' fill='#57606a' text-anchor='end'>0 to 1; higher is better</text>
 </svg>

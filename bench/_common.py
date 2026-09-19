@@ -79,6 +79,10 @@ def parse_stats(stderr: str) -> dict[str, Any]:
         out["seconds"] = float(m.group(1))
     if m := re.search(r"(\d+) rate-limited", line):
         out["rate_limited"] = int(m.group(1))
+    if m := re.search(r"([\d,]+) retries", line):
+        # What a concurrency sweep is really measuring past the knee: the backend stops keeping up
+        # and the extra requests come back as retries rather than as throughput.
+        out["retries"] = int(m.group(1).replace(",", ""))
     return out
 
 

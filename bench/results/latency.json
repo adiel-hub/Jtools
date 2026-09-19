@@ -2,15 +2,15 @@
   "backend": "vercel",
   "url": "https://ai-gateway.vercel.sh/v4/ai/evaluation-model",
   "model": "typesafe-ai/jev",
-  "build": "0.1.0+f6af022",
-  "when": "2026-09-19T10:13:09+00:00",
+  "build": "0.1.0+8174086",
+  "when": "2026-09-19T10:42:47+00:00",
   "single": {
     "n": 60,
-    "p50_ms": 251,
-    "p95_ms": 331,
-    "mean_ms": 259,
-    "wall_p50_ms": 252,
-    "wall_p95_ms": 331,
+    "p50_ms": 238,
+    "p95_ms": 378,
+    "mean_ms": 251,
+    "wall_p50_ms": 238,
+    "wall_p95_ms": 379,
     "tokens_per_call": 302,
     "dollars_per_call": 1.268e-05,
     "dollars_per_1000": 0.01268,
@@ -20,19 +20,19 @@
   "batching": [
     {
       "questions_per_call": 1,
-      "p50_ms": 240,
+      "p50_ms": 250,
       "tokens_per_call": 305,
       "dollars_per_call": 1.281e-05
     },
     {
       "questions_per_call": 4,
-      "p50_ms": 252,
+      "p50_ms": 249,
       "tokens_per_call": 363,
       "dollars_per_call": 1.525e-05
     },
     {
       "questions_per_call": 16,
-      "p50_ms": 240,
+      "p50_ms": 260,
       "tokens_per_call": 589,
       "dollars_per_call": 2.474e-05
     }
@@ -45,8 +45,9 @@
       "tokens": 181090,
       "dollars": 0.0076,
       "p50_ms": 237,
-      "seconds": 148.2,
-      "lines_per_second": 4.05
+      "seconds": 150.4,
+      "retries": 2,
+      "lines_per_second": 3.99
     },
     {
       "jobs": 8,
@@ -54,9 +55,21 @@
       "calls": 600,
       "tokens": 181090,
       "dollars": 0.0076,
-      "p50_ms": 233,
-      "seconds": 19.0,
-      "lines_per_second": 31.58
+      "p50_ms": 237,
+      "seconds": 21.9,
+      "retries": 60,
+      "lines_per_second": 27.4
+    },
+    {
+      "jobs": 16,
+      "lines": 600,
+      "calls": 600,
+      "tokens": 181090,
+      "dollars": 0.0076,
+      "p50_ms": 243,
+      "seconds": 11.6,
+      "retries": 50,
+      "lines_per_second": 51.72
     },
     {
       "jobs": 32,
@@ -64,9 +77,32 @@
       "calls": 600,
       "tokens": 181090,
       "dollars": 0.0076,
-      "p50_ms": 236,
-      "seconds": 5.2,
-      "lines_per_second": 115.38
+      "p50_ms": 239,
+      "seconds": 6.7,
+      "retries": 83,
+      "lines_per_second": 89.55
+    },
+    {
+      "jobs": 48,
+      "lines": 600,
+      "calls": 600,
+      "tokens": 181090,
+      "dollars": 0.0076,
+      "p50_ms": 245,
+      "seconds": 5.0,
+      "retries": 77,
+      "lines_per_second": 120.0
+    },
+    {
+      "jobs": 64,
+      "lines": 600,
+      "calls": 600,
+      "tokens": 181090,
+      "dollars": 0.0076,
+      "p50_ms": 254,
+      "seconds": 5.3,
+      "retries": 122,
+      "lines_per_second": 113.21
     }
   ]
 }

@@ -23,21 +23,24 @@ unthrottled key. Pass `--n 200` instead of `--n 0` for a cheaper look.
 
 ### Latency and cost per decision
 
-Measured 2026-09-19 through **vercel** (`typesafe-ai/jev`, jev-tools 0.1.0+f6af022), 60 sequential calls, uncached.
+Measured 2026-09-19 through **vercel** (`typesafe-ai/jev`, jev-tools 0.1.0+8174086), 60 sequential calls, uncached.
 
 | measurement | value |
 |---|---:|
-| single yes/no call, p50 | 251 ms |
-| single yes/no call, p95 | 331 ms |
+| single yes/no call, p50 | 238 ms |
+| single yes/no call, p95 | 378 ms |
 | input tokens per call | 302 |
 | dollars per call | $0.000013 |
 | dollars per 1,000 decisions | $0.0127 |
-| 1 question in one call, p50 | 240 ms (305 tokens, $0.000013) |
-| 4 questions in one call, p50 | 252 ms (363 tokens, $0.000015) |
-| 16 questions in one call, p50 | 240 ms (589 tokens, $0.000025) |
-| jgrep -j 1, 600 lines | 148.2 s (4 lines/s) |
-| jgrep -j 8, 600 lines | 19.0 s (32 lines/s) |
-| jgrep -j 32, 600 lines | 5.2 s (115 lines/s) |
+| 1 question in one call, p50 | 250 ms (305 tokens, $0.000013) |
+| 4 questions in one call, p50 | 249 ms (363 tokens, $0.000015) |
+| 16 questions in one call, p50 | 260 ms (589 tokens, $0.000025) |
+| jgrep -j 1, 600 lines | 150.4 s (4 lines/s) |
+| jgrep -j 8, 600 lines | 21.9 s (27 lines/s) |
+| jgrep -j 16, 600 lines | 11.6 s (52 lines/s) |
+| jgrep -j 32, 600 lines | 6.7 s (90 lines/s) |
+| jgrep -j 48, 600 lines | 5.0 s (120 lines/s) |
+| jgrep -j 64, 600 lines | 5.3 s (113 lines/s) |
 
 ### Dollars per 1,000 yes/no decisions
 
@@ -104,6 +107,11 @@ Accuracy **0.87**, macro F1 0.86, 59.2 s, $0.1298.
   sentences and 7,600 news articles -- judged at the default threshold of 0.5, with no prompt
   tuning beyond the one-line description shown. `--n` samples a corpus instead (evenly spaced,
   fixed indices) when you want a cheaper rerun.
+- **Throughput scales with `-j`.** 600 lines take 150 s one at a time and 5 s with 48 decisions in
+  flight, and per-call latency is flat across the whole range (237-254 ms), so the speed-up is the
+  concurrency and not a different measurement. Around 32-48 is where a gateway stops answering any
+  faster. A 10,582-line file at `-j 48` took 74 seconds, 43 MB of resident memory and $0.14, with
+  every line judged.
 - **Every figure comes from one uncached pass** on a paid Vercel AI Gateway key, so nothing here
   is inflated by rate-limit waits. On a free-tier key -- throttled to a handful of requests per
   few minutes -- per-call p50 latency and per-token cost come out the same, but wall-clock times,

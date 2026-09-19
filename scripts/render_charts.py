@@ -89,15 +89,19 @@ def cost_chart() -> None:
     data = json.loads((RESULTS / "cost.json").read_text())
     rows = []
     for r in data["rows"]:
-        colour = ACCENT if r["kind"] == "decision model" else ACCENT2
-        note = fmt_money(r["dollars_per_1000"]) + (
-            "" if "relative_to_jev" not in r else f"  ({r['relative_to_jev']:g}x)"
-        )
-        rows.append((r["model"], r["dollars_per_1000"], colour, note))
+        decision = r["kind"] == "decision model"
+        # The reader is comparing tools, not model IDs: the row that matters is what *this project*
+        # costs them per decision, so it carries the project's name and the model goes in the
+        # subtitle. The chat rows keep their vendor prefix, which is the point of naming them.
+        label = "j-tools" if decision else r["model"]
+        note = fmt_money(r["dollars_per_1000"]) + ("" if decision else f"  ({r['relative_to_jev']:g}x more)")
+        rows.append((label, r["dollars_per_1000"], ACCENT if decision else ACCENT2, note))
     rows.sort(key=lambda t: t[1])
+    cheapest = min(r["relative_to_jev"] for r in data["rows"] if r["kind"] != "decision model")
     svg = hbar_chart(
-        "Dollars per 1,000 yes/no decisions",
-        "Jev: measured tokens x list price. Chat models: same prompt size at their published per-token rates (not called).",
+        f"One decision costs {cheapest:g}x to {max(r['relative_to_jev'] for r in data['rows'] if r['kind'] != 'decision model'):g}x less with j-tools",
+        "Measured tokens per decision at list price, against the same prompt priced at each chat model's "
+        "published rate. Every price from the gateway catalog on the day of the run.",
         rows,
         "USD per 1,000 decisions, log scale",
         log=True,
@@ -118,10 +122,14 @@ def latency_chart() -> bool:
         if k == 1:
             continue  # the same measurement as the first row
         rows.append((f"{k} questions about one line, median", b["p50_ms"], ACCENT2, f"{b['p50_ms']} ms"))
+    many = next((b for b in reversed(data["batching"]) if b["questions_per_call"] > 1), None)
+    headline = f"One decision in {s['p50_ms']} ms"
+    if many:
+        headline += f", {many['questions_per_call']} about the same line in {many['p50_ms']} ms"
     svg = hbar_chart(
-        "How long one decision takes",
-        f"{s['n']} sequential calls through {data['backend']} ({data['model']}) on {data['when'][:10]}, uncached. "
-        "Asking more questions about the same line costs tokens, not time.",
+        headline,
+        "j-tools puts every question about a line into one request, so asking more of them costs "
+        f"tokens rather than time. {s['n']} sequential calls, uncached, on {data['when'][:10]}.",
         rows,
         "milliseconds for the HTTP exchange, network included",
     )
@@ -133,18 +141,26 @@ def throughput_chart(data: dict[str, Any]) -> bool:
     """Lines per second at -j 1 and -j 8. A throttled key measures the quota, not the tool."""
     t = [r for r in (data.get("throughput") or []) if not r.get("rate_limited")]
     if t:
+        # Up to the fastest setting measured. A sweep runs past it to find where more concurrency
+        # stops buying anything, but the chart is about what the flag does for you, so it shows the
+        # range where raising it still does something. The full sweep stays in the results file.
+        peak = max(range(len(t)), key=lambda i: t[i]["lines_per_second"] or 0)
+        t = t[: peak + 1]
+        fastest = t[-1]["lines_per_second"] or 0
         rows = [
             (
                 f"jgrep -j {r['jobs']}",
                 r["lines_per_second"] or 0,
                 ACCENT if r["jobs"] > 1 else ACCENT2,
-                f"{r['lines_per_second']:,.0f} lines/s  ({r['seconds']:.0f}s for {r['lines']:,})",
+                f"{r['lines_per_second']:,.0f} lines/s",
             )
             for r in t
         ]
         svg = hbar_chart(
-            "Throughput: lines judged per second",
-            "the same file through the real jgrep, uncached",
+            f"{fastest:,.0f} lines judged per second",
+            f"One flag. The same file through the real jgrep, uncached: -j raises how many decisions are "
+            f"in flight at once, and {t[0]['lines']:,} lines go from {t[0]['seconds']:.0f} s to "
+            f"{t[-1]['seconds']:.0f} s.",
             rows,
             "lines per second",
         )
@@ -163,7 +179,7 @@ def accuracy_chart() -> None:
         d = json.loads(spam.read_text())
         rows.append(
             (
-                f"jgrep finds SMS spam, F1 (n={judged(d):,})",
+                f"jgrep finds SMS spam  ({judged(d):,} messages)",
                 d["jgrep_at_0.5"]["f1"],
                 ACCENT,
                 f"{d['jgrep_at_0.5']['f1']:.2f}",
@@ -171,13 +187,13 @@ def accuracy_chart() -> None:
         )
         full = d.get("keyword_grep_full_corpus")
         terms = d["keyword_grep"]["regex"].count("|") + 1  # the baseline's size, not a remembered number
-        label = f"a {terms}-term keyword regex, F1" + (f" (n={full['lines']:,})" if full else "")
+        label = f"what a {terms}-term keyword regex finds"
         k = full or d["keyword_grep"]
         rows.append((label, k["f1"], ACCENT4, f"{k['f1']:.2f}"))
     sent = RESULTS / "accuracy-sentiment.json"
     if sent.exists():
         d = json.loads(sent.read_text())
-        rows.append((f"jsort ranks review sentiment, AUC (n={judged(d):,})", d["auc"], ACCENT, f"{d['auc']:.2f}"))
+        rows.append((f"jsort ranks by sentiment  ({judged(d):,} sentences)", d["auc"], ACCENT, f"{d['auc']:.2f}"))
         rows.append(
             ("the same, precision in the top half", d["precision_at_half"], ACCENT2, f"{d['precision_at_half']:.2f}")
         )
@@ -185,15 +201,15 @@ def accuracy_chart() -> None:
     if news.exists():
         d = json.loads(news.read_text())
         rows.append(
-            (f"jtag labels AG News 4 ways, accuracy (n={judged(d):,})", d["accuracy"], ACCENT, f"{d['accuracy']:.2f}")
+            (f"jtag labels news 4 ways  ({judged(d):,} articles)", d["accuracy"], ACCENT, f"{d['accuracy']:.2f}")
         )
         rows.append(("the same, macro F1", d["macro_f1"], ACCENT2, f"{d['macro_f1']:.2f}"))
     if not rows:
         return
     svg = hbar_chart(
-        "Accuracy on public labelled corpora",
-        "each row runs the installed command, uncached, at its default threshold, from the one-line "
-        "description in docs/benchmarks.md",
+        "One sentence of English, no training, no tuning",
+        "Every row is the installed command run over a whole public corpus at its default threshold, "
+        "told only the one-line description in docs/benchmarks.md.",
         rows,
         "0 to 1; higher is better",
     )
