@@ -29,6 +29,7 @@ jgrep [options] DESCRIPTION [FILE ...]
 | `-H`, `--with-filename`, `--no-filename` | show or hide the file name |
 | `-c`, `--count` | print how many lines matched, not the lines |
 | `-l`, `--files-with-matches` | print the names of files with a match |
+| `-L`, `--files-without-match` | print the names of files with **no** match. The complement of `-l` — `-l -v` is a different question (files holding at least one non-matching line) |
 | `-m NUM`, `--max-count NUM` | stop after NUM matches per file |
 | `-q`, `--quiet` | print nothing, stop at the first match, let the exit status answer |
 | `-r`, `--recursive`, `--glob PAT`, `--exclude PAT`, `--hidden` | recursive search; skips VCS/dependency dirs and binaries |

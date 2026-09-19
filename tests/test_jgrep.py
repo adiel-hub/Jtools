@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from jevcore.mock import POISON, MockJev
 from jevtools.jgrep import main
 from tests.conftest import write
@@ -252,3 +254,38 @@ def test_a_whole_record_over_max_chars_falls_back_to_text(invoke, tmp_path):
     sent = res.mock.bodies[0]["state"]
     assert isinstance(sent, str) and len(sent) == 100, f"sent {type(sent).__name__} of {len(sent)}"
     assert "truncated" in res.err
+
+
+def test_files_without_match_is_the_complement_of_files_with_matches(invoke, tmp_path):
+    """grep's -L. `-l -v` is not the same thing and cannot stand in for it.
+
+    `-l -v` lists files holding at least one NON-matching line, which for a file that also has a
+    match is still a hit. "Which of these files never mentions a failure?" had no spelling at all.
+    """
+    hit = write(tmp_path, "hit.txt", "alpha one\nplain two\n")
+    miss = write(tmp_path, "miss.txt", "plain three\nplain four\n")
+    assert invoke(main, ["-l", "alpha", hit, miss]).lines == [hit]
+    without = invoke(main, ["-L", "alpha", hit, miss])
+    assert without.lines == [miss]
+    assert without.code == 0
+    # and the flag it is often mistaken for does not answer the same question: hit.txt holds a
+    # non-matching line too, so -l -v lists it alongside the file that never matched at all.
+    assert invoke(main, ["-l", "-v", "alpha", hit, miss]).lines == [hit, miss]
+
+
+def test_files_without_match_exits_1_when_every_file_matched(invoke, tmp_path):
+    hit = write(tmp_path, "hit.txt", "alpha one\n")
+    res = invoke(main, ["-L", "alpha", hit])
+    assert res.code == 1 and res.lines == []
+
+
+def test_files_without_match_prints_names_only(invoke, tmp_path):
+    """Not the records, and not a CSV header either: -L answers about files."""
+    csv_file = write(tmp_path, "rows.csv", "id,note\n1,plain day\n")
+    res = invoke(main, ["-L", "--csv", "--field", "note", "alpha", csv_file])
+    assert res.lines == [csv_file], f"printed more than the file name: {res.lines}"
+
+
+@pytest.mark.parametrize("flags", [["-L", "-c"], ["-L", "-l"]])
+def test_files_without_match_refuses_the_flags_it_contradicts(invoke, flags):
+    assert invoke(main, [*flags, "x"]).code == 2

@@ -95,6 +95,12 @@ def parser() -> Parser:
         action="store_true",
         help="print each file name at its first match and move on to the next file",
     )
+    ap.add_argument(
+        "-L",
+        "--files-without-match",
+        action="store_true",
+        help="print the name of each file with NO matching record",
+    )
     ap.add_argument("-m", "--max-count", type=int, metavar="NUM", help="stop each input after NUM matches")
     ap.add_argument(
         "-r",
@@ -145,6 +151,10 @@ def prepare(args: argparse.Namespace) -> None:
         raise UsageError("--whole and -C cannot be combined; a whole file has nothing around it")
     if args.files_with_matches and args.count:
         raise UsageError("-l and -c cannot be combined")
+    if args.files_without_match and args.count:
+        raise UsageError("-L and -c cannot be combined")
+    if args.files_without_match and args.files_with_matches:
+        raise UsageError("-l and -L are opposites; pick one")
     args.mode = "whole" if args.whole else "para" if args.para else "lines"
     args.structured = "jsonl" if args.jsonl else "csv" if args.csv else None
 
@@ -282,7 +292,7 @@ async def scan(
 
     def emit(rec: Record, name: str, p: float | None, ps: list[float]) -> None:
         first_row = rec.header is not None and rec.input_id not in headers_written
-        if first_row and not (args.json or args.files_with_matches):
+        if first_row and not (args.json or args.files_with_matches or args.files_without_match):
             r.out.write(rec.header or "")
             headers_written.add(rec.input_id)
         r.out.write(render(replace(rec, source=name), p, ps, args, show_file, r.out.colour))
@@ -298,7 +308,9 @@ async def scan(
             totals["unjudged"] += 1
             # Fail open: an unjudged record passes through (not with -v) so no data is silently
             # dropped. It is not a match: it is not counted and does not stop -m/-q/-l.
-            if not args.invert_match and not (args.quiet or args.count or args.files_with_matches):
+            if not args.invert_match and not (
+                args.quiet or args.count or args.files_with_matches or args.files_without_match
+            ):
                 emit(rec, name, None, [])
             return
         else:
@@ -308,12 +320,16 @@ async def scan(
         totals["matched"] += 1
         matched_here.matched += 1
         counts[where] += 1
-        if not (args.quiet or args.count):
+        if not (args.quiet or args.count or args.files_without_match):
             emit(rec, name, p, ps)
         if args.quiet:
             matched_here.stop_all = True
             pipe.halt()
-        elif args.files_with_matches or (args.max_count and matched_here.matched >= args.max_count):
+        elif (
+            args.files_with_matches
+            or args.files_without_match
+            or (args.max_count and matched_here.matched >= args.max_count)
+        ):
             pipe.halt()
 
     def on_input_error(e: InputError) -> None:
@@ -360,12 +376,28 @@ async def run(r: Run) -> int:
     if args.max_count == 0:
         counts = dict.fromkeys(range(len(files)), 0)
     else:
-        per_file = args.max_count is not None or args.files_with_matches or (args.csv and not args.json)
+        per_file = (
+            args.max_count is not None
+            or args.files_with_matches
+            or args.files_without_match
+            or (args.csv and not args.json)
+        )
         groups = [[f] for f in files] if per_file else [files]
         for i, group in enumerate(groups):
             # One group per file means input_id is always 0, so the offset carries the position.
             if await scan(r, group, show_file, totals, counts, i if per_file else 0):
                 break
+    if args.files_without_match:
+        # Every file that finished its scan without a single match. counts is keyed on the file's
+        # position, so a path repeated on the command line is answered for each occurrence, the
+        # way -c already counts them separately.
+        without = [f for i, f in enumerate(files) if not counts.get(i)]
+        if not args.quiet:
+            for f in without:
+                r.out.write(STDIN if f == "-" else f)
+        if discovery_errors or totals["input_errors"]:
+            return EXIT_USAGE
+        return partial(EXIT_OK if without else EXIT_NOMATCH, totals["unjudged"])
     if args.count and not args.quiet:
         for i, f in enumerate(files):
             name = STDIN if f == "-" else f

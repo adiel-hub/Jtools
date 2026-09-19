@@ -10,7 +10,7 @@ First public release: ten tools and the `jevcore` library.
 ### Tools
 
 - `jgrep`: grep by meaning. `-e` (several descriptions in one call), `--all`, `-v`, `-o`, `-n`,
-  `-H`, `-c`, `-l`, `-m`, `-q`, `-r` with `--glob`/`--exclude`/`--hidden`, `--para`, `--whole`,
+  `-H`, `-c`, `-l`, `-L`, `-m`, `-q`, `-r` with `--glob`/`--exclude`/`--hidden`, `--para`, `--whole`,
   `-C N` context, `--jsonl` / `--csv` (the whole record, or one `--field` of it), `--json`,
   `--unordered`.
 - `jsort`: rank lines by fit (score primitive). `--asc`, `-n`, `--with-score`, `--levels`.
