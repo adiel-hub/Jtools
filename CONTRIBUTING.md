@@ -50,6 +50,10 @@ The offline suite is the contract. Every tool is fully testable with no network:
 `serve()` runs it as a real localhost endpoint for subprocess tests (streaming, broken pipes,
 dead endpoints).
 
+The documentation is under test too: every `j*` command line printed in any Markdown file is
+pulled out and handed to that tool's own parser, so a flag that is renamed or removed fails the
+build instead of the reader.
+
 With a key in the environment, `uv run pytest -q -m live` makes one real call per tool.
 
 The tests exercise the code; one more check exercises the package. It installs the built wheel

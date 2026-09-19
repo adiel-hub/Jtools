@@ -1,0 +1,117 @@
+"""Every command line printed in the documentation must be one the tools accept.
+
+A README that shows a flag which no longer exists is worse than no README: the reader types it,
+gets `unrecognized arguments`, and stops trusting the rest of the page. So every `j*` invocation
+in every Markdown file is pulled out, split the way a shell would split it, and handed to that
+tool's own argparse parser. Nothing runs and nothing is sent; only the arguments are checked.
+
+Shell syntax the extractor cannot read (process substitution, loops, a line ending in a pipe)
+is skipped rather than guessed at, and the test asserts that it still found a healthy number of
+commands, so a broken extractor cannot quietly pass by finding nothing.
+"""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import importlib
+import io
+import re
+import shlex
+from pathlib import Path
+
+import pytest
+
+from jevtools import TOOLS
+
+ROOT = Path(__file__).resolve().parent.parent
+COMMANDS = {*TOOLS, "jtools"}
+SPLITTERS = {"|", "||", "&&", ";", "&"}
+# A prompt, a comment marker, or a continuation the extractor would have to join up.
+PROMPT = re.compile(r"^\s*(?:\$|>|#)\s*")
+FENCE = re.compile(r"^```")
+# Things whose meaning depends on a running shell; the arguments are not literal.
+UNREADABLE = ("$(", "`", "<(", ">(", "${")
+# A synopsis (`jtag [options] (--labels CSV | --score DESCRIPTION)`) describes a command's shape;
+# it is not one to run, and argparse would reject the brackets.
+SYNOPSIS = re.compile(r"[\[\]()]|\.\.\.")
+
+
+def markdown_files() -> list[Path]:
+    skip = {".venv", "node_modules", "dist", "out"}
+    return [p for p in sorted(ROOT.rglob("*.md")) if not skip & set(p.parts)]
+
+
+def code_lines(text: str) -> list[str]:
+    """Lines inside fenced blocks, plus single-backtick spans, with any prompt removed."""
+    out: list[str] = []
+    fenced = False
+    for line in text.splitlines():
+        if FENCE.match(line):
+            fenced = not fenced
+            continue
+        if fenced:
+            out.append(PROMPT.sub("", line))
+        else:
+            out.extend(span.replace("\\|", "|") for span in re.findall(r"`([^`\n]+)`", line))
+    return out
+
+
+def invocations(line: str) -> list[list[str]]:
+    """The `j*` commands in one shell line, as argv lists."""
+    line = line.strip()
+    if not line or line.endswith(("\\", "|", "&&")) or any(bad in line for bad in UNREADABLE):
+        return []
+    try:
+        tokens = shlex.split(line, comments=True)
+    except ValueError:
+        return []  # an unbalanced quote: a fragment, not a command
+    found, current = [], []
+    for token in [*tokens, ";"]:
+        if token in SPLITTERS:
+            # One bare word is the tool being named in prose, not a command line.
+            if len(current) > 1 and current[0] in COMMANDS and not any(SYNOPSIS.search(t) for t in current):
+                found.append(current)
+            current = []
+        elif token.startswith((">", "<", "2>")):
+            break  # a redirection, and everything after it is a file name
+        else:
+            current.append(token)
+    return found
+
+
+def documented() -> list[tuple[str, list[str]]]:
+    """(where it is written, argv) for every documented invocation, deduplicated."""
+    seen: set[tuple[str, ...]] = set()
+    out: list[tuple[str, list[str]]] = []
+    for md in markdown_files():
+        for line in code_lines(md.read_text()):
+            for argv in invocations(line):
+                key = tuple(argv)
+                if key not in seen:
+                    seen.add(key)
+                    out.append((md.relative_to(ROOT).as_posix(), argv))
+    return out
+
+
+DOCUMENTED = documented()
+
+
+def test_the_extractor_finds_the_documented_commands():
+    """A guard on the guard: if this drops to nothing, the test below proves nothing."""
+    assert len(DOCUMENTED) >= 40, f"only {len(DOCUMENTED)} commands found in the docs; the extractor is broken"
+    assert {argv[0] for _, argv in DOCUMENTED} == COMMANDS, "some tool is documented nowhere"
+
+
+@pytest.mark.parametrize("where,argv", DOCUMENTED, ids=[f"{w}: {' '.join(a)[:60]}" for w, a in DOCUMENTED])
+def test_a_documented_command_parses(where, argv):
+    module = importlib.import_module(f"jevtools.{argv[0]}")
+    parser: argparse.ArgumentParser = module.parser()
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            parser.parse_args(argv[1:])
+    except SystemExit as exit_:
+        # 0 is --help or --version, which is a legitimate thing to document.
+        if exit_.code:
+            pytest.fail(f"{where} shows `{' '.join(argv)}`\nbut {argv[0]} rejects it: {err.getvalue().strip()}")
