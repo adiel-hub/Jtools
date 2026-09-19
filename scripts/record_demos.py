@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLES = ROOT / "examples"
 DEMOS = ROOT / "docs" / "demo"
+MAX_GAP = 1.5  # seconds shown between two output lines, at most (see run_scene)
 
 # (name, argv, stdin file or None, title)
 SCENES: list[tuple[str, list[str], str | None, str]] = [
@@ -84,8 +85,15 @@ def run_scene(name: str, argv: list[str], stdin_file: str | None) -> dict[str, o
     )
     assert proc.stdout is not None and proc.stderr is not None
     out_events: list[tuple[float, str]] = []
+    shown_t = 0.0
+    real_prev = 0.0
     for line in proc.stdout:
-        out_events.append((round(time.perf_counter() - t0, 3), line.rstrip("\n")))
+        now = time.perf_counter() - t0
+        # Timeline compression: a free-tier key waits minutes for its quota between answers.
+        # Gaps longer than MAX_GAP are cut to MAX_GAP; the text and its order are untouched.
+        shown_t += min(MAX_GAP, now - real_prev)
+        real_prev = now
+        out_events.append((round(shown_t, 3), line.rstrip("\n")))
     err = proc.stderr.read()
     code = proc.wait()
     seconds = round(time.perf_counter() - t0, 3)
@@ -101,6 +109,8 @@ def run_scene(name: str, argv: list[str], stdin_file: str | None) -> dict[str, o
         "stderr": err.strip().splitlines(),
         "exit": code,
         "seconds": seconds,
+        "shown_seconds": round(shown_t, 3),
+        "timeline": f"gaps over {MAX_GAP}s compressed to {MAX_GAP}s; wall time {seconds}s",
     }
 
 
@@ -126,7 +136,7 @@ def asciicast(scene: dict[str, object], title: str) -> str:
     for at, line in scene["stdout"]:  # type: ignore[union-attr]
         events.append([round(base + float(at), 3), "o", line + "\r\n"])
     for line in scene["stderr"]:  # type: ignore[union-attr]
-        t = round(base + float(scene["seconds"]) + 0.05, 3)
+        t = round(base + float(scene["shown_seconds"]) + 0.05, 3)
         events.append([t, "o", f"\u001b[2m{line}\u001b[0m\r\n"])
     return "\n".join([json.dumps(header), *(json.dumps(e) for e in events)]) + "\n"
 
@@ -140,7 +150,7 @@ def main() -> None:
         (DEMOS / f"{name}.json").write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n")
         (DEMOS / f"{name}.cast").write_text(asciicast(scene, title))
         print(f"  exit {scene['exit']} in {scene['seconds']}s, {len(scene['stdout'])} lines", file=sys.stderr)  # type: ignore[arg-type]
-        time.sleep(3)  # be gentle with rate limits
+        time.sleep(5)  # be gentle with rate limits
 
 
 if __name__ == "__main__":

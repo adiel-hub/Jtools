@@ -1,0 +1,53 @@
+{
+  "name": "jsort",
+  "command": "jsort 'angriest customer first' --with-score examples/feedback.txt",
+  "stdout": [
+    [
+      900.214,
+      "0.993\tCancel my subscription immediately and refund the last charge. Worst support ever."
+    ],
+    [
+      900.214,
+      "0.975\tWHY does it log me out every five minutes?? Absolutely unacceptable."
+    ],
+    [
+      900.214,
+      "0.910\tThis is the third time checkout has failed this week. I am done with this app."
+    ],
+    [
+      900.214,
+      "0.845\tYour sales rep promised a feature that does not exist. I feel lied to."
+    ],
+    [
+      900.214,
+      "0.083\tThe mobile app is a bit slow on older phones but works fine."
+    ],
+    [
+      900.214,
+      "0.003\tPricing question: do you offer enterprise seats?"
+    ],
+    [
+      900.214,
+      "0.000\tLove the new dashboard, thanks team!"
+    ],
+    [
+      900.214,
+      "0.000\tHow do I export my data to CSV?"
+    ],
+    [
+      900.214,
+      "0.000\tEverything works as expected, no complaints."
+    ],
+    [
+      900.214,
+      "-\tWould be great to have a dark mode."
+    ]
+  ],
+  "stderr": [
+    "jsort: gave up after 900s (HTTP 429 (Free tier requests on this model are rate-limited. Upgrade to paid credits at https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dtop-up for unrestricted access.))",
+    "jsort: 1 of 10 lines could not be judged and were sorted last"
+  ],
+  "exit": 5,
+  "seconds": 900.22,
+  "title": "sort by meaning"
+}

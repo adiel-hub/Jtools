@@ -40,10 +40,11 @@ from .wire import Usage
 RETRYABLE = frozenset({408, 409, 425, 429, 500, 502, 503, 504, 529})
 THROTTLED = frozenset({429, 529})
 MAX_THROTTLE_PAUSE = 15.0
+TRICKLE_SECONDS = 120.0  # after a 429, send one request at a time for this long
+DEFAULT_CONCURRENCY = int(os.environ.get("JEV_CONCURRENCY", "20") or 20)
 FATAL_AUTH = frozenset({401, 402, 403})
 # TypeSafe reports tokens, not dollars. Its list price is $0.042 per million input tokens.
 PRICE_PER_MTOK = float(os.environ.get("JEV_PRICE_PER_MTOK", "0.042"))
-DEFAULT_CONCURRENCY = 20
 DEFAULT_TIMEOUT = float(os.environ.get("JEV_TIMEOUT", "15") or 15)
 DEFAULT_ATTEMPTS = 5
 ERROR_REPORT_INTERVAL = 60.0
@@ -184,6 +185,8 @@ class Jev:
         self.report: Callable[[str], None] = on_error or ErrorReporter(prefix=prefix)
         self._sem = asyncio.Semaphore(self.concurrency)
         self._brake_until = 0.0  # monotonic time before which nothing is sent (after a 429/529)
+        self._trickle_until = 0.0  # while set, requests go out one at a time (a rate-limited tier)
+        self._trickle = asyncio.Lock()
         self._flights: dict[str, asyncio.Future[dict[str, Answer]]] = {}
         disk: DiskCache | None = None
         if disk_cache:
@@ -289,6 +292,11 @@ class Jev:
 
     # -------------------------------------------------------------- internals
 
+    async def _wait_for_brake(self, deadline: float) -> None:
+        brake = self._brake_until - time.monotonic()
+        if brake > 0:
+            await asyncio.sleep(min(brake, max(0.0, deadline - time.monotonic())))
+
     async def _call(self, state: State, questions: Mapping[str, Question], keys: dict[str, str]) -> dict[str, Answer]:
         """One request, retried inside a total time budget. Returns answers by cache key."""
         wire = self.backend.wire
@@ -299,9 +307,7 @@ class Jev:
         async with self._sem:
             while True:
                 # After a rate limit every request waits; one 429 must not turn into twenty.
-                brake = self._brake_until - time.monotonic()
-                if brake > 0:
-                    await asyncio.sleep(min(brake, max(0.0, deadline - time.monotonic())))
+                await self._wait_for_brake(deadline)
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     break
@@ -309,9 +315,22 @@ class Jev:
                 try:
                     # httpx bounds each socket wait, not the whole exchange; wait_for bounds the
                     # complete request, including a body that dribbles in.
-                    response = await asyncio.wait_for(
-                        self.http.post(self.url, json=body, timeout=remaining), timeout=remaining
-                    )
+                    if time.monotonic() < self._trickle_until:
+                        # A rate-limited tier: releasing twenty waiters at once just earns twenty
+                        # more 429s. Send one at a time until the limit has been quiet for a while.
+                        async with self._trickle:
+                            await self._wait_for_brake(deadline)
+                            remaining = deadline - time.monotonic()
+                            if remaining <= 0:
+                                break
+                            t0 = time.perf_counter()
+                            response = await asyncio.wait_for(
+                                self.http.post(self.url, json=body, timeout=remaining), timeout=remaining
+                            )
+                    else:
+                        response = await asyncio.wait_for(
+                            self.http.post(self.url, json=body, timeout=remaining), timeout=remaining
+                        )
                 except TimeoutError:
                     last = "deadline exceeded"
                     break
@@ -339,7 +358,9 @@ class Jev:
                         throttles += 1
                         self.meter.throttled += 1
                         pause = _retry_after(response) or min(MAX_THROTTLE_PAUSE, 1.0 * 2 ** min(throttles - 1, 4))
-                        self._brake_until = max(self._brake_until, time.monotonic() + pause)
+                        now = time.monotonic()
+                        self._brake_until = max(self._brake_until, now + pause)
+                        self._trickle_until = now + TRICKLE_SECONDS
                         continue
                 attempt += 1
                 if attempt >= self.attempts:

@@ -106,7 +106,7 @@ def add_common(
         type=int,
         default=DEFAULT_CONCURRENCY,
         metavar="N",
-        help=f"requests in flight (default {DEFAULT_CONCURRENCY})",
+        help=f"requests in flight (default {DEFAULT_CONCURRENCY}, or $JEV_CONCURRENCY)",
     )
     g.add_argument(
         "--timeout",
