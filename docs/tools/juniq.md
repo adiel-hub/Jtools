@@ -49,7 +49,9 @@ itself a duplicate still pulls later lines into its group (dup-of-a-dup is a dup
 
 - Fail-open: a line that could not be compared is **kept** (data is never dropped on an error)
   and the exit status becomes 5.
-- Exit status: 0, 1 no input, 2 usage, 3 auth, 4 API, 5 partial.
+- Exit status: 0, 1 when nothing is printed (no input, or no line survived `-d`/`-u`, so
+  `juniq -d … && alert` does not fire when there are no duplicates), 2 usage or an unreadable
+  file, 3 auth, 4 API, 5 partial.
 
 ## Cost
 

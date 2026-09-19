@@ -35,7 +35,7 @@ follows looks like `name:`. Write `\,` for a literal comma. |
 | `--default LABEL` | labels mode: use this label when the best label's probability is below `-p` |
 | `--scale LO-HI` | score mode: rescale the 0..1 score explicitly |
 | `--levels CSV` | score mode: your own ordered rubric, lowest first |
-| `--json` | labels: `{"line", "label", "probability", "probabilities"}`; score: `{"line", "score", "value", "level", "confidence"}` |
+| `--json` | labels: `{"line", "label", "probability", "probabilities"}`; score: `{"line", "score", "value", "level", "confidence"}`. A blank input line is an object too, marked `"blank": true`, so every output line parses; a line that could not be judged carries `"judged": false` |
 
 ## Behaviour
 

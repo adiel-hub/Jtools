@@ -23,7 +23,7 @@ jhead [options] N DESCRIPTION [FILE ...]
 | `--reorder` | sort the survivors by score instead of input order |
 | `-s`, `--with-score` | prefix each line with its 0..1 score |
 | `--levels CSV` | your own ordered rubric, lowest first |
-| `--json` | `{"rank", "line", "score", "level", "confidence", "source", "lineno"}` |
+| `--json` | `{"rank", "line", "score", "level", "confidence", "source", "lineno"}`; `rank` is the relevance rank, so `jq 'select(.rank==1)'` names the best line whatever order the lines came out in |
 
 ## Behaviour
 
