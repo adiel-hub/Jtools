@@ -80,17 +80,35 @@ def invocations(line: str) -> list[list[str]]:
     return found
 
 
+def recorded_demos() -> list[tuple[str, str]]:
+    """(scene file, command) for every recorded demo.
+
+    These are the commands the GIFs in the README were made from. A flag that changes under them
+    means the recordings show something the tool no longer accepts.
+    """
+    import json
+
+    scenes = []
+    for scene in sorted((ROOT / "docs" / "demo").glob("*.json")):
+        command = json.loads(scene.read_text()).get("command", "")
+        if command:
+            scenes.append((scene.relative_to(ROOT).as_posix(), command))
+    return scenes
+
+
 def documented() -> list[tuple[str, list[str]]]:
     """(where it is written, argv) for every documented invocation, deduplicated."""
     seen: set[tuple[str, ...]] = set()
     out: list[tuple[str, list[str]]] = []
-    for md in markdown_files():
-        for line in code_lines(md.read_text()):
+    sources = [(md.relative_to(ROOT).as_posix(), code_lines(md.read_text())) for md in markdown_files()]
+    sources += [(where, [command]) for where, command in recorded_demos()]
+    for where, lines in sources:
+        for line in lines:
             for argv in invocations(line):
                 key = tuple(argv)
                 if key not in seen:
                     seen.add(key)
-                    out.append((md.relative_to(ROOT).as_posix(), argv))
+                    out.append((where, argv))
     return out
 
 
@@ -101,6 +119,7 @@ def test_the_extractor_finds_the_documented_commands():
     """A guard on the guard: if this drops to nothing, the test below proves nothing."""
     assert len(DOCUMENTED) >= 40, f"only {len(DOCUMENTED)} commands found in the docs; the extractor is broken"
     assert {argv[0] for _, argv in DOCUMENTED} == COMMANDS, "some tool is documented nowhere"
+    assert len(recorded_demos()) >= 10, "the recorded demos are not being checked"
 
 
 @pytest.mark.parametrize("where,argv", DOCUMENTED, ids=[f"{w}: {' '.join(a)[:60]}" for w, a in DOCUMENTED])
@@ -110,7 +129,14 @@ def test_a_documented_command_parses(where, argv):
     err = io.StringIO()
     try:
         with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
-            parser.parse_args(argv[1:])
+            # Each tool's own entry point: jevcore.cli.execute uses parse_intermixed_args, because
+            # with a repeatable positional plain parse_args rejects a flag written after the first
+            # file name. jtools has subcommands, which parse_intermixed_args cannot handle, and
+            # parses with parse_args. Checking with the wrong one would reject valid command lines.
+            if argv[0] == "jtools":
+                parser.parse_args(argv[1:])
+            else:
+                parser.parse_intermixed_args(argv[1:])
     except SystemExit as exit_:
         # 0 is --help or --version, which is a legitimate thing to document.
         if exit_.code:
