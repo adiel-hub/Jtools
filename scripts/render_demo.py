@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import textwrap
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -23,7 +24,8 @@ ASSETS = ROOT / "docs" / "assets"
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
 
-COLS, PAD, LINE_H, CHAR_W, FONT_SIZE = 96, 18, 22, 9.6, 15
+COLS, PAD, LINE_H, CHAR_W, FONT_SIZE = 104, 18, 22, 9.6, 15
+INDENT = "      "  # continuation lines of a wrapped output line
 BG, FG, DIM, GREEN, YELLOW, RED, PROMPT = "#0f1419", "#e6e6e6", "#8a8f98", "#6fd08c", "#e5c07b", "#e06c75", "#7aa2f7"
 TITLE_BG = "#1a1f26"
 SPEED = 2.0  # recorded seconds per GIF second
@@ -40,9 +42,12 @@ def colour_for_score(p: float) -> str:
     return GREEN if p >= 0.75 else YELLOW if p >= 0.4 else RED
 
 
-def wrap(text: str, width: int = COLS) -> list[str]:
+def wrap(text: str, width: int = COLS, indent: str = INDENT) -> list[str]:
+    """Word-wrap one output line the way a reader would, continuation lines indented."""
     text = text.replace("\t", "  ")
-    return [text[i : i + width] for i in range(0, max(len(text), 1), width)]
+    if len(text) <= width:
+        return [text]
+    return textwrap.wrap(text, width, subsequent_indent=indent, break_long_words=True, break_on_hyphens=False) or [""]
 
 
 def frame_size(rows: int) -> tuple[int, int]:
@@ -62,8 +67,11 @@ def draw_terminal(lines: list[tuple[str, str]], rows: int, title: str) -> Image.
     for kind, text in lines[-rows:]:
         x = PAD
         if kind == "cmd":
-            d.text((x, y), "$ ", fill=PROMPT, font=font(True))
-            d.text((x + 2 * CHAR_W, y), text, fill=FG, font=font(True))
+            if not text.startswith("    "):
+                d.text((x, y), "$ ", fill=PROMPT, font=font(True))
+                d.text((x + 2 * CHAR_W, y), text, fill=FG, font=font(True))
+            else:
+                d.text((x + 2 * CHAR_W, y), text.lstrip(), fill=FG, font=font(True))
         elif kind == "err":
             d.text((x, y), text, fill=DIM, font=font())
         elif kind == "out":
@@ -85,14 +93,17 @@ def render_gif(scene: dict, path: Path) -> None:
     cmd = scene["command"]
     out_events = scene["stdout"]
     err_lines = scene["stderr"]
-    rows = min(22, max(8, 3 + sum(len(wrap(t)) for _, t in out_events) + len(err_lines)))
+    rows = min(
+        24, max(8, 2 + len(wrap(cmd, COLS - 2, "    ")) + sum(len(wrap(t)) for _, t in out_events) + len(err_lines))
+    )
     frames: list[Image.Image] = []
     durations: list[int] = []
     # type the command
     for i in range(0, len(cmd) + 1, 2):
-        frames.append(draw_terminal([("cmd", cmd[:i] + ("▌" if i < len(cmd) else ""))], rows, scene["title"]))
+        typed = [("cmd", piece) for piece in wrap(cmd[:i] + ("▌" if i < len(cmd) else ""), COLS - 2, "    ")]
+        frames.append(draw_terminal(typed, rows, scene["title"]))
         durations.append(35)
-    lines: list[tuple[str, str]] = [("cmd", cmd)]
+    lines: list[tuple[str, str]] = [("cmd", piece) for piece in wrap(cmd, COLS - 2, "    ")]
     frames.append(draw_terminal(lines, rows, scene["title"]))
     durations.append(500)
     last_t = 0.0
@@ -118,7 +129,7 @@ def esc(s: str) -> str:
 
 def render_svg(scene: dict, path: Path) -> None:
     cmd = scene["command"]
-    body: list[tuple[str, str]] = [("cmd", cmd)]
+    body: list[tuple[str, str]] = [("cmd", piece) for piece in wrap(cmd, COLS - 2, "    ")]
     for _, text in scene["stdout"]:
         body.extend(("out", piece) for piece in wrap(text))
     body.extend(("err", piece) for text in scene["stderr"] for piece in wrap(text))
@@ -134,9 +145,10 @@ def render_svg(scene: dict, path: Path) -> None:
     y = 30 + PAD + FONT_SIZE
     for kind, text in body:
         if kind == "cmd":
-            parts.append(f'<text x="{PAD}" y="{y}" fill="{PROMPT}" font-weight="bold">$</text>')
+            if not text.startswith("    "):
+                parts.append(f'<text x="{PAD}" y="{y}" fill="{PROMPT}" font-weight="bold">$</text>')
             parts.append(
-                f'<text x="{PAD + 2 * CHAR_W}" y="{y}" fill="{FG}" font-weight="bold" xml:space="preserve">{esc(text)}</text>'
+                f'<text x="{PAD + 2 * CHAR_W}" y="{y}" fill="{FG}" font-weight="bold" xml:space="preserve">{esc(text.lstrip())}</text>'
             )
         elif kind == "err":
             parts.append(f'<text x="{PAD}" y="{y}" fill="{DIM}" xml:space="preserve">{esc(text)}</text>')

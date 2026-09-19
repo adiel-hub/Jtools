@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="110" viewBox="0 0 1034 110" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
+<rect width="1034" height="110" rx="10" fill="#0f1419"/>
+<rect width="1034" height="30" fill="#1a1f26"/>
+<circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
+<text x="80" y="20" fill="#8a8f98">grep by meaning</text>
+<text x="18" y="63" fill="#7aa2f7" font-weight="bold">$</text>
+<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">jgrep -o 'a payment problem' examples/inbox.txt</text>
+<text x="18" y="85" fill="#6fd08c" font-weight="bold">0.980</text>
+<text x="85.2" y="85" fill="#e6e6e6" xml:space="preserve">Re: invoice #4471 - paid twice, please refund one payment.</text>
+</svg>

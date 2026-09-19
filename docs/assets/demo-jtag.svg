@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="264" viewBox="0 0 1034 264" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
+<rect width="1034" height="264" rx="10" fill="#0f1419"/>
+<rect width="1034" height="30" fill="#1a1f26"/>
+<circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
+<text x="80" y="20" fill="#8a8f98">label every line</text>
+<text x="18" y="63" fill="#7aa2f7" font-weight="bold">$</text>
+<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">jtag --labels bug,feature,question,complaint examples/tickets.txt</text>
+<text x="18" y="85" fill="#e6e6e6" xml:space="preserve">bug  The app crashes when I open settings</text>
+<text x="18" y="107" fill="#e6e6e6" xml:space="preserve">feature  Could you add a dark theme?</text>
+<text x="18" y="129" fill="#e6e6e6" xml:space="preserve">question  How do I reset my password?</text>
+<text x="18" y="151" fill="#e6e6e6" xml:space="preserve">complaint  I was charged twice for one order and nobody answers</text>
+<text x="18" y="173" fill="#e6e6e6" xml:space="preserve">feature  Export to CSV would save me hours every week</text>
+<text x="18" y="195" fill="#e6e6e6" xml:space="preserve">bug  Login fails with error 500 since this morning</text>
+<text x="18" y="217" fill="#e6e6e6" xml:space="preserve">question  Is there an API for this?</text>
+<text x="18" y="239" fill="#e6e6e6" xml:space="preserve">complaint  Your support is a joke, three days without a reply</text>
+</svg>

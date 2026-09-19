@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="242" viewBox="0 0 1034 242" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
+<rect width="1034" height="242" rx="10" fill="#0f1419"/>
+<rect width="1034" height="30" fill="#1a1f26"/>
+<circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
+<text x="80" y="20" fill="#8a8f98">alert only on what matters</text>
+<text x="18" y="63" fill="#7aa2f7" font-weight="bold">$</text>
+<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">cat examples/app.log | jwatch 'something an operator should look at right now' --with-score</text>
+<text x="18" y="85" fill="#6fd08c" font-weight="bold">0.900</text>
+<text x="85.2" y="85" fill="#e6e6e6" xml:space="preserve">2026-09-18T10:00:05Z WARN  api    request POST /checkout 502 upstream payment-svc connection</text>
+<text x="18" y="107" fill="#e6e6e6" xml:space="preserve">      refused</text>
+<text x="18" y="129" fill="#6fd08c" font-weight="bold">0.930</text>
+<text x="85.2" y="129" fill="#e6e6e6" xml:space="preserve">2026-09-18T10:00:05Z ERROR api    payment-svc unreachable, 3 retries exhausted, order 88213 not</text>
+<text x="18" y="151" fill="#e6e6e6" xml:space="preserve">      charged</text>
+<text x="18" y="173" fill="#e5c07b" font-weight="bold">0.630</text>
+<text x="85.2" y="173" fill="#e6e6e6" xml:space="preserve">2026-09-18T10:00:12Z WARN  disk   nvme0 temperature 71C</text>
+<text x="18" y="195" fill="#6fd08c" font-weight="bold">0.950</text>
+<text x="85.2" y="195" fill="#e6e6e6" xml:space="preserve">2026-09-18T10:00:15Z ERROR auth   unauthorized access attempt to /admin from 10.0.0.9, 40 failed</text>
+<text x="18" y="217" fill="#e6e6e6" xml:space="preserve">      logins in 60s</text>
+</svg>

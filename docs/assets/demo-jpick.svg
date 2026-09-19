@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="132" viewBox="0 0 1034 132" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
+<rect width="1034" height="132" rx="10" fill="#0f1419"/>
+<rect width="1034" height="30" fill="#1a1f26"/>
+<circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
+<text x="80" y="20" fill="#8a8f98">choose one</text>
+<text x="18" y="63" fill="#7aa2f7" font-weight="bold">$</text>
+<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">jpick 'the most urgent thing to fix' --why examples/tickets.txt</text>
+<text x="18" y="85" fill="#e6e6e6" xml:space="preserve">I was charged twice for one order and nobody answers  # p=0.50 vs 0.42 for “Login fails with error 500</text>
+<text x="18" y="107" fill="#e6e6e6" xml:space="preserve">      since this morning”</text>
+</svg>

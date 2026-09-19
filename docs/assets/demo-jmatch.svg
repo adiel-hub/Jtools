@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1034" height="242" viewBox="0 0 1034 242" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="15px">
+<rect width="1034" height="242" rx="10" fill="#0f1419"/>
+<rect width="1034" height="30" fill="#1a1f26"/>
+<circle cx="18" cy="15" r="6" fill="#e06c75"/><circle cx="38" cy="15" r="6" fill="#e5c07b"/><circle cx="58" cy="15" r="6" fill="#6fd08c"/>
+<text x="80" y="20" fill="#8a8f98">semantic join</text>
+<text x="18" y="63" fill="#7aa2f7" font-weight="bold">$</text>
+<text x="37.2" y="63" fill="#e6e6e6" font-weight="bold" xml:space="preserve">jmatch examples/invoices.txt examples/payments.txt 'the payment that settles this invoice' --unmatched</text>
+<text x="37.2" y="85" fill="#e6e6e6" font-weight="bold" xml:space="preserve">--format '{a}  -&gt;  {b}  ({score})'</text>
+<text x="18" y="107" fill="#e6e6e6" xml:space="preserve">Invoice #1042 Acme Corp $500.00 due 2026-09-01  -&gt;  Wire from ACME CORPORATION, 500.00, memo "inv 1042"</text>
+<text x="18" y="129" fill="#e6e6e6" xml:space="preserve">      (1.000)</text>
+<text x="18" y="151" fill="#e6e6e6" xml:space="preserve">Invoice #1043 Globex Corporation $1,200.00 due 2026-09-03  -&gt;  Payment received: Globex, 1200 USD, ref</text>
+<text x="18" y="173" fill="#e6e6e6" xml:space="preserve">      GLX-0903  (0.950)</text>
+<text x="18" y="195" fill="#e6e6e6" xml:space="preserve">Invoice #1044 Initech LLC $75.50 due 2026-09-10  -&gt;  Payment received: Initech, 75.50 USD  (0.970)</text>
+<text x="18" y="217" fill="#e6e6e6" xml:space="preserve">Invoice #1045 Umbrella Co $9,800.00 due 2026-09-15  -&gt;    (-)</text>
+</svg>
