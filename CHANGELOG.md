@@ -25,7 +25,8 @@ First public release: ten tools and the `jevcore` library.
 - `jroute`: split a stream into bucket files; `--out-dir`, `--default`, `--stdout`, `--truncate`,
   `--no-files`, `-i`.
 - `jmatch`: semantic join of two files; `--unmatched`, `--format`, `--group`, `--shortlist`.
-- `jtools`: `list` and `doctor` (key check plus one real call with latency and cost).
+- `jtools`: `list` and `doctor` (key check, a warning for a key file anyone on the machine can
+  read, plus one real call with latency and cost).
 
 ### Library (`jevcore`)
 
@@ -68,8 +69,10 @@ development and the tests exist so it cannot go wrong again:
 - An unreadable input file is exit 2 in every tool, never "nothing matched", and a gate refuses
   to answer at all for input it could not read.
 - `jwatch --exec` receives the alert line as an argument, never as command text, so a log line
-  is data and not code. A spelling that would undo that, an empty command or a `{}` the user has
-  quoted, is refused rather than accepted.
+  is data and not code. A spelling that would undo that is refused rather than accepted: an empty
+  command, one that is nothing but the placeholder, a `{}` the user has quoted or escaped, and a
+  command that ends inside an open quote. A command that names the line itself — `$1`, `${1}`,
+  `$@`, `$*` — is left as written instead of being given a second copy of it.
 - `jroute --truncate` empties nothing until a line is actually routed, so a run that reads
   nothing cannot destroy the previous run's buckets.
 - Only a newline ends a line. A bare carriage return, which progress bars and some container logs
@@ -93,6 +96,8 @@ development and the tests exist so it cannot go wrong again:
 - Offline test suite of 2,300+ tests against `MockJev`, including subprocess tests for streaming,
   broken pipes, dead endpoints, ordering under latency, bounded concurrency and a real shell
   pipeline; a matrix running every tool under every flag combination against ten awkward inputs;
+  invariant tests that hold whatever Jev decides (a filter prints a subsequence of its input, `-v`
+  is its exact complement, a sort is a permutation, every routed line lands in exactly one bucket);
   and documentation tests (links, tool pages, casts, generated blocks, every flag documented,
   every command line in the docs and every recorded demo parsed by its own tool). Live smoke
   tests run one real call per tool.
